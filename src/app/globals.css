@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --rio-background: #FCFAF7;
+  --rio-surface: #FFFFFF;
+  --rio-surface-muted: #F5F0E8;
+  --rio-gold: #B58A3B;
+  --rio-gold-light: #E8D9B8;
+  --rio-gold-dark: #7F5D20;
+  --rio-ink: #292621;
+  --rio-muted: #756F66;
+  --rio-border: #E9E2D7;
+  --rio-success: #287A57;
+  --rio-warning: #A66A1E;
+  --rio-danger: #B74A45;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-rio-background: var(--rio-background);
+  --color-rio-surface: var(--rio-surface);
+  --color-rio-surface-muted: var(--rio-surface-muted);
+  --color-rio-gold: var(--rio-gold);
+  --color-rio-gold-light: var(--rio-gold-light);
+  --color-rio-gold-dark: var(--rio-gold-dark);
+  --color-rio-ink: var(--rio-ink);
+  --color-rio-muted: var(--rio-muted);
+  --color-rio-border: var(--rio-border);
+  --color-rio-success: var(--rio-success);
+  --color-rio-warning: var(--rio-warning);
+  --color-rio-danger: var(--rio-danger);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--rio-background);
+  color: var(--rio-ink);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.animate-pulse {
+  animation: pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
 }

@@ -1,0 +1,11 @@
+export function formatPrice(price: number) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0
+  }).format(price);
+}
+
+export function classNames(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
