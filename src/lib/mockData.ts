@@ -2,7 +2,7 @@ import { Product, Customer, Order } from './types';
 
 export const initialProducts: Product[] = [
   // Anillos
-  { id: 'p1', sku: 'ANI-001', name: 'Anillo Circones Clásico', category: 'Anillos', price: 45000, image: 'https://images.unsplash.com/photo-1605100804763-247f66150ce8?w=400&q=80', lowStock: false, locationCode: 'A-01-01' },
+  { id: 'p1', sku: 'ANI-001', name: 'Anillo Circones Clásico', category: 'Anillos', price: 45000, image: 'https://images.pexels.com/photos/2660161/pexels-photo-2660161.jpeg?auto=compress&cs=tinysrgb&w=400', lowStock: false, locationCode: 'A-01-01' },
   { id: 'p2', sku: 'ANI-002', name: 'Anillo Sello Liso', category: 'Anillos', price: 55000, image: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=400&q=80', lowStock: true, locationCode: 'A-01-02' },
   { id: 'p3', sku: 'ANI-003', name: 'Anillo Cruz Delgada', category: 'Anillos', price: 38000, image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&q=80', lowStock: false, locationCode: 'A-02-01' },
   // Cadenas
@@ -10,7 +10,7 @@ export const initialProducts: Product[] = [
   { id: 'p5', sku: 'CAD-002', name: 'Cadena Serpiente 50cm', category: 'Cadenas', price: 92000, image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&q=80', lowStock: true, locationCode: 'B-01-03' },
   { id: 'p6', sku: 'CAD-003', name: 'Cadena Eslabón Cubano', category: 'Cadenas', price: 110000, image: 'https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?w=400&q=80', lowStock: false, locationCode: 'B-02-01' },
   // Pulseras
-  { id: 'p7', sku: 'PUL-001', name: 'Pulsera Balines', category: 'Pulseras', price: 65000, image: 'https://images.unsplash.com/photo-1573408301185-9519f94f88ef?w=400&q=80', lowStock: false, locationCode: 'C-01-01' },
+  { id: 'p7', sku: 'PUL-001', name: 'Pulsera Balines', category: 'Pulseras', price: 65000, image: 'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=400', lowStock: false, locationCode: 'C-01-01' },
   { id: 'p8', sku: 'PUL-002', name: 'Pulsera Tejido Mágico', category: 'Pulseras', price: 72000, image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&q=80', lowStock: false, locationCode: 'C-01-02' },
   { id: 'p9', sku: 'PUL-003', name: 'Pulsera Infinito', category: 'Pulseras', price: 48000, image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&q=80', lowStock: true, locationCode: 'C-02-01' },
   // Aretes

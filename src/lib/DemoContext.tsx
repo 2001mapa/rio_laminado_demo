@@ -39,7 +39,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const DEMO_VERSION = 'v4'; // bump this to reset all users' data
+    const DEMO_VERSION = 'v5'; // bump this to reset all users' data
     const storedVersion = localStorage.getItem('rio_demo_version');
 
     if (storedVersion !== DEMO_VERSION) {
