@@ -29,8 +29,8 @@ export default function CatalogoPage() {
           <div className="h-7 w-32 bg-rio-border rounded-lg animate-pulse" />
           <div className="h-4 w-20 bg-rio-border rounded animate-pulse" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {[1,2,3,4,5,6].map(i => <ProductCardSkeleton key={i} />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {[1,2,3,4,5,6,7,8].map(i => <ProductCardSkeleton key={i} />)}
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function CatalogoPage() {
           <span className="text-[12px] text-rio-muted font-semibold">{filteredProducts.length} referencias</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {filteredProducts.map(product => (
             <ProductCard
               key={product.id}

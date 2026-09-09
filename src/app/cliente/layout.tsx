@@ -27,23 +27,52 @@ export default function ClienteLayout({
   return (
     <div className="min-h-screen bg-rio-background pb-20 md:pb-0 relative font-sans">
       {/* Top Bar */}
-      <header className="bg-rio-surface border-b border-rio-border sticky top-0 z-10 px-4 h-14 flex items-center justify-between shadow-sm">
+      <header className="bg-rio-surface border-b border-rio-border sticky top-0 z-30 px-4 md:px-8 h-14 md:h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3">
           <div className="font-serif font-black text-2xl tracking-tight text-rio-ink">RIO</div>
           <div className="text-[10px] uppercase tracking-wider bg-rio-surface-muted text-rio-gold-dark px-2.5 py-1 rounded-full font-bold border border-rio-border">
             Demo
           </div>
         </div>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-1 absolute left-1/2 -translate-x-1/2">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={classNames(
+                  "flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                  isActive ? "bg-rio-gold-light/20 text-rio-gold-dark" : "text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted"
+                )}
+              >
+                <div className="relative mr-2">
+                  <item.icon className="w-4 h-4" strokeWidth={isActive ? 2.5 : 2} />
+                  {item.badge ? (
+                    <span className="absolute -top-1.5 -right-2 bg-rio-ink text-white text-[9px] font-black min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full border-2 border-rio-surface leading-none">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  ) : null}
+                </div>
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
         <Link 
           href="/acceso-rio"
-          className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center"
+          className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center gap-2 rounded-xl hover:bg-rio-danger/5"
           title="Salir de la Demo"
         >
-          <LogOut className="w-5 h-5" />
+          <span className="hidden md:inline text-sm font-semibold text-rio-danger">Salir</span>
+          <LogOut className="w-5 h-5 text-rio-danger" />
         </Link>
       </header>
 
-      <main className="max-w-3xl mx-auto">
+      <main className="max-w-7xl mx-auto px-0 md:px-4 md:py-6">
         {children}
       </main>
 

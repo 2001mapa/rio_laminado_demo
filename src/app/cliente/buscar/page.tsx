@@ -67,7 +67,7 @@ export default function BuscarPage() {
           </p>
 
           {filteredProducts.length > 0 ? (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {filteredProducts.map(product => (
                 <div key={product.id} className="flex items-center gap-3.5 bg-rio-surface p-3.5 rounded-2xl border border-rio-border shadow-sm">
                   <div className="h-16 w-16 rounded-xl overflow-hidden bg-rio-surface-muted shrink-0 border border-rio-border">
