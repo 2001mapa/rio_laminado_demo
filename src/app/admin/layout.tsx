@@ -22,7 +22,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans">
       {/* Sidebar Desktop / Topbar Mobile */}
-      <aside className="w-full md:w-64 bg-rio-surface text-rio-ink flex flex-col md:min-h-screen shrink-0 border-r border-rio-border">
+      <aside className="w-full md:w-64 bg-rio-surface text-rio-ink flex flex-col md:min-h-screen shrink-0 border-r border-rio-border print:hidden">
         <div className="p-4 md:p-6 flex items-center justify-between md:justify-start">
           <div>
             <h1 className="font-serif font-bold text-2xl tracking-tight text-rio-ink">RIO</h1>
