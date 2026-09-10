@@ -21,20 +21,18 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const sortedItems = [...order.items].sort((a, b) => {
     const pA = products.find(p => p.id === a.productId);
     const pB = products.find(p => p.id === b.productId);
+    const catA = pA?.category || '';
+    const catB = pB?.category || '';
+    
+    // Ordenamiento primario: por categoría (tipo de prenda)
+    if (catA !== catB) return catA.localeCompare(catB);
+    
+    // Ordenamiento secundario: por ubicación en bodega
     const locA = pA?.locationCode || '';
     const locB = pB?.locationCode || '';
-    if (!locA && locB) return -1;
-    if (locA && !locB) return 1;
+    if (!locA && locB) return 1; // Sin ubicación al final
+    if (locA && !locB) return -1;
     return locA.localeCompare(locB);
-  });
-
-  const unrolledItems = sortedItems.flatMap(item => {
-    const product = products.find(p => p.id === item.productId);
-    return Array.from({ length: item.quantity }).map((_, i) => ({
-      item,
-      product,
-      index: i + 1
-    }));
   });
 
   return (
@@ -226,16 +224,19 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
       {/* Print Layout: Thermal Labels (Stickers) */}
       <div className="hidden print:grid print:grid-cols-3 w-[105mm]">
-        {unrolledItems.map((ui) => (
-          <div 
-            key={`${ui.item.id}-${ui.index}`} 
-            className="w-[32mm] h-[25mm] break-inside-avoid flex flex-col items-center justify-center text-black text-[10px] leading-tight overflow-hidden"
-          >
-            <span className="font-bold text-[9px]">{order.number}</span>
-            <span className="font-black text-[12px] my-0.5">{ui.product?.sku}</span>
-            <span className="font-bold text-[9px]">1 Und</span>
-          </div>
-        ))}
+        {sortedItems.map((item, index) => {
+          const product = products.find(p => p.id === item.productId);
+          return (
+            <div 
+              key={item.id} 
+              className="w-[32mm] h-[25mm] break-inside-avoid flex flex-col items-center justify-center text-black text-[10px] leading-tight overflow-hidden"
+            >
+              <span className="font-bold">ITM: {index + 1}</span>
+              <span className="font-bold">REF: {product?.sku}</span>
+              <span className="font-bold">Cant: x {item.quantity}</span>
+            </div>
+          );
+        })}
       </div>
     </>
   );
