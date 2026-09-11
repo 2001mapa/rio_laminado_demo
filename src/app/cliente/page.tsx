@@ -29,7 +29,7 @@ export default function CatalogoPage() {
           <div className="h-7 w-32 bg-rio-border rounded-lg animate-pulse" />
           <div className="h-4 w-20 bg-rio-border rounded animate-pulse" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {[1,2,3,4,5,6,7,8].map(i => <ProductCardSkeleton key={i} />)}
         </div>
       </div>
@@ -56,35 +56,59 @@ export default function CatalogoPage() {
         )}
 
         {/* Category Filter */}
-        <div className="flex overflow-x-auto pb-1 space-x-2 -mx-4 px-4 scrollbar-hide">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                activeCategory === cat
-                  ? 'bg-rio-ink text-white shadow-sm'
-                  : 'bg-rio-surface border border-rio-border text-rio-muted hover:bg-rio-surface-muted hover:text-rio-ink'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="sticky top-14 md:top-16 z-20 bg-rio-background pt-2 pb-3 -mx-4 px-4 shadow-sm border-b border-rio-border/50">
+          <div className="flex overflow-x-auto space-x-2 scrollbar-hide">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setActiveCategory(cat);
+                  if (cat === 'Todos') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  } else {
+                    const el = document.getElementById(`category-${cat}`);
+                    if (el) {
+                      const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }
+                }}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  activeCategory === cat
+                    ? 'bg-rio-ink text-white shadow-sm'
+                    : 'bg-rio-surface border border-rio-border text-rio-muted hover:bg-rio-surface-muted hover:text-rio-ink'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-2xl text-rio-ink font-bold">Colección</h2>
-          <span className="text-[12px] text-rio-muted font-semibold">{filteredProducts.length} referencias</span>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {filteredProducts.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onExpand={() => setSelectedProduct(product)}
-            />
-          ))}
+        <div className="space-y-8">
+          {categories.filter(c => c !== 'Todos').map(category => {
+            const categoryProducts = products.filter(p => p.category === category);
+            if (categoryProducts.length === 0) return null;
+            
+            return (
+              <div key={category} id={`category-${category}`} className="scroll-mt-24 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-serif text-2xl text-rio-ink font-bold">{category}</h2>
+                  <span className="text-[12px] text-rio-muted font-semibold">{categoryProducts.length} ref.</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                  {categoryProducts.map(product => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onExpand={() => setSelectedProduct(product)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
