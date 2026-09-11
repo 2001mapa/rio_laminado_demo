@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
 import { Plus, Minus, ShoppingBag, X, MapPin, Tag } from 'lucide-react';
@@ -148,13 +148,13 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
       {/* Clickable image */}
       <button
         onClick={onExpand}
-        className="relative aspect-square bg-rio-surface-muted w-full focus:outline-none"
+        className="relative aspect-square bg-white w-full focus:outline-none"
         aria-label={`Ver detalle de ${product.name}`}
       >
         <img
           src={product.image}
           alt={product.name}
-          className="object-cover w-full h-full mix-blend-multiply opacity-90 group-hover:opacity-100 transition-opacity"
+          className="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
         />
         {product.lowStock && (
           <div className="absolute top-2 left-2 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
@@ -254,6 +254,19 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
     }
   };
 
+  useEffect(() => {
+    window.history.pushState({ modalOpen: true }, '');
+    const onPopState = () => {
+      onClose();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [onClose]);
+
+  const handleCloseModal = () => {
+    window.history.back();
+  };
+
   const handleTouchEnd = () => {
     setInitialPinch(null);
     setZoomState({ scale: 1, x: 0, y: 0 });
@@ -262,7 +275,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={handleCloseModal}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
@@ -274,7 +287,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
       >
         {/* Close */}
         <button
-          onClick={onClose}
+          onClick={handleCloseModal}
           className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink transition-colors shadow-sm"
         >
           <X className="w-4 h-4" />
@@ -289,7 +302,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
 
         {/* Image Container with Instagram-style Pop-out Zoom */}
         <div 
-          className="relative aspect-[4/3] w-full bg-rio-surface-muted shrink-0 rounded-t-2xl z-30"
+          className="relative aspect-[4/3] w-full bg-white shrink-0 rounded-t-2xl z-30"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -299,7 +312,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
             src={product.image}
             alt={product.name}
             className={`object-cover w-full h-full transition-transform duration-75 origin-center pointer-events-none ${
-              zoomState.scale > 1 ? 'rounded-2xl shadow-2xl bg-white relative z-[100]' : 'rounded-t-2xl mix-blend-multiply z-10'
+              zoomState.scale > 1 ? 'rounded-2xl shadow-2xl bg-white relative z-[100]' : 'rounded-t-2xl z-10'
             }`}
             style={{ 
               transform: `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`,
