@@ -209,8 +209,8 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
   const { addToCart, cart } = useDemo();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
-  const [scale, setScale] = useState(1);
-  const [initialDist, setInitialDist] = useState(0);
+  const [zoomState, setZoomState] = useState({ scale: 1, x: 0, y: 0 });
+  const [initialPinch, setInitialPinch] = useState<{ dist: number, centerX: number, centerY: number } | null>(null);
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -229,25 +229,34 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      setInitialDist(Math.sqrt(dx * dx + dy * dy));
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      setInitialPinch({ dist, centerX, centerY });
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && initialDist > 0) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const delta = dist / initialDist;
-      setScale(s => Math.min(Math.max(1, s * delta), 4));
-      setInitialDist(dist);
+    if (e.touches.length === 2 && initialPinch) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      
+      const scale = Math.max(1, dist / initialPinch.dist);
+      const x = centerX - initialPinch.centerX;
+      const y = centerY - initialPinch.centerY;
+      
+      setZoomState({ scale, x, y });
     }
   };
 
   const handleTouchEnd = () => {
-    setInitialDist(0);
+    setInitialPinch(null);
+    setZoomState({ scale: 1, x: 0, y: 0 });
   };
 
   return (
@@ -260,7 +269,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
 
       {/* Modal Card */}
       <div
-        className="relative bg-rio-surface w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-rio-border animate-slide-up max-h-[90vh] flex flex-col"
+        className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Close */}
@@ -272,25 +281,30 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
         </button>
 
         {/* Zoom Hint */}
-        {scale === 1 && (
-          <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none">
+        {zoomState.scale === 1 && (
+          <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none transition-opacity">
             Pellizca para acercar
           </div>
         )}
 
-        {/* Image Container with Scroll for Panning */}
+        {/* Image Container with Instagram-style Pop-out Zoom */}
         <div 
-          className="relative aspect-[4/3] w-full bg-rio-surface-muted overflow-auto touch-pan-x touch-pan-y shrink-0 hide-scrollbar"
+          className="relative aspect-[4/3] w-full bg-rio-surface-muted shrink-0 rounded-t-2xl z-30"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onDoubleClick={() => setScale(s => s > 1 ? 1 : 2.5)}
+          style={{ touchAction: 'none' }}
         >
           <img
             src={product.image}
             alt={product.name}
-            className="object-cover mix-blend-multiply origin-top-left transition-[width,height] duration-75"
-            style={{ width: `${scale * 100}%`, height: `${scale * 100}%`, maxWidth: 'none' }}
+            className={`object-cover w-full h-full transition-transform duration-75 origin-center pointer-events-none ${
+              zoomState.scale > 1 ? 'rounded-2xl shadow-2xl bg-white relative z-[100]' : 'rounded-t-2xl mix-blend-multiply z-10'
+            }`}
+            style={{ 
+              transform: `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`,
+              transition: initialPinch ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'
+            }}
           />
         </div>
 
