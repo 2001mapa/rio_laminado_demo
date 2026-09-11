@@ -209,6 +209,8 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
   const { addToCart, cart } = useDemo();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [initialDist, setInitialDist] = useState(0);
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -225,38 +227,75 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
     setTimeout(() => setAdded(false), 1500);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      setInitialDist(Math.sqrt(dx * dx + dy * dy));
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && initialDist > 0) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const delta = dist / initialDist;
+      setScale(s => Math.min(Math.max(1, s * delta), 4));
+      setInitialDist(dist);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setInitialDist(0);
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
 
-      {/* Sheet */}
+      {/* Modal Card */}
       <div
-        className="relative bg-rio-surface w-full max-w-lg rounded-t-3xl md:rounded-2xl overflow-hidden shadow-2xl border border-rio-border animate-slide-up"
+        className="relative bg-rio-surface w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-rio-border animate-slide-up max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink transition-colors"
+          className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink transition-colors shadow-sm"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Image */}
-        <div className="aspect-[4/3] w-full bg-rio-surface-muted">
+        {/* Zoom Hint */}
+        {scale === 1 && (
+          <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none">
+            Pellizca para acercar
+          </div>
+        )}
+
+        {/* Image Container with Scroll for Panning */}
+        <div 
+          className="relative aspect-[4/3] w-full bg-rio-surface-muted overflow-auto touch-pan-x touch-pan-y shrink-0 hide-scrollbar"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onDoubleClick={() => setScale(s => s > 1 ? 1 : 2.5)}
+        >
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover mix-blend-multiply"
+            className="object-cover mix-blend-multiply origin-top-left transition-[width,height] duration-75"
+            style={{ width: `${scale * 100}%`, height: `${scale * 100}%`, maxWidth: 'none' }}
           />
         </div>
 
-        {/* Info */}
-        <div className="p-5 space-y-4">
+        {/* Info Container */}
+        <div className="p-5 space-y-4 overflow-y-auto">
           <div>
             <p className="text-[11px] font-mono font-bold text-rio-muted">{product.sku}</p>
             <h2 className="text-xl font-serif font-bold text-rio-ink mt-1 leading-snug">{product.name}</h2>
