@@ -22,7 +22,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative">
       {/* Sidebar Desktop / Topbar Mobile */}
       <aside className={classNames(
         "w-full bg-rio-surface text-rio-ink flex flex-col md:min-h-screen shrink-0 border-r border-rio-border print:hidden transition-all duration-300",
@@ -84,26 +84,6 @@ export default function AdminLayout({
           </ul>
         </nav>
 
-        {/* Mobile Nav Header */}
-        <div className="md:hidden flex overflow-x-auto bg-rio-surface border-b border-rio-border px-2 py-2 hide-scrollbar">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={classNames(
-                  "flex items-center px-4 py-2 text-[12px] font-semibold rounded-full whitespace-nowrap mr-2 transition-colors border",
-                  isActive ? "bg-rio-gold-light/20 text-rio-gold-dark border-rio-gold-light/50" : "text-rio-muted bg-rio-surface border-transparent"
-                )}
-              >
-                <item.icon className="w-3.5 h-3.5 mr-2" strokeWidth={isActive ? 2.5 : 2} />
-                {item.name}
-              </Link>
-            );
-          })}
-        </div>
-
         <div className={classNames("p-4 hidden md:block mt-auto border-t border-rio-border", isCollapsed ? "px-3 flex justify-center" : "")}>
           <Link
             href="/acceso-rio"
@@ -125,6 +105,28 @@ export default function AdminLayout({
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
+
+      {/* Bottom Nav Mobile */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-rio-surface border-t border-rio-border z-20 print:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex justify-around items-center h-16">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={classNames(
+                  "relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+                  isActive ? "text-rio-gold" : "text-rio-muted hover:text-rio-ink"
+                )}
+              >
+                <item.icon className={classNames("w-5 h-5", isActive && "text-rio-gold")} strokeWidth={isActive ? 2.5 : 1.5} />
+                <span className={classNames("text-[10px]", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
