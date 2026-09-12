@@ -18,7 +18,7 @@ const STATUS_CLASSES: Record<string, string> = {
 };
 
 export default function PedidosAdminPage() {
-  const { orders, customers, isLoaded } = useDemo();
+  const { orders, customers, sellers, isLoaded } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
 
@@ -100,6 +100,7 @@ export default function PedidosAdminPage() {
       <div className="md:hidden space-y-3">
         {filteredOrders.length > 0 ? filteredOrders.map(order => {
           const customer = customers.find(c => c.id === order.customerId);
+          const seller = order.sellerId ? sellers.find(s => s.id === order.sellerId) : null;
           return (
             <Link
               key={order.id}
@@ -108,7 +109,11 @@ export default function PedidosAdminPage() {
             >
               <div>
                 <p className="text-[14px] font-bold text-rio-ink">{order.number}</p>
-                <p className="text-[12px] text-rio-muted font-medium mt-0.5">{customer?.name} · {new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-[12px] text-rio-muted font-medium">{customer?.name}</p>
+                  {seller && <span className="bg-rio-gold/10 text-rio-gold-dark px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">POS</span>}
+                </div>
+                <p className="text-[10px] text-rio-muted font-medium">{new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
                 <span className={`mt-2 inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${STATUS_CLASSES[order.status] || ''}`}>
                   {order.status}
                 </span>
@@ -140,10 +145,18 @@ export default function PedidosAdminPage() {
             <tbody className="bg-rio-surface divide-y divide-rio-border">
               {filteredOrders.length > 0 ? filteredOrders.map(order => {
                 const customer = customers.find(c => c.id === order.customerId);
+                const seller = order.sellerId ? sellers.find(s => s.id === order.sellerId) : null;
                 return (
                   <tr key={order.id} className="hover:bg-rio-surface-muted/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-rio-ink">{order.number}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[13px] font-medium text-rio-ink">{customer?.name || 'Desconocido'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-[13px] font-medium text-rio-ink">{customer?.name || 'Desconocido'}</div>
+                      {seller ? (
+                        <div className="text-[10px] text-rio-gold-dark font-bold">Vendedor: {seller.name}</div>
+                      ) : (
+                        <div className="text-[10px] text-rio-muted font-semibold">Cliente Web</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-[13px] font-medium text-rio-muted">{new Date(order.createdAt).toLocaleDateString('es-CO')}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${STATUS_CLASSES[order.status] || ''}`}>

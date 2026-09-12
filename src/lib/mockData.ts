@@ -1,4 +1,9 @@
-import { Product, Customer, Order } from './types';
+import { Product, Customer, Order, Seller } from './types';
+
+export const initialSellers: Seller[] = [
+  { id: 'v1', name: 'Vendedor Andrés', email: 'andres@rio.com', status: 'active' },
+  { id: 'v2', name: 'Vendedora Laura', email: 'laura@rio.com', status: 'active' },
+];
 
 export const initialProducts: Product[] = [
   // Anillos

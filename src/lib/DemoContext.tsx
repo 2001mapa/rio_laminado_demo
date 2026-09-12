@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Product, Customer, Order, OrderStatus } from './types';
-import { initialProducts, initialCustomers, initialOrders } from './mockData';
+import { Product, Customer, Order, OrderStatus, Seller } from './types';
+import { initialProducts, initialCustomers, initialOrders, initialSellers } from './mockData';
 
 export type CartItem = {
   product: Product;
@@ -13,8 +13,11 @@ type DemoContextType = {
   products: Product[];
   customers: Customer[];
   orders: Order[];
+  sellers: Seller[];
   currentCustomer: Customer | null;
   setCurrentCustomer: (c: Customer | null) => void;
+  currentSeller: Seller | null;
+  setCurrentSeller: (s: Seller | null) => void;
   cart: CartItem[];
   addToCart: (product: Product, quantity: number) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
@@ -24,6 +27,7 @@ type DemoContextType = {
   updateOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateCustomer: (customer: Customer) => void;
+  checkoutSeller: (customerId: string, cartItems: CartItem[]) => void;
   resetDemoData: () => void;
   isLoaded: boolean;
 };
@@ -34,22 +38,25 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
+  const [currentSeller, setCurrentSeller] = useState<Seller | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const DEMO_VERSION = 'v6'; // bump this to reset all users' data
+    const DEMO_VERSION = 'v7'; // bumped to reset data for sellers
     const storedVersion = localStorage.getItem('rio_demo_version');
 
     if (storedVersion !== DEMO_VERSION) {
-      // First visit or outdated data — reset everything for a clean demo
       localStorage.clear();
       localStorage.setItem('rio_demo_version', DEMO_VERSION);
       setProducts(initialProducts);
       setCustomers(initialCustomers);
       setOrders(initialOrders);
+      setSellers(initialSellers);
       setCurrentCustomer(initialCustomers[0]);
+      setCurrentSeller(initialSellers[0]);
       setIsLoaded(true);
       return;
     }
@@ -57,9 +64,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     const storedProducts = localStorage.getItem('rio_products');
     const storedCustomers = localStorage.getItem('rio_customers');
     const storedOrders = localStorage.getItem('rio_orders');
+    const storedSellers = localStorage.getItem('rio_sellers');
     const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
+    const storedCurrentSeller = localStorage.getItem('rio_current_seller');
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     if (storedProducts) setProducts(JSON.parse(storedProducts));
     else setProducts(initialProducts);
 
@@ -69,8 +77,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     if (storedOrders) setOrders(JSON.parse(storedOrders));
     else setOrders(initialOrders);
 
+    if (storedSellers) setSellers(JSON.parse(storedSellers));
+    else setSellers(initialSellers);
+
     if (storedCurrentCustomer) setCurrentCustomer(JSON.parse(storedCurrentCustomer));
     else setCurrentCustomer(initialCustomers[0]);
+
+    if (storedCurrentSeller) setCurrentSeller(JSON.parse(storedCurrentSeller));
+    else setCurrentSeller(initialSellers[0]);
 
     const storedCart = localStorage.getItem('rio_cart');
     if (storedCart) setCart(JSON.parse(storedCart));
@@ -83,9 +97,11 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('rio_products', JSON.stringify(products));
     localStorage.setItem('rio_customers', JSON.stringify(customers));
     localStorage.setItem('rio_orders', JSON.stringify(orders));
+    localStorage.setItem('rio_sellers', JSON.stringify(sellers));
     localStorage.setItem('rio_current_customer', JSON.stringify(currentCustomer));
+    localStorage.setItem('rio_current_seller', JSON.stringify(currentSeller));
     localStorage.setItem('rio_cart', JSON.stringify(cart));
-  }, [products, customers, orders, currentCustomer, cart, isLoaded]);
+  }, [products, customers, orders, sellers, currentCustomer, currentSeller, cart, isLoaded]);
 
   const addToCart = (product: Product, quantity: number) => {
     setCart(prev => {
@@ -118,12 +134,34 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
   };
+  
+  const checkoutSeller = (customerId: string, cartItems: CartItem[]) => {
+    if (!currentSeller) return;
+    
+    const newOrder: Order = {
+      id: `ord-${Date.now()}`,
+      number: `PED-${orders.length + 1001}`,
+      customerId,
+      sellerId: currentSeller.id,
+      createdAt: new Date().toISOString(),
+      status: 'En preparación',
+      items: cartItems.map((item, index) => ({
+        id: `oi-${Date.now()}-${index}`,
+        productId: item.product.id,
+        quantity: item.quantity,
+      })),
+    };
+    
+    addOrder(newOrder);
+  };
 
   const resetDemoData = () => {
     setProducts(initialProducts);
     setCustomers(initialCustomers);
     setOrders(initialOrders);
+    setSellers(initialSellers);
     setCurrentCustomer(initialCustomers[0]);
+    setCurrentSeller(initialSellers[0]);
     localStorage.removeItem('rio_cart');
   };
 
@@ -138,8 +176,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       products,
       customers,
       orders,
+      sellers,
       currentCustomer,
       setCurrentCustomer,
+      currentSeller,
+      setCurrentSeller,
+      checkoutSeller,
       cart,
       addToCart,
       updateCartQuantity,

@@ -44,7 +44,20 @@ export default function AccesoPage() {
             </div>
             <div>
               <p className="font-bold text-white text-[15px] leading-snug">Soy el Administrador de Bodega</p>
-              <p className="text-[12px] text-white/60 font-medium mt-1 leading-snug">Gestiona pedidos, prepara, verifica y despacha desde el panel interno.</p>
+              <p className="text-[12px] text-white/60 font-medium mt-1 leading-snug">Gestiona pedidos, prepara y despacha desde el panel interno.</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/vendedor"
+            className="w-full flex items-start gap-4 py-5 px-5 border-2 border-rio-gold/30 rounded-2xl shadow-sm text-left bg-rio-gold/5 hover:bg-rio-gold/10 transition-all active:scale-[0.98] group"
+          >
+            <div className="w-11 h-11 rounded-xl bg-rio-gold/20 flex items-center justify-center shrink-0">
+              <Store className="w-5 h-5 text-rio-gold-dark" />
+            </div>
+            <div>
+              <p className="font-bold text-rio-ink text-[15px] leading-snug">Soy Vendedor (POS)</p>
+              <p className="text-[12px] text-rio-ink/70 font-medium mt-1 leading-snug">Crea pedidos para clientes usando el lector de códigos QR.</p>
             </div>
           </Link>
         </div>

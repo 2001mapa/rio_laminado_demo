@@ -38,10 +38,18 @@ export type OrderItem = {
   issue?: string;
 };
 
+export type Seller = {
+  id: string;
+  name: string;
+  email: string;
+  status: 'active' | 'suspended';
+};
+
 export type Order = {
   id: string;
   number: string;
   customerId: string;
+  sellerId?: string; // If present, the order was made by a seller
   createdAt: string;
   status: OrderStatus;
   items: OrderItem[];
