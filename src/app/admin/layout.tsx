@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 
 export default function AdminLayout({
@@ -19,6 +19,7 @@ export default function AdminLayout({
     { name: 'Pedidos', href: '/admin/pedidos', icon: Inbox },
     { name: 'Inventario', href: '/admin/inventario', icon: PackageSearch },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },
+    { name: 'Vendedores', href: '/admin/vendedores', icon: Store },
   ];
 
   return (
