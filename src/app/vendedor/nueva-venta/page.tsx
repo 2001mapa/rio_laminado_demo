@@ -41,32 +41,55 @@ export default function NuevaVentaPage() {
   }, [isScanning]);
 
   const startScanner = async () => {
-    if (!scannerRef.current) {
-      scannerRef.current = new Html5Qrcode(scannerRegionId);
-    }
-    
     try {
+      // Pedir permisos y listar cámaras primero
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        addToast("No se detectaron cámaras en el dispositivo.");
+        return;
+      }
+      
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode(scannerRegionId);
+      }
+
+      // Buscar la cámara trasera si existe, sino usar la por defecto
+      const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera') || c.label.toLowerCase().includes('environment'));
+      const cameraConfig = backCamera ? { deviceId: { exact: backCamera.id } } : { facingMode: "environment" };
+      
       await scannerRef.current.start(
-        { facingMode: "environment" },
+        cameraConfig,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 }
         },
         (decodedText) => {
-          // Pause scanning to process
           if (scannerRef.current) {
             scannerRef.current.pause();
           }
           handleScan(decodedText);
         },
         (error) => {
-          // Ignore frequent scanning errors
+          // Ignore background scanning errors
         }
       );
       setIsScanning(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting scanner", err);
-      addToast("Error al acceder a la cámara. Revisa los permisos.");
+      // Fallback para intentar con facingMode directamente si getCameras falló por alguna razón
+      if (!isScanning && scannerRef.current) {
+         try {
+           await scannerRef.current.start(
+             { facingMode: "environment" },
+             { fps: 10, qrbox: { width: 250, height: 250 } },
+             (decodedText) => { if (scannerRef.current) scannerRef.current.pause(); handleScan(decodedText); },
+             () => {}
+           );
+           setIsScanning(true);
+           return;
+         } catch (fallbackErr) {}
+      }
+      addToast("Error de cámara: Asegúrate de dar permisos en el navegador.");
     }
   };
 
@@ -225,7 +248,12 @@ export default function NuevaVentaPage() {
                 </div>
               ) : (
                 <>
-                  <div id={scannerRegionId} className="w-full h-full object-cover"></div>
+                  <style jsx global>{`
+                    #qr-reader { width: 100%; height: 100%; border: none !important; }
+                    #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+                    #qr-reader__dashboard_section_csr { display: none !important; }
+                  `}</style>
+                  <div id={scannerRegionId} className="w-full h-full bg-black"></div>
                   <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40 z-10"></div>
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                     <div className="w-48 h-48 border-2 border-white/50 rounded-lg">
