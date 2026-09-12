@@ -235,8 +235,16 @@ export default function NuevaVentaPage() {
 
             {/* Scanner Area */}
             <div className="flex-1 min-h-[300px] rounded-2xl overflow-hidden border-2 border-rio-ink/10 relative bg-black flex flex-col items-center justify-center">
+              <style jsx global>{`
+                #qr-reader { width: 100%; height: 100%; border: none !important; }
+                #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+                #qr-reader__dashboard_section_csr { display: none !important; }
+              `}</style>
+              
+              <div id={scannerRegionId} className="w-full h-full bg-black absolute inset-0 z-0"></div>
+              
               {!isScanning ? (
-                <div className="text-center p-6 text-white z-10">
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white z-10 p-6 text-center">
                   <Camera className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p className="font-semibold text-sm mb-4">Cámara lista para escanear</p>
                   <button 
@@ -248,12 +256,6 @@ export default function NuevaVentaPage() {
                 </div>
               ) : (
                 <>
-                  <style jsx global>{`
-                    #qr-reader { width: 100%; height: 100%; border: none !important; }
-                    #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-                    #qr-reader__dashboard_section_csr { display: none !important; }
-                  `}</style>
-                  <div id={scannerRegionId} className="w-full h-full bg-black"></div>
                   <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40 z-10"></div>
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                     <div className="w-48 h-48 border-2 border-white/50 rounded-lg">
