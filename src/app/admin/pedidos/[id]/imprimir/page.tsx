@@ -70,6 +70,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
               <th className="py-1 px-1 text-left w-6">#</th>
               <th className="py-1 px-1 text-left w-24">UBICACIÓN</th>
               <th className="py-1 px-1 text-left w-24">REF</th>
+              <th className="py-1 px-1 text-center w-12">IMG</th>
               <th className="py-1 px-1 text-center w-12 text-lg">CANT</th>
               <th className="py-1 px-1 text-left">DESCRIPCIÓN</th>
               <th className="py-1 px-1 text-center w-10">OK</th>
@@ -83,7 +84,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
               const isNoLocation = !product.locationCode;
 
               return (
-                <tr key={item.id} className="border-b border-gray-400">
+                <tr key={item.id} className="border-b border-gray-400 break-inside-avoid">
                   <td className="py-2 px-1 text-xs text-gray-500 font-bold">{index + 1}</td>
                   <td className="py-2 px-1">
                     {isNoLocation ? (
@@ -94,6 +95,13 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
                   </td>
                   <td className="py-2 px-1 font-mono font-bold text-sm whitespace-nowrap">
                     {product.sku}
+                  </td>
+                  <td className="py-2 px-1 text-center">
+                    <img 
+                      src={product.image} 
+                      alt="" 
+                      className="w-10 h-10 object-cover border border-gray-300 rounded-sm inline-block"
+                    />
                   </td>
                   <td className="py-2 px-1 text-center">
                     <span className="text-xl font-black border border-black rounded-sm px-2 py-0.5 inline-block leading-none">
