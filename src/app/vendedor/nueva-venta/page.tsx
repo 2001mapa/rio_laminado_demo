@@ -22,6 +22,7 @@ export default function NuevaVentaPage() {
   
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [scanQuantity, setScanQuantity] = useState(1);
+  const [manualSku, setManualSku] = useState("");
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerRegionId = "qr-reader";
@@ -234,6 +235,34 @@ export default function NuevaVentaPage() {
                 <button onClick={() => { stopScanner(); setStep(1); }} className="text-[11px] font-bold text-rio-gold-dark hover:underline">
                   Cambiar
                 </button>
+              </div>
+
+              {/* Manual Input */}
+              <div className="mb-4">
+                <form 
+                  onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    if (manualSku.trim()) {
+                      handleScan(manualSku.trim()); 
+                      setManualSku(""); 
+                    }
+                  }} 
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    placeholder="Escribir SKU manual (Ej. ANI-001)"
+                    value={manualSku}
+                    onChange={(e) => setManualSku(e.target.value.toUpperCase())}
+                    className="flex-1 px-4 py-3 border border-rio-border rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink bg-rio-surface-muted"
+                  />
+                  <button 
+                    type="submit" 
+                    className="bg-rio-ink hover:bg-rio-ink/90 transition-colors text-white px-6 py-3 rounded-xl font-bold text-sm"
+                  >
+                    Buscar
+                  </button>
+                </form>
               </div>
 
               {/* Scanner Area */}
