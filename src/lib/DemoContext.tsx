@@ -27,6 +27,7 @@ type DemoContextType = {
   updateOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateCustomer: (customer: Customer) => void;
+  addCustomer: (customer: Customer) => void;
   checkoutSeller: (customerId: string, cartItems: CartItem[]) => void;
   resetDemoData: () => void;
   isLoaded: boolean;
@@ -171,6 +172,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     setCurrentCustomer(prev => prev?.id === customer.id ? customer : prev);
   };
 
+  const addCustomer = (customer: Customer) => {
+    setCustomers(prev => [...prev, customer]);
+  };
+
   return (
     <DemoContext.Provider value={{
       products,
@@ -191,6 +196,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       updateOrder,
       updateOrderStatus,
       updateCustomer,
+      addCustomer,
       resetDemoData,
       isLoaded,
     }}>
