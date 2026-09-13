@@ -27,6 +27,8 @@ export default function NuevaVentaPage() {
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerRegionId = "qr-reader";
@@ -161,8 +163,8 @@ export default function NuevaVentaPage() {
       discount: 0,
       showDiscount: false,
       status: 'active',
-      phone: 'No especificado',
-      address: 'No especificada',
+      phone: newCustomerPhone.trim() || 'No especificado',
+      address: newCustomerAddress.trim() || 'No especificada',
     };
     
     addCustomer(newCustomer);
@@ -173,6 +175,8 @@ export default function NuevaVentaPage() {
     setShowNewCustomerModal(false);
     setNewCustomerName("");
     setNewCustomerEmail("");
+    setNewCustomerPhone("");
+    setNewCustomerAddress("");
     setStep(2);
   };
 
@@ -464,6 +468,28 @@ export default function NuevaVentaPage() {
                   className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
                   placeholder="ejemplo@correo.com"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-rio-muted uppercase mb-1.5">Teléfono (Opcional)</label>
+                  <input 
+                    type="tel" 
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
+                    placeholder="3001234567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-rio-muted uppercase mb-1.5">Dirección (Opcional)</label>
+                  <input 
+                    type="text" 
+                    value={newCustomerAddress}
+                    onChange={(e) => setNewCustomerAddress(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
+                    placeholder="Calle 10 # 45-23"
+                  />
+                </div>
               </div>
               <p className="text-[11px] text-rio-muted mt-4 bg-rio-gold-light/10 p-3 rounded-lg border border-rio-gold-light/30">
                 Al crear un pedido con este cliente temporal, el administrador lo verá como nuevo y podrá formalizarlo en el sistema.
