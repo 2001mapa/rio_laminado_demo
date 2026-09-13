@@ -72,7 +72,7 @@ export default function ClienteLayout({
         </Link>
       </header>
 
-      <main className="max-w-7xl mx-auto px-0 md:px-4 md:py-6">
+      <main className="max-w-screen-xl mx-auto px-4 md:px-8 md:py-8">
         {children}
       </main>
 

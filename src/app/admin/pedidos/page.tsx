@@ -63,8 +63,13 @@ export default function PedidosAdminPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5 pb-10">
-      <h1 className="text-2xl font-serif font-bold text-rio-ink">Bandeja de Pedidos</h1>
+    <div className="p-6 md:p-10 space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-xs font-bold text-rio-muted uppercase tracking-[0.15em] mb-1">Gestión</p>
+          <h1 className="text-3xl font-serif font-bold text-rio-ink">Bandeja de Pedidos</h1>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
