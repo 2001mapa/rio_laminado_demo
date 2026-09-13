@@ -19,7 +19,6 @@ export default function ClienteLayout({
 
   const navItems = [
     { name: 'Catálogo', href: '/cliente', icon: LayoutGrid },
-    { name: 'Buscar', href: '/cliente/buscar', icon: Search },
     { name: 'Carrito', href: '/cliente/carrito', icon: ShoppingBag, badge: cartCount },
     { name: 'Perfil', href: '/cliente/perfil', icon: User },
   ];

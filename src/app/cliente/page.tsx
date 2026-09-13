@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Minus, ShoppingBag, X, MapPin, Tag } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, X, MapPin, Tag, Search } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { addToast } from '@/lib/toast';
 import { ProductCardSkeleton, WelcomeBannerSkeleton } from '@/components/Skeletons';
@@ -12,14 +12,15 @@ import Link from 'next/link';
 export default function CatalogoPage() {
   const { products, currentCustomer, isLoaded, cart } = useDemo();
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const categories = ['Todos', ...Array.from(new Set(products.map(p => p.category)))];
-  const filteredProducts = activeCategory === 'Todos'
-    ? products
-    : products.filter(p => p.category === activeCategory);
-
-  const cartTotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+  const filteredProducts = products.filter(p => {
+    const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   if (!isLoaded) {
     return (
@@ -32,8 +33,8 @@ export default function CatalogoPage() {
           <div className="h-7 w-32 bg-rio-border rounded-lg animate-pulse" />
           <div className="h-4 w-20 bg-rio-border rounded animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
-          {[1,2,3,4,5,6,7,8].map(i => <ProductCardSkeleton key={i} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+          {[1,2,3,4,5,6,7,8,9,10].map(i => <ProductCardSkeleton key={i} />)}
         </div>
       </div>
     );
@@ -41,47 +42,49 @@ export default function CatalogoPage() {
 
   return (
     <>
-      <div className="p-4 md:p-0 md:flex md:gap-8 md:items-start">
-        {/* Left Zone: 70% */}
-        <div className="md:flex-1 md:min-w-0 space-y-5 md:space-y-8">
-          
-          {/* Welcome Banner */}
-          {currentCustomer && (
-            <div className="bg-rio-surface border border-rio-border rounded-2xl px-5 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-center justify-between shadow-sm relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-[11px] text-rio-muted font-bold uppercase tracking-[0.2em] mb-1">Cliente Mayorista</p>
-                <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">{currentCustomer.name}</h1>
-              </div>
-              {currentCustomer.showDiscount && currentCustomer.discount > 0 && (
-                <div className="mt-4 md:mt-0 relative z-10 flex flex-col items-start md:items-end">
-                  <p className="text-[10px] font-bold text-rio-gold-dark uppercase tracking-wider mb-1">Descuento Activo</p>
-                  <div className="bg-rio-gold-light/20 border border-rio-gold-light px-4 py-1.5 rounded-lg">
-                    <p className="text-xl md:text-2xl font-black text-rio-gold-dark leading-none">{currentCustomer.discount}% OFF</p>
-                  </div>
-                </div>
-              )}
+      <div className="p-4 md:p-0 space-y-5 md:space-y-8">
+        
+        {/* Welcome Banner */}
+        {currentCustomer && (
+          <div className="bg-rio-surface border border-rio-border rounded-2xl px-5 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-center justify-between shadow-sm relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-[11px] text-rio-muted font-bold uppercase tracking-[0.2em] mb-1">Cliente Mayorista</p>
+              <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">{currentCustomer.name}</h1>
             </div>
-          )}
+            {currentCustomer.showDiscount && currentCustomer.discount > 0 && (
+              <div className="mt-4 md:mt-0 relative z-10 flex flex-col items-start md:items-end">
+                <p className="text-[10px] font-bold text-rio-gold-dark uppercase tracking-wider mb-1">Descuento Activo</p>
+                <div className="bg-rio-gold-light/20 border border-rio-gold-light px-4 py-1.5 rounded-lg">
+                  <p className="text-xl md:text-2xl font-black text-rio-gold-dark leading-none">{currentCustomer.discount}% OFF</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Category Tabs */}
-          <div className="sticky top-14 md:top-0 z-20 bg-rio-background pt-2 pb-0 md:pt-4 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 shadow-sm md:shadow-none border-b border-rio-border/50 md:border-rio-border">
-            <div className="flex overflow-x-auto scrollbar-hide">
+        {/* Category Tabs & Search */}
+        <div className="sticky top-14 md:top-0 z-20 bg-rio-background pt-3 -mx-4 px-4 md:mx-0 md:px-0 border-b border-rio-border/50 md:border-rio-border">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Categories */}
+            <div className="flex overflow-x-auto scrollbar-hide flex-1">
               {categories.map(cat => (
                 <button
                   key={cat}
                   onClick={() => {
                     setActiveCategory(cat);
-                    if (cat === 'Todos') {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    } else {
-                      const el = document.getElementById(`category-${cat}`);
-                      if (el) {
-                        const y = el.getBoundingClientRect().top + window.scrollY - 100;
-                        window.scrollTo({ top: y, behavior: 'smooth' });
+                    if (!searchTerm) {
+                      if (cat === 'Todos') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } else {
+                        const el = document.getElementById(`category-${cat}`);
+                        if (el) {
+                          const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
                       }
                     }
                   }}
-                  className={`whitespace-nowrap px-4 py-3 md:py-4 text-[13px] md:text-sm font-bold uppercase tracking-wider transition-colors relative ${
+                  className={`whitespace-nowrap px-4 py-2 md:py-3 text-[13px] md:text-sm font-bold uppercase tracking-wider transition-colors relative ${
                     activeCategory === cat
                       ? 'text-rio-ink'
                       : 'text-rio-muted hover:text-rio-ink'
@@ -94,21 +97,56 @@ export default function CatalogoPage() {
                 </button>
               ))}
             </div>
+            
+            {/* Search */}
+            <div className="relative w-full md:w-72 shrink-0 md:mb-2">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-rio-muted" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-4 py-2 border border-rio-border rounded-xl text-sm bg-rio-surface placeholder-rio-muted focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink text-rio-ink shadow-sm"
+                placeholder="Buscar por nombre o referencia..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-8 md:space-y-12 md:pt-4">
-            {categories.filter(c => c !== 'Todos').map(category => {
-              const categoryProducts = products.filter(p => p.category === category);
+        {/* Product Grid */}
+        <div className="space-y-8 md:space-y-12 md:pt-2">
+          {searchTerm ? (
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
+                <h2 className="font-serif text-2xl md:text-3xl text-rio-ink font-bold">Resultados de búsqueda</h2>
+                <span className="text-[12px] text-rio-muted font-bold uppercase tracking-wider">{filteredProducts.length} ref.</span>
+              </div>
+              {filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
+                  {filteredProducts.map(product => (
+                    <ProductCard key={product.id} product={product} onExpand={() => setSelectedProduct(product)} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 bg-rio-surface rounded-2xl border border-rio-border shadow-sm">
+                  <p className="text-rio-muted font-medium">No se encontraron productos para "{searchTerm}"</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            categories.filter(c => c !== 'Todos').map(category => {
+              const categoryProducts = filteredProducts.filter(p => p.category === category);
               if (categoryProducts.length === 0) return null;
               
               return (
-                <div key={category} id={`category-${category}`} className="scroll-mt-24 md:scroll-mt-32 space-y-4 md:space-y-6">
+                <div key={category} id={`category-${category}`} className="scroll-mt-28 md:scroll-mt-36 space-y-4 md:space-y-6">
                   <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
                     <h2 className="font-serif text-2xl md:text-3xl text-rio-ink font-bold">{category}</h2>
                     <span className="text-[12px] text-rio-muted font-bold uppercase tracking-wider">{categoryProducts.length} ref.</span>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
                     {categoryProducts.map(product => (
                       <ProductCard
                         key={product.id}
@@ -119,54 +157,7 @@ export default function CatalogoPage() {
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </div>
-
-        {/* Right Zone: 30% Sticky Cart (Desktop Only) */}
-        <div className="hidden md:flex w-[320px] lg:w-[380px] shrink-0 sticky top-24 flex-col bg-rio-surface border border-rio-border rounded-2xl overflow-hidden shadow-sm max-h-[calc(100vh-8rem)]">
-          <div className="p-5 border-b border-rio-border">
-            <h2 className="font-serif text-xl font-bold text-rio-ink">Resumen del Pedido</h2>
-          </div>
-          
-          <div className="p-5 overflow-y-auto flex-1">
-            {cart.length === 0 ? (
-              <div className="text-center py-10">
-                <ShoppingBag className="w-10 h-10 text-rio-muted/30 mx-auto mb-3" />
-                <p className="text-sm font-medium text-rio-ink">Tu pedido está vacío</p>
-                <p className="text-[12px] text-rio-muted mt-1">Agrega productos del catálogo para comenzar.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {cart.map(item => (
-                  <div key={item.product.id} className="flex gap-3 items-start">
-                    <img src={item.product.image} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover border border-rio-border bg-rio-background" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-bold text-rio-ink truncate">{item.product.name}</p>
-                      <p className="text-[11px] font-mono text-rio-muted mt-0.5">{item.quantity} x {formatPrice(item.product.price)}</p>
-                    </div>
-                    <p className="text-[12px] font-bold text-rio-ink whitespace-nowrap">
-                      {formatPrice(item.product.price * item.quantity)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {cart.length > 0 && (
-            <div className="p-5 bg-rio-background border-t border-rio-border">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-bold text-rio-ink uppercase tracking-wider">Total Est.</span>
-                <span className="text-xl font-serif font-bold text-rio-gold-dark">{formatPrice(cartTotal)}</span>
-              </div>
-              <Link 
-                href="/cliente/carrito"
-                className="w-full py-3.5 bg-rio-ink text-white rounded-xl font-bold text-sm hover:bg-rio-ink/90 transition-colors flex justify-center items-center"
-              >
-                Revisar y Enviar
-              </Link>
-            </div>
+            })
           )}
         </div>
       </div>
