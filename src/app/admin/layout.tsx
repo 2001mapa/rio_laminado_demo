@@ -26,19 +26,19 @@ export default function AdminLayout({
     <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative">
       {/* Sidebar Desktop / Topbar Mobile */}
       <aside className={classNames(
-        "w-full bg-rio-surface text-rio-ink flex flex-col md:min-h-screen shrink-0 border-r border-rio-border print:hidden transition-all duration-300",
-        isCollapsed ? "md:w-20" : "md:w-64"
+        "w-full bg-rio-ink text-white flex flex-col md:min-h-screen shrink-0 border-r border-black print:hidden transition-all duration-300",
+        isCollapsed ? "md:w-20" : "md:w-60"
       )}>
-        <div className={classNames("p-4 md:p-6 flex items-center justify-between", isCollapsed ? "md:justify-center md:px-0" : "md:justify-start")}>
+        <div className={classNames("p-4 md:p-6 flex items-center justify-between border-b border-white/10", isCollapsed ? "md:justify-center md:px-0" : "md:justify-start")}>
           <div className={classNames("overflow-hidden transition-all duration-300 flex-1", isCollapsed ? "md:hidden" : "")}>
-            <h1 className="font-serif font-bold text-2xl tracking-tight text-rio-ink whitespace-nowrap">RIO</h1>
-            <p className="text-[10px] text-rio-muted uppercase tracking-widest mt-1 font-bold whitespace-nowrap">Bodega B2B</p>
+            <h1 className="font-serif font-bold text-xl tracking-widest text-white whitespace-nowrap">RIO</h1>
+            <p className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5 font-bold whitespace-nowrap">Bodega B2B</p>
           </div>
           
           {/* Collapse Toggle Desktop */}
           <button 
              onClick={() => setIsCollapsed(!isCollapsed)}
-             className={classNames("hidden md:flex p-1.5 rounded-lg hover:bg-rio-surface-muted transition-colors text-rio-muted hover:text-rio-ink shrink-0", isCollapsed ? "" : "ml-auto")}
+             className={classNames("hidden md:flex p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/40 hover:text-white shrink-0", isCollapsed ? "" : "ml-auto")}
              aria-label="Toggle Sidebar"
           >
              {isCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
@@ -46,12 +46,12 @@ export default function AdminLayout({
 
           {/* Mobile elements (only visible on mobile) */}
           <div className="flex items-center space-x-3 md:hidden">
-            <div className="bg-rio-surface-muted text-rio-gold-dark border border-rio-border text-[9px] uppercase font-bold px-2 py-0.5 rounded-sm tracking-wider">
+            <div className="bg-white/10 text-white/60 border border-white/20 text-[9px] uppercase font-bold px-2 py-0.5 rounded-sm tracking-wider">
               Demo
             </div>
             <Link 
               href="/acceso-rio"
-              className="p-2 -mr-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center"
+              className="p-2 -mr-2 text-white/40 hover:text-white transition-colors flex items-center"
               title="Salir de la Demo"
             >
               <LogOut className="w-5 h-5" />
@@ -60,7 +60,7 @@ export default function AdminLayout({
         </div>
 
         <nav className="flex-1 overflow-y-auto hidden md:block py-4">
-          <ul className={classNames("space-y-2 transition-all duration-300", isCollapsed ? "px-3" : "px-3")}>
+          <ul className={classNames("space-y-1 transition-all duration-300", isCollapsed ? "px-2" : "px-3")}>
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
               return (
@@ -69,15 +69,16 @@ export default function AdminLayout({
                     href={item.href}
                     title={isCollapsed ? item.name : undefined}
                     className={classNames(
-                      "flex items-center py-2.5 text-[13px] font-semibold rounded-lg transition-colors overflow-hidden",
+                      "flex items-center py-2.5 text-[13px] font-semibold rounded-lg transition-all overflow-hidden",
                       isCollapsed ? "justify-center px-0" : "px-3",
-                      isActive ? "bg-rio-gold-light/20 text-rio-gold-dark" : "text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted"
+                      isActive ? "bg-white/15 text-white" : "text-white/50 hover:text-white hover:bg-white/8"
                     )}
                   >
-                    <item.icon className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={isActive ? 2.5 : 2} />
+                    <item.icon className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={isActive ? 2.5 : 1.5} />
                     <span className={classNames("whitespace-nowrap transition-all duration-300", isCollapsed ? "hidden" : "block")}>
                       {item.name}
                     </span>
+                    {isActive && !isCollapsed && <div className="ml-auto w-1 h-4 rounded-full bg-rio-gold" />}
                   </Link>
                 </li>
               );
@@ -85,18 +86,18 @@ export default function AdminLayout({
           </ul>
         </nav>
 
-        <div className={classNames("p-4 hidden md:block mt-auto border-t border-rio-border", isCollapsed ? "px-3 flex justify-center" : "")}>
+        <div className={classNames("p-4 hidden md:block border-t border-white/10", isCollapsed ? "px-2 flex justify-center" : "")}>
           <Link
             href="/acceso-rio"
             title={isCollapsed ? "Salir de la Demo" : undefined}
             className={classNames(
-              "flex items-center py-2 text-[13px] font-semibold text-rio-danger hover:bg-rio-danger/5 rounded-lg transition-colors",
+              "flex items-center py-2 text-[13px] font-semibold text-white/40 hover:text-white hover:bg-white/8 rounded-lg transition-all",
               isCollapsed ? "justify-center px-0" : "px-3"
             )}
           >
-            <LogOut className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={2} />
+            <LogOut className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={1.5} />
             <span className={classNames("whitespace-nowrap transition-all duration-300", isCollapsed ? "hidden" : "block")}>
-              Salir de la Demo
+              Salir
             </span>
           </Link>
         </div>

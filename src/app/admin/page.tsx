@@ -49,8 +49,8 @@ export default function AdminDashboard() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <StatCard title="Nuevos" value={newOrders} icon={Package} colorClass="text-rio-gold-dark" bgClass="bg-rio-gold-light/20" />
-        <StatCard title="En preparación" value={inPrepOrders} icon={Clock} colorClass="text-purple-700" bgClass="bg-purple-50" />
+        <StatCard title="Nuevos" value={newOrders} icon={Package} colorClass="text-rio-gold-dark" bgClass="bg-rio-gold-light/30" />
+        <StatCard title="En preparación" value={inPrepOrders} icon={Clock} colorClass="text-rio-ink" bgClass="bg-rio-surface-muted" />
         <StatCard title="Para verificar" value={pendingVerify} icon={AlertTriangle} colorClass="text-rio-warning" bgClass="bg-rio-warning/10" />
         <StatCard title="Verificados" value={verifiedOrders} icon={CheckCircle} colorClass="text-rio-success" bgClass="bg-rio-success/10" />
       </div>
@@ -122,8 +122,8 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${
                         order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :
-                        order.status === 'Confirmado' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                        order.status === 'En preparación' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                        order.status === 'Confirmado' ? 'bg-rio-ink/10 text-rio-ink border-rio-ink/20' :
+                        order.status === 'En preparación' ? 'bg-rio-ink text-white border-transparent' :
                         order.status === 'Pendiente de verificación' ? 'bg-rio-warning/10 text-rio-warning border-rio-warning/20' :
                         order.status === 'Verificado' || order.status === 'Empacado' || order.status === 'Despachado' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' :
                         'bg-rio-danger/10 text-rio-danger border-rio-danger/20'

@@ -8,8 +8,8 @@ import { OrderCardSkeleton, OrderRowSkeleton } from '@/components/Skeletons';
 
 const STATUS_CLASSES: Record<string, string> = {
   'Reservado': 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light',
-  'Confirmado': 'bg-blue-50 text-blue-700 border-blue-100',
-  'En preparación': 'bg-purple-50 text-purple-700 border-purple-100',
+  'Confirmado': 'bg-rio-ink/10 text-rio-ink border-rio-ink/20',
+  'En preparación': 'bg-rio-ink text-white border-transparent',
   'Pendiente de verificación': 'bg-rio-warning/10 text-rio-warning border-rio-warning/20',
   'Verificado': 'bg-rio-success/10 text-rio-success border-rio-success/20',
   'Empacado': 'bg-rio-success/10 text-rio-success border-rio-success/20',

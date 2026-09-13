@@ -57,11 +57,11 @@ export default function AdminVendedoresPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {seller.status === 'active' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rio-success/10 text-rio-success border border-rio-success/20">
                           <CheckCircle className="w-3 h-3 mr-1" /> Activo
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rio-danger/10 text-rio-danger border border-rio-danger/20">
                           <XCircle className="w-3 h-3 mr-1" /> Inactivo
                         </span>
                       )}

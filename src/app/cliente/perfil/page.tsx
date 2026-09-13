@@ -72,7 +72,7 @@ export default function PerfilPage() {
                   order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :
                   order.status === 'Cancelado' ? 'bg-rio-danger/10 text-rio-danger border-rio-danger/20' :
                   order.status === 'Verificado' || order.status === 'Despachado' || order.status === 'Empacado' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' :
-                  order.status === 'En preparación' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                  order.status === 'En preparación' ? 'bg-rio-ink text-white border-transparent' :
                   'bg-rio-warning/10 text-rio-warning border-rio-warning/20'
                 }`}>
                   {order.status}
