@@ -40,7 +40,7 @@ export default function VendedorLayout({
         </Link>
       </header>
 
-      <main className="max-w-md mx-auto px-0 bg-white min-h-[calc(100vh-3.5rem)] md:min-h-0 shadow-sm md:rounded-b-2xl overflow-hidden pb-8">
+      <main className="max-w-6xl mx-auto w-full px-0 md:px-6 bg-white min-h-[calc(100vh-3.5rem)] md:min-h-[calc(100vh-4rem)] md:mt-4 shadow-sm md:rounded-2xl pb-8 mb-8">
         {children}
       </main>
 
