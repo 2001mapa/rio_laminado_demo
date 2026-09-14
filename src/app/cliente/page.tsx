@@ -204,13 +204,13 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         <img
           src={product.image}
           alt={product.name}
-          className={`object-cover w-full h-full transition-opacity duration-500 ease-in-out ${product.hoverImage ? 'group-hover:opacity-0' : 'opacity-90 group-hover:opacity-100'}`}
+          className="object-cover w-full h-full"
         />
         {product.hoverImage && (
           <img
             src={product.hoverImage}
             alt={`${product.name} alternate view`}
-            className="absolute inset-0 object-cover w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+            className="absolute inset-0 object-cover w-full h-full animate-auto-fade"
           />
         )}
         {product.lowStock && (
