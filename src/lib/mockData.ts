@@ -125,5 +125,38 @@ export const initialOrders: Order[] = [
       { id: 'i9', productId: 'p7', quantity: 4 },
       { id: 'i10', productId: 'p9', quantity: 8 },
     ]
+  },
+  {
+    id: 'o5',
+    number: 'PED-1005',
+    customerId: 'c2',
+    createdAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
+    status: 'Reservado',
+    items: [
+      { id: 't1', productId: 'p1', quantity: 1 },
+      { id: 't2', productId: 'p2', quantity: 2 },
+      { id: 't3', productId: 'p3', quantity: 3 },
+      { id: 't4', productId: 'p4', quantity: 4 },
+      { id: 't5', productId: 'p5', quantity: 5 },
+      { id: 't6', productId: 'p6', quantity: 6 },
+      { id: 't7', productId: 'p7', quantity: 7 },
+      { id: 't8', productId: 'p8', quantity: 8 },
+      { id: 't9', productId: 'p9', quantity: 9 },
+      { id: 't10', productId: 'p10', quantity: 10 },
+      { id: 't11', productId: 'p11', quantity: 11 },
+      { id: 't12', productId: 'p12', quantity: 12 },
+      { id: 't13', productId: 'p1', quantity: 13 },
+      { id: 't14', productId: 'p2', quantity: 14 },
+      { id: 't15', productId: 'p3', quantity: 15 },
+      { id: 't16', productId: 'p4', quantity: 16 },
+      { id: 't17', productId: 'p5', quantity: 17 },
+      { id: 't18', productId: 'p6', quantity: 18 },
+      { id: 't19', productId: 'p7', quantity: 19 },
+      { id: 't20', productId: 'p8', quantity: 20 },
+      { id: 't21', productId: 'p9', quantity: 21 },
+      { id: 't22', productId: 'p10', quantity: 22 },
+      { id: 't23', productId: 'p11', quantity: 23 },
+      { id: 't24', productId: 'p12', quantity: 24 },
+    ]
   }
 ];
