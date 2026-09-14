@@ -46,7 +46,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const DEMO_VERSION = 'v7'; // bumped to reset data for sellers
+    const DEMO_VERSION = 'v8'; // bumped to reset data for hoverImages
     const storedVersion = localStorage.getItem('rio_demo_version');
 
     if (storedVersion !== DEMO_VERSION) {
