@@ -1,0 +1,164 @@
+'use client';
+
+import { useDemo } from '@/lib/DemoContext';
+import { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
+import QRCode from 'react-qr-code';
+
+export default function MassPrintPage() {
+  const { products } = useDemo();
+  
+  const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
+  const [itemsPerPage, setItemsPerPage] = useState<number>(30); // E.g., 30 tags per batch
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
+  const filterOptions = ['Todas', ...categories];
+
+  const filteredProducts = useMemo(() => {
+    if (categoryFilter === 'Todas') return products;
+    return products.filter(p => p.category === categoryFilter);
+  }, [products, categoryFilter]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
+  const currentBatch = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(start, start + itemsPerPage);
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
+  return (
+    <>
+      <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 pb-20 font-sans print:hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center">
+            <Link href="/admin/inventario" className="mr-4 p-2 hover:bg-rio-surface-muted rounded-full transition-colors">
+              <ArrowLeft className="w-5 h-5 text-rio-ink" />
+            </Link>
+            <h1 className="text-2xl font-serif font-bold text-rio-ink">Impresión de Etiquetas de Mostrador</h1>
+          </div>
+          <button
+            onClick={() => window.print()}
+            disabled={currentBatch.length === 0}
+            className="w-full md:w-auto flex justify-center items-center px-6 py-2.5 border border-transparent bg-rio-ink text-white shadow-sm text-sm font-bold rounded-xl hover:bg-rio-ink/90 transition-colors disabled:opacity-50"
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            Imprimir Lote Actual
+          </button>
+        </div>
+
+        <div className="bg-rio-surface p-6 rounded-2xl shadow-sm border border-rio-border space-y-6">
+          <div className="flex items-start gap-3 bg-rio-warning/10 border border-rio-warning/30 rounded-xl px-4 py-3.5 mb-2">
+            <AlertTriangle className="h-5 w-5 text-rio-warning shrink-0 mt-0.5" />
+            <p className="text-[12px] text-rio-warning font-medium leading-relaxed">
+              Para no sobrecalentar la máquina térmica ni desgastar el rollo, selecciona una categoría y configura el tamaño de tu lote. Solo se enviará a la impresora el lote de etiquetas visible en pantalla.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-2">Categoría</label>
+              <select
+                className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background text-rio-ink"
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {filterOptions.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-2">Etiquetas por Lote</label>
+              <select
+                className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background text-rio-ink"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={15}>15 etiquetas (5 filas)</option>
+                <option value={30}>30 etiquetas (10 filas)</option>
+                <option value={60}>60 etiquetas (20 filas)</option>
+                <option value={90}>90 etiquetas (30 filas)</option>
+                <option value={9999}>Imprimir Todo (¡Cuidado!)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-2">Lote a Imprimir</label>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 border border-rio-border rounded-lg bg-rio-surface hover:bg-rio-surface-muted disabled:opacity-50 font-bold"
+                >
+                  &larr;
+                </button>
+                <span className="flex-1 text-center font-bold text-sm">
+                  {currentPage} / {totalPages}
+                </span>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 border border-rio-border rounded-lg bg-rio-surface hover:bg-rio-surface-muted disabled:opacity-50 font-bold"
+                >
+                  &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-rio-border pt-4 text-center">
+             <p className="text-sm font-bold text-rio-ink">
+               Mostrando etiquetas de la {Math.min(filteredProducts.length, (currentPage - 1) * itemsPerPage + 1)} a la {Math.min(filteredProducts.length, currentPage * itemsPerPage)} (Total: {filteredProducts.length})
+             </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden print:block w-full max-w-[105mm] overflow-hidden">
+        <style dangerouslySetInnerHTML={{__html: `
+          @media print {
+            @page { margin: 0; }
+            body { margin: 0 !important; padding: 0 !important; }
+          }
+        `}} />
+        <div className="grid grid-cols-3 gap-[2mm] px-[2mm] pt-[1mm]">
+          {currentBatch.map((product, i) => (
+            <div 
+              key={product.id + '-' + i} 
+              className="w-[31mm] h-[22mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden p-[1mm]"
+            >
+              <div className="w-[14mm] h-[14mm] flex-shrink-0 bg-white mr-1 flex items-center justify-center">
+                {product.sku && (
+                  <QRCode 
+                    value={product.sku} 
+                    size={256} 
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }} 
+                    viewBox={`0 0 256 256`} 
+                  />
+                )}
+              </div>
+              <div className="flex flex-col items-end justify-center text-[7.5px] leading-[1.2] flex-1">
+                <span className="font-black text-[9px] leading-tight text-right w-full break-all">{product.sku}</span>
+                <span className="font-bold">{formatPrice(product.price)}</span>
+                {product.locationCode ? (
+                  <span className="font-medium text-right text-[7px] truncate max-w-full">UB: {product.locationCode}</span>
+                ) : (
+                  <span className="font-medium text-right text-[7px] truncate max-w-full">UB: N/A</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}

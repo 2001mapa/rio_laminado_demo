@@ -5,6 +5,7 @@ import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTri
 import Link from 'next/link';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
+import QRCode from 'react-qr-code';
 
 export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -242,11 +243,23 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
             return (
               <div 
                 key={item.id} 
-                className="w-[31mm] h-[22mm] break-inside-avoid flex flex-col items-center justify-center text-black text-[10px] leading-tight overflow-hidden"
+                className="w-[31mm] h-[22mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden p-[1mm]"
               >
-                <span className="font-bold">ITM: {index + 1}</span>
-                <span className="font-bold">REF: {product?.sku}</span>
-                <span className="font-bold">Cant: {item.quantity}</span>
+                <div className="w-[14mm] h-[14mm] flex-shrink-0 bg-white mr-1 flex items-center justify-center">
+                  {product?.sku && (
+                    <QRCode 
+                      value={product.sku} 
+                      size={256} 
+                      style={{ height: "auto", maxWidth: "100%", width: "100%" }} 
+                      viewBox={`0 0 256 256`} 
+                    />
+                  )}
+                </div>
+                <div className="flex flex-col items-end justify-center text-[8px] leading-[1.2] flex-1">
+                  <span className="font-bold"># {index + 1}</span>
+                  <span className="font-black text-[9px] leading-tight text-right w-full break-all">{product?.sku}</span>
+                  <span className="font-bold">Q: {item.quantity}</span>
+                </div>
               </div>
             );
           })}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Plus, Upload, Info, X } from 'lucide-react';
+import { Plus, Upload, Info, X, Printer } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -42,13 +42,13 @@ export default function InventarioPage() {
               <option key={loc} value={loc}>{loc === 'Todas' ? 'Todas las ubicaciones' : loc}</option>
             ))}
           </select>
-          <button
-            onClick={() => alert('Acción simulada. El CSV debe incluir: sku, nombre, precio, categoría, ubicación.')}
-            className="hidden md:flex items-center px-4 py-2.5 border border-rio-border text-[13px] font-semibold rounded-xl text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors"
+          <a
+            href="/admin/inventario/imprimir"
+            className="flex items-center px-4 py-2.5 border border-rio-gold text-[13px] font-semibold rounded-xl text-rio-gold-dark bg-rio-gold-light/10 hover:bg-rio-gold-light/20 transition-colors"
           >
-            <Upload className="w-4 h-4 mr-2 text-rio-muted" />
-            Importar CSV
-          </button>
+            <Printer className="w-4 h-4 mr-2" />
+            Imprimir Etiquetas
+          </a>
           <button
             onClick={() => setShowMockModal(true)}
             className="flex items-center px-4 py-2.5 border border-transparent text-[13px] font-semibold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
