@@ -198,14 +198,21 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
       {/* Clickable image */}
       <button
         onClick={onExpand}
-        className="relative aspect-square md:min-h-[220px] bg-white w-full focus:outline-none"
+        className="relative aspect-square md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
         aria-label={`Ver detalle de ${product.name}`}
       >
         <img
           src={product.image}
           alt={product.name}
-          className="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
+          className={`object-cover w-full h-full transition-opacity duration-500 ease-in-out ${product.hoverImage ? 'group-hover:opacity-0' : 'opacity-90 group-hover:opacity-100'}`}
         />
+        {product.hoverImage && (
+          <img
+            src={product.hoverImage}
+            alt={`${product.name} alternate view`}
+            className="absolute inset-0 object-cover w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+          />
+        )}
         {product.lowStock && (
           <div className="absolute top-2 left-2 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
             Pocas Unidades
