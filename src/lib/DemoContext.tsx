@@ -46,7 +46,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const DEMO_VERSION = 'v10'; // bumped to add massive order
+    const DEMO_VERSION = 'v11'; // bumped to add even bigger order and test pagination
     const storedVersion = localStorage.getItem('rio_demo_version');
 
     if (storedVersion !== DEMO_VERSION) {

@@ -23,7 +23,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative">
+    <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative print:min-h-0 print:pb-0 print:bg-white">
       {/* Sidebar Desktop / Topbar Mobile */}
       <aside className={classNames(
         "w-full bg-rio-ink text-white flex flex-col md:min-h-screen shrink-0 border-r border-black print:hidden transition-all duration-300",
@@ -104,7 +104,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 overflow-y-auto bg-rio-background">
+      <main className="flex-1 min-w-0 overflow-y-auto bg-rio-background print:overflow-visible print:bg-white">
         {children}
       </main>
 

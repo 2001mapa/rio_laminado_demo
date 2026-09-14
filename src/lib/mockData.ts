@@ -158,5 +158,21 @@ export const initialOrders: Order[] = [
       { id: 't23', productId: 'p11', quantity: 23 },
       { id: 't24', productId: 'p12', quantity: 24 },
     ]
+  },
+  {
+    id: 'o6',
+    number: 'PED-1006',
+    customerId: 'c3',
+    createdAt: new Date(Date.now() - 1000 * 60).toISOString(),
+    status: 'Reservado',
+    items: Array.from({ length: 48 }).map((_, index) => {
+      // Rotate through the 12 products
+      const pIndex = (index % 12) + 1;
+      return {
+        id: `t6_${index}`,
+        productId: `p${pIndex}`,
+        quantity: index + 1
+      };
+    })
   }
 ];
