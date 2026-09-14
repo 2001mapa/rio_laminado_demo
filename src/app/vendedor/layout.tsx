@@ -16,7 +16,7 @@ export default function VendedorLayout({
   const navItems = [
     { name: 'Dashboard', href: '/vendedor', icon: LayoutDashboard },
     { name: 'Nueva Venta', href: '/vendedor/nueva-venta', icon: ScanLine },
-    { name: 'Perfil', href: '#', icon: User },
+    { name: 'Perfil', href: '/vendedor/perfil', icon: User },
   ];
 
   return (
