@@ -46,7 +46,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const DEMO_VERSION = 'v8'; // bumped to reset data for hoverImages
+    const DEMO_VERSION = 'v9'; // bumped to clean up broken image URLs
     const storedVersion = localStorage.getItem('rio_demo_version');
 
     if (storedVersion !== DEMO_VERSION) {
