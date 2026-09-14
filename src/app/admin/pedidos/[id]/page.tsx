@@ -223,20 +223,34 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Print Layout: Thermal Labels (Stickers) */}
-      <div className="hidden print:grid print:grid-cols-3 w-[105mm]">
-        {sortedItems.map((item, index) => {
-          const product = products.find(p => p.id === item.productId);
-          return (
-            <div 
-              key={item.id} 
-              className="w-[32mm] h-[25mm] break-inside-avoid flex flex-col items-center justify-center text-black text-[10px] leading-tight overflow-hidden"
-            >
-              <span className="font-bold">ITM: {index + 1}</span>
-              <span className="font-bold">REF: {product?.sku}</span>
-              <span className="font-bold">Cant: x {item.quantity}</span>
-            </div>
-          );
-        })}
+      <div className="hidden print:block w-[105mm]">
+        <style dangerouslySetInnerHTML={{__html: `
+          @media print {
+            @page {
+              margin: 0;
+              /* Si la impresora salta mucho espacio, puede ser necesario definir el tamaño exacto, ej: size: 100mm 25mm; */
+            }
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+          }
+        `}} />
+        <div className="grid grid-cols-3 gap-[2mm] px-[2mm] pt-[1mm]">
+          {sortedItems.map((item, index) => {
+            const product = products.find(p => p.id === item.productId);
+            return (
+              <div 
+                key={item.id} 
+                className="w-[31mm] h-[22mm] break-inside-avoid flex flex-col items-center justify-center text-black text-[10px] leading-tight overflow-hidden"
+              >
+                <span className="font-bold">ITM: {index + 1}</span>
+                <span className="font-bold">REF: {product?.sku}</span>
+                <span className="font-bold">Cant: {item.quantity}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </>
   );
