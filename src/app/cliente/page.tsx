@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Minus, ShoppingBag, X, MapPin, Tag, Search } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, X, MapPin, Tag, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { addToast } from '@/lib/toast';
 import { ProductCardSkeleton, WelcomeBannerSkeleton } from '@/components/Skeletons';
@@ -177,6 +177,16 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const { addToCart, cart } = useDemo();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [showAlt, setShowAlt] = useState(false);
+
+  useEffect(() => {
+    if (product.hoverImage) {
+      const interval = setInterval(() => {
+        setShowAlt(prev => !prev);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [product.hoverImage]);
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -204,13 +214,13 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         <img
           src={product.image}
           alt={product.name}
-          className="object-cover w-full h-full"
+          className={`object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-0' : 'opacity-100'}`}
         />
         {product.hoverImage && (
           <img
             src={product.hoverImage}
             alt={`${product.name} alternate view`}
-            className="absolute inset-0 object-cover w-full h-full animate-auto-fade"
+            className={`absolute inset-0 object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-100' : 'opacity-0'}`}
           />
         )}
         {product.lowStock && (
@@ -268,6 +278,10 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
   const [added, setAdded] = useState(false);
   const [zoomState, setZoomState] = useState({ scale: 1, x: 0, y: 0 });
   const [initialPinch, setInitialPinch] = useState<{ dist: number, centerX: number, centerY: number } | null>(null);
+  
+  const images = [product.image];
+  if (product.hoverImage) images.push(product.hoverImage);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -365,8 +379,30 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
           onTouchEnd={handleTouchEnd}
           style={{ touchAction: 'none' }}
         >
+          {images.length > 1 && zoomState.scale === 1 && (
+            <>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-40 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full text-rio-ink shadow-sm hover:bg-white transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1)); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-40 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full text-rio-ink shadow-sm hover:bg-white transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-40">
+                {images.map((_, i) => (
+                  <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentImageIndex ? 'bg-rio-ink' : 'bg-black/30'}`} />
+                ))}
+              </div>
+            </>
+          )}
+
           <img
-            src={product.image}
+            src={images[currentImageIndex]}
             alt={product.name}
             className={`object-cover w-full h-full transition-transform duration-75 origin-center pointer-events-none ${
               zoomState.scale > 1 ? 'rounded-2xl shadow-2xl bg-white relative z-[100]' : 'rounded-t-2xl z-10'

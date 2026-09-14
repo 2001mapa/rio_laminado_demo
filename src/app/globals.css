@@ -70,12 +70,3 @@ body {
   animation: slide-up 0.2s ease-out;
 }
 
-@keyframes auto-crossfade {
-  0%, 40% { opacity: 0; }
-  50%, 90% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-.animate-auto-fade {
-  animation: auto-crossfade 6s infinite ease-in-out;
-}
