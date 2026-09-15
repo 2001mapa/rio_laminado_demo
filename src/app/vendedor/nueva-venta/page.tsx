@@ -369,7 +369,20 @@ export default function NuevaVentaPage() {
                         <button onClick={() => setScanQuantity(Math.max(1, scanQuantity - 1))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink">
                           <Minus className="w-5 h-5"/>
                         </button>
-                        <span className="text-3xl font-black w-12 text-center">{scanQuantity}</span>
+                        <input 
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={scanQuantity === 0 ? '' : scanQuantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setScanQuantity(isNaN(val) ? 0 : val);
+                          }}
+                          onBlur={() => {
+                            if (scanQuantity < 1) setScanQuantity(1);
+                          }}
+                          className="text-3xl font-black w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0 text-rio-ink [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <button onClick={() => setScanQuantity(scanQuantity + 1)} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md">
                           <Plus className="w-5 h-5"/>
                         </button>
