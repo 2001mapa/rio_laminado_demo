@@ -1,16 +1,21 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X } from 'lucide-react';
 import Link from 'next/link';
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'react-qr-code';
 
 export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { orders, customers, products, updateOrderStatus } = useDemo();
+  const { orders, customers, products, updateOrderStatus, updateOrder } = useDemo();
   const router = useRouter();
+
+  const [adjustingItem, setAdjustingItem] = useState<string | null>(null);
+  const [adjustQuantity, setAdjustQuantity] = useState<number>(0);
+  const [adjustReason, setAdjustReason] = useState<string>('');
+  const [printingSingle, setPrintingSingle] = useState<string | null>(null);
 
   const order = orders.find(o => o.id === resolvedParams.id);
 
@@ -35,6 +40,23 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     if (locA && !locB) return -1;
     return locA.localeCompare(locB);
   });
+
+  const handleSaveAdjustment = () => {
+    if (!order || !adjustingItem) return;
+    const updatedItems = order.items.map(i => {
+      if (i.id === adjustingItem) {
+        return {
+          ...i,
+          originalQuantity: i.originalQuantity || i.quantity,
+          quantity: adjustQuantity,
+          adjustmentReason: adjustReason
+        };
+      }
+      return i;
+    });
+    updateOrder({ ...order, items: updatedItems });
+    setAdjustingItem(null);
+  };
 
   return (
     <>
@@ -95,7 +117,35 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                               SIN UBICACIÓN
                             </span>
                           )}
-                          <span className="text-sm font-bold text-rio-ink bg-rio-background px-2 py-0.5 rounded border border-rio-border">Cant: {item.quantity}</span>
+                          <div className="flex items-center gap-2">
+                            {item.originalQuantity !== undefined && item.originalQuantity !== item.quantity && (
+                              <span className="text-[10px] line-through text-rio-muted">Cant: {item.originalQuantity}</span>
+                            )}
+                            <span className="text-sm font-bold text-rio-ink bg-rio-background px-2 py-0.5 rounded border border-rio-border">Cant: {item.quantity}</span>
+                            <button 
+                              onClick={() => {
+                                setAdjustingItem(item.id);
+                                setAdjustQuantity(item.quantity);
+                                setAdjustReason(item.adjustmentReason || 'Control de Calidad');
+                              }}
+                              className="p-1 text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted rounded-md transition-colors"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setPrintingSingle(item.id);
+                                setTimeout(() => {
+                                  window.print();
+                                  setTimeout(() => setPrintingSingle(null), 500);
+                                }, 100);
+                              }}
+                              className="p-1 text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted rounded-md transition-colors"
+                              title="Reimprimir sticker"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[11px] font-mono font-bold text-rio-muted">{product.sku}</span>
@@ -110,6 +160,12 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                           <div className="mt-2 text-[11px] font-medium text-rio-danger bg-rio-danger/5 p-2 rounded-lg border border-rio-danger/20 flex items-start">
                             <AlertTriangle className="w-3.5 h-3.5 mr-1.5 shrink-0 mt-0.5" />
                             <span>{item.issue}</span>
+                          </div>
+                        )}
+                        {item.adjustmentReason && (
+                          <div className="mt-2 text-[11px] font-medium text-rio-warning bg-rio-warning/5 p-2 rounded-lg border border-rio-warning/20 flex items-start">
+                            <AlertTriangle className="w-3.5 h-3.5 mr-1.5 shrink-0 mt-0.5" />
+                            <span>Ajustado: {item.adjustmentReason} (Original: {item.originalQuantity})</span>
                           </div>
                         )}
                       </div>
@@ -223,6 +279,48 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
+      {/* Modal de Ajuste de Cantidad */}
+      {adjustingItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-rio-ink text-lg">Ajustar Cantidad</h3>
+              <button onClick={() => setAdjustingItem(null)} className="text-rio-muted hover:text-rio-ink"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Cantidad a enviar</label>
+                <input 
+                  type="number" 
+                  value={adjustQuantity} 
+                  onChange={(e) => setAdjustQuantity(Number(e.target.value))}
+                  min={0}
+                  className="w-full border border-rio-border rounded-xl p-3 text-lg font-bold bg-rio-background text-rio-ink"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Motivo del ajuste</label>
+                <select
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  className="w-full border border-rio-border rounded-xl p-3 text-sm bg-rio-background text-rio-ink"
+                >
+                  <option value="Control de Calidad">Control de Calidad (Dañado)</option>
+                  <option value="Falta de Inventario">Falta de Inventario</option>
+                  <option value="Ajuste Administrativo">Ajuste Administrativo</option>
+                </select>
+              </div>
+              <button
+                onClick={handleSaveAdjustment}
+                className="w-full bg-rio-ink text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-rio-ink/90 active:scale-95 transition-all mt-2"
+              >
+                Guardar Ajuste
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Print Layout: Thermal Labels (Stickers) */}
       <div className="hidden print:block w-full max-w-[105mm] overflow-hidden">
         <style dangerouslySetInnerHTML={{__html: `
@@ -238,7 +336,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           }
         `}} />
         <div className="grid grid-cols-3 gap-[2mm] px-[2mm] pt-[1mm]">
-          {sortedItems.map((item, index) => {
+          {sortedItems.filter(item => printingSingle ? item.id === printingSingle : true).map((item, index) => {
             const product = products.find(p => p.id === item.productId);
             return (
               <div 

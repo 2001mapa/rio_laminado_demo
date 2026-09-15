@@ -35,6 +35,8 @@ export type OrderItem = {
   id: string;
   productId: string;
   quantity: number;
+  originalQuantity?: number;
+  adjustmentReason?: string;
   verified?: boolean;
   issue?: string;
 };

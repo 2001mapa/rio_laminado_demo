@@ -81,6 +81,15 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
             </p>
           </div>
         )}
+
+        {order.items.some(i => !!i.adjustmentReason) && (
+          <div className="mt-4 bg-rio-warning/10 border border-rio-warning/30 rounded-xl p-4 flex items-start">
+            <Info className="w-5 h-5 text-rio-warning shrink-0 mt-0.5 mr-2.5" />
+            <p className="text-[12px] text-rio-warning font-bold leading-relaxed">
+              Actualización: Se ajustaron cantidades en tu orden por motivos operativos. Revisa el detalle a continuación y tu nuevo total a pagar.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4 mb-8">
@@ -99,17 +108,30 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
           if (!product) return null;
           
           return (
-            <div key={item.id} className="flex gap-4 bg-rio-surface p-3.5 rounded-2xl border border-rio-border shadow-sm">
-              <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-rio-surface-muted shrink-0">
-                <img src={product.image} alt={product.name} className="object-cover h-full w-full mix-blend-multiply" />
+            <div key={item.id} className="bg-white p-3 rounded-xl border border-rio-border flex gap-4 items-center shadow-sm">
+              <div className="w-14 h-14 rounded-lg bg-rio-surface-muted overflow-hidden shrink-0 border border-rio-border/50">
+                <img src={product.image} alt="" className="w-full h-full object-cover mix-blend-multiply" />
               </div>
-              <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <div className="flex justify-between items-center">
-                  <p className="text-[11px] font-mono font-semibold text-rio-muted">{product.sku}</p>
-                  <p className="text-sm font-semibold text-rio-ink bg-rio-background px-2 py-0.5 rounded-md border border-rio-border">x{item.quantity}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-[10px] font-mono text-rio-muted">{product.sku}</span>
+                  <div className="text-right">
+                    {item.originalQuantity !== undefined && item.originalQuantity !== item.quantity && (
+                      <span className="text-[10px] line-through text-rio-muted mr-2">x {item.originalQuantity}</span>
+                    )}
+                    <span className="text-xs font-bold text-rio-ink">x {item.quantity}</span>
+                  </div>
                 </div>
-                <h3 className="font-medium text-sm text-rio-ink truncate mt-1">{product.name}</h3>
-                <p className="text-[13px] font-bold text-rio-ink mt-1">{formatPrice(product.price * item.quantity)}</p>
+                <p className="text-sm font-semibold text-rio-ink truncate mb-1">{product.name}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-rio-gold-dark">{formatPrice(product.price)}</span>
+                  <span className="text-sm font-black text-rio-ink">{formatPrice(product.price * item.quantity)}</span>
+                </div>
+                {item.adjustmentReason && (
+                  <div className="mt-2 text-[10px] font-medium text-rio-warning bg-rio-warning/10 px-2.5 py-1.5 rounded-lg border border-rio-warning/20">
+                    <strong>Ajustado:</strong> {item.adjustmentReason}
+                  </div>
+                )}
               </div>
             </div>
           );
