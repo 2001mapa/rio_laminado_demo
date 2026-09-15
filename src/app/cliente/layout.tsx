@@ -13,14 +13,18 @@ export default function ClienteLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { cart } = useDemo();
+  const { cart, orders, currentCustomer } = useDemo();
   
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  
+  const adjustedOrdersCount = currentCustomer ? orders.filter(
+    o => o.customerId === currentCustomer.id && o.items.some(i => !!i.adjustmentReason)
+  ).length : 0;
 
   const navItems = [
     { name: 'Catálogo', href: '/cliente', icon: LayoutGrid },
     { name: 'Carrito', href: '/cliente/carrito', icon: ShoppingBag, badge: cartCount },
-    { name: 'Perfil', href: '/cliente/perfil', icon: User },
+    { name: 'Perfil', href: '/cliente/perfil', icon: User, alert: adjustedOrdersCount > 0 },
   ];
 
   return (
@@ -53,6 +57,8 @@ export default function ClienteLayout({
                     <span className="absolute -top-1.5 -right-2 bg-rio-ink text-white text-[9px] font-black min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full border-2 border-rio-surface leading-none">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
+                  ) : item.alert ? (
+                    <span className="absolute -top-0.5 -right-0.5 bg-rio-warning w-2 h-2 rounded-full border border-rio-surface"></span>
                   ) : null}
                 </div>
                 {item.name}
@@ -95,6 +101,8 @@ export default function ClienteLayout({
                     <span className="absolute -top-1.5 -right-2 bg-rio-ink text-white text-[9px] font-black min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full border-2 border-rio-surface leading-none">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
+                  ) : item.alert ? (
+                    <span className="absolute top-0 -right-0.5 bg-rio-warning w-2.5 h-2.5 rounded-full border-2 border-rio-surface"></span>
                   ) : null}
                 </div>
                 <span className={classNames("text-[10px]", isActive ? "font-bold" : "font-medium")}>{item.name}</span>

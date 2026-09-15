@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Minus, ShoppingBag, X, MapPin, Tag, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, X, MapPin, Tag, Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { addToast } from '@/lib/toast';
 import { ProductCardSkeleton, WelcomeBannerSkeleton } from '@/components/Skeletons';
 import Link from 'next/link';
 
 export default function CatalogoPage() {
-  const { products, currentCustomer, isLoaded, cart } = useDemo();
+  const { products, currentCustomer, isLoaded, cart, orders } = useDemo();
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -21,6 +21,10 @@ export default function CatalogoPage() {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const adjustedOrders = orders.filter(
+    o => o.customerId === currentCustomer?.id && o.items.some(i => !!i.adjustmentReason)
+  );
 
   if (!isLoaded) {
     return (
@@ -59,6 +63,29 @@ export default function CatalogoPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Notificaciones de Ajustes */}
+        {adjustedOrders.length > 0 && (
+          <div className="bg-rio-warning/10 border-2 border-rio-warning/30 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+            <div className="flex items-start md:items-center mb-4 md:mb-0">
+              <div className="bg-rio-warning/20 p-2 rounded-full mr-3 shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rio-warning" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-rio-ink">Actualización de pedidos</h3>
+                <p className="text-xs font-medium text-rio-muted mt-0.5 leading-relaxed">
+                  Tienes {adjustedOrders.length} pedido{adjustedOrders.length > 1 ? 's' : ''} con cantidades ajustadas por control de calidad o inventario.
+                </p>
+              </div>
+            </div>
+            <Link 
+              href={adjustedOrders.length === 1 ? `/cliente/pedido/${adjustedOrders[0].id}` : `/cliente/perfil`}
+              className="bg-white border border-rio-border hover:border-rio-ink text-rio-ink text-xs font-bold px-4 py-2.5 rounded-xl text-center shadow-sm transition-all whitespace-nowrap"
+            >
+              Ver {adjustedOrders.length === 1 ? 'detalles de ajuste' : 'historial de pedidos'}
+            </Link>
           </div>
         )}
 

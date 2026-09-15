@@ -103,6 +103,11 @@ export default function PerfilPage() {
                     </div>
                   </div>
                   <div className="flex items-center">
+                    {order.items.some(i => !!i.adjustmentReason) && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-rio-warning/10 text-rio-warning border border-rio-warning/20 mr-2 md:mr-3">
+                        Ajustado
+                      </span>
+                    )}
                     <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md border mr-2 md:mr-4 ${
                       order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :
                       order.status === 'Cancelado' ? 'bg-rio-danger/10 text-rio-danger border-rio-danger/20' :
