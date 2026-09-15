@@ -103,7 +103,7 @@ export default function PerfilPage() {
                     </div>
                   </div>
                   <div className="flex items-center">
-                    {order.items.some(i => !!i.adjustmentReason) && (
+                    {!order.adjustmentAcknowledged && order.items.some(i => !!i.adjustmentReason) && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-rio-warning/10 text-rio-warning border border-rio-warning/20 mr-2 md:mr-3">
                         Ajustado
                       </span>

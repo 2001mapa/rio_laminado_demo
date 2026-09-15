@@ -56,4 +56,5 @@ export type Order = {
   createdAt: string;
   status: OrderStatus;
   items: OrderItem[];
+  adjustmentAcknowledged?: boolean;
 };

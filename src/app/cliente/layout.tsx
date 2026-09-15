@@ -18,7 +18,7 @@ export default function ClienteLayout({
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   
   const adjustedOrdersCount = currentCustomer ? orders.filter(
-    o => o.customerId === currentCustomer.id && o.items.some(i => !!i.adjustmentReason)
+    o => o.customerId === currentCustomer.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
   ).length : 0;
 
   const navItems = [

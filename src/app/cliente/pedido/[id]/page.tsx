@@ -82,12 +82,20 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-        {order.items.some(i => !!i.adjustmentReason) && (
-          <div className="mt-4 bg-rio-warning/10 border border-rio-warning/30 rounded-xl p-4 flex items-start">
-            <Info className="w-5 h-5 text-rio-warning shrink-0 mt-0.5 mr-2.5" />
-            <p className="text-[12px] text-rio-warning font-bold leading-relaxed">
-              Actualización: Se ajustaron cantidades en tu orden por motivos operativos. Revisa el detalle a continuación y tu nuevo total a pagar.
-            </p>
+        {!order.adjustmentAcknowledged && order.items.some(i => !!i.adjustmentReason) && (
+          <div className="mt-4 bg-rio-warning/10 border border-rio-warning/30 rounded-xl p-4">
+            <div className="flex items-start mb-3">
+              <Info className="w-5 h-5 text-rio-warning shrink-0 mt-0.5 mr-2.5" />
+              <p className="text-[12px] text-rio-warning font-bold leading-relaxed">
+                Actualización: Se ajustaron cantidades en tu orden por motivos operativos. Revisa el detalle a continuación y tu nuevo total a pagar.
+              </p>
+            </div>
+            <button
+              onClick={() => updateOrder({ ...order, adjustmentAcknowledged: true })}
+              className="w-full bg-white/50 hover:bg-white text-rio-warning font-bold text-xs py-2 rounded-lg transition-colors border border-rio-warning/30 shadow-sm"
+            >
+              Entendido, ocultar notificación
+            </button>
           </div>
         )}
       </div>

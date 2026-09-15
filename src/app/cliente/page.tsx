@@ -23,7 +23,7 @@ export default function CatalogoPage() {
   });
 
   const adjustedOrders = orders.filter(
-    o => o.customerId === currentCustomer?.id && o.items.some(i => !!i.adjustmentReason)
+    o => o.customerId === currentCustomer?.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
   );
 
   if (!isLoaded) {
