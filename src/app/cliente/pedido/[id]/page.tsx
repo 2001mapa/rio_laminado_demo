@@ -94,7 +94,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
               onClick={() => updateOrder({ ...order, adjustmentAcknowledged: true })}
               className="w-full bg-white/50 hover:bg-white text-rio-warning font-bold text-xs py-2 rounded-lg transition-colors border border-rio-warning/30 shadow-sm"
             >
-              Entendido, ocultar notificación
+              Entendido, confirmar la actualización
             </button>
           </div>
         )}
