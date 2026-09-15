@@ -23,10 +23,10 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative print:min-h-0 print:pb-0 print:bg-white">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative print:min-h-0 print:h-auto print:overflow-visible print:pb-0 print:bg-white">
       {/* Sidebar Desktop / Topbar Mobile */}
       <aside className={classNames(
-        "w-full bg-rio-ink text-white flex flex-col md:min-h-screen shrink-0 border-r border-black print:hidden transition-all duration-300",
+        "w-full bg-rio-ink text-white flex flex-col md:h-screen shrink-0 border-r border-black print:hidden transition-all duration-300",
         isCollapsed ? "md:w-20" : "md:w-60"
       )}>
         <div className={classNames("p-4 md:p-6 flex items-center justify-between border-b border-white/10", isCollapsed ? "md:justify-center md:px-0" : "md:justify-start")}>
