@@ -136,7 +136,7 @@ export default function MassPrintPage() {
               key={product.id + '-' + i} 
               className="w-[31mm] h-[22mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden p-[1mm]"
             >
-              <div className="w-[14mm] h-[14mm] flex-shrink-0 bg-white mr-1 flex items-center justify-center">
+              <div className="w-[11mm] h-[11mm] flex-shrink-0 bg-white mr-1 flex items-center justify-center ml-[1mm]">
                 {product.sku && (
                   <QRCode 
                     value={product.sku} 
@@ -146,7 +146,7 @@ export default function MassPrintPage() {
                   />
                 )}
               </div>
-              <div className="flex flex-col items-end justify-center text-[7.5px] leading-[1.2] flex-1">
+              <div className="flex flex-col items-end justify-center text-[7.5px] leading-[1.2] flex-1 mr-[1mm]">
                 <span className="font-black text-[9px] leading-tight text-right w-full break-all">{product.sku}</span>
                 <span className="font-bold">{formatPrice(product.price)}</span>
                 {product.locationCode ? (
