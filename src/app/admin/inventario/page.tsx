@@ -1,9 +1,10 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Plus, Upload, Info, X, Printer } from 'lucide-react';
+import { Plus, Info, X, Printer, Database } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
+import CSVImporter from '@/components/CSVImporter';
 
 export default function InventarioPage() {
   const { products } = useDemo();
@@ -21,11 +22,11 @@ export default function InventarioPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-10">
-      {/* Demo notice */}
-      <div className="flex items-start gap-3 bg-rio-gold-light/20 border border-rio-gold-light rounded-xl px-4 py-3.5">
-        <Info className="h-4 w-4 text-rio-gold-dark shrink-0 mt-0.5" />
-        <p className="text-[12px] text-rio-gold-dark font-medium leading-snug">
-          Pantalla demostrativa. Importar CSV y crear productos son acciones simuladas sin conexión real.
+      {/* DB notice */}
+      <div className="flex items-start gap-3 bg-rio-ink/5 border border-rio-ink/10 rounded-xl px-4 py-3.5">
+        <Database className="h-4 w-4 text-rio-ink shrink-0 mt-0.5" />
+        <p className="text-[12px] text-rio-ink font-medium leading-snug">
+          Integración activada. El botón de <strong>Importar CSV</strong> ahora procesará los datos localmente y actualizará la base de datos de manera real.
         </p>
       </div>
 
@@ -49,9 +50,10 @@ export default function InventarioPage() {
             <Printer className="w-4 h-4 mr-2" />
             Imprimir Etiquetas
           </a>
+          <CSVImporter onComplete={() => window.location.reload()} />
           <button
             onClick={() => setShowMockModal(true)}
-            className="flex items-center px-4 py-2.5 border border-transparent text-[13px] font-semibold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
+            className="flex items-center px-4 py-2.5 border border-rio-border text-[13px] font-semibold rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Producto
