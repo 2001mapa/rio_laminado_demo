@@ -34,7 +34,7 @@ export async function bulkUploadInventory(items: any[]) {
     return { success: true, message: `${items.length} referencias actualizadas correctamente.` };
   } catch (error: any) {
     console.error('Error during bulk upload:', error);
-    return { success: false, message: 'Ocurrió un error al guardar el inventario.' };
+    return { success: false, message: `Ocurrió un error al guardar el inventario: ${error.message}` };
   }
 }
 

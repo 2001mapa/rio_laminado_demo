@@ -39,6 +39,6 @@ export async function createCustomer(data: {
     };
   } catch (error: any) {
     console.error('Error creating customer:', error);
-    return { success: false, message: 'Error interno al crear el cliente.' };
+    return { success: false, message: `Error interno al crear el cliente: ${error.message}` };
   }
 }
