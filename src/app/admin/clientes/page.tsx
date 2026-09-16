@@ -4,10 +4,12 @@ import { useDemo } from '@/lib/DemoContext';
 import { Plus, Users, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import CreateCustomerModal from '@/components/CreateCustomerModal';
 
 export default function ClientesPage() {
   const { customers } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -18,7 +20,7 @@ export default function ClientesPage() {
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl font-serif font-bold text-rio-ink">Clientes Mayoristas</h1>
-        <button onClick={() => alert('Acción simulada')} className="flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors">
+        <button onClick={() => setShowModal(true)} className="flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors">
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Cliente
         </button>
@@ -77,6 +79,15 @@ export default function ClientesPage() {
           </div>
         )}
       </div>
+
+      <CreateCustomerModal 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)} 
+        onComplete={() => {
+          setShowModal(false);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
