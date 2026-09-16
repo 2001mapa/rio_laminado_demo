@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
 import CSVImporter from '@/components/CSVImporter';
 import BulkPhotoUploader from '@/components/BulkPhotoUploader';
+import CreateProductModal from '@/components/CreateProductModal';
 
 export default function InventarioPage() {
   const { products } = useDemo();
@@ -127,43 +128,15 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* Mock Modal */}
-      {showMockModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-rio-surface rounded-2xl p-6 w-full max-w-md shadow-2xl border border-rio-border">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-lg font-serif font-bold text-rio-ink">Formulario de Producto</h3>
-              <button onClick={() => setShowMockModal(false)} className="p-1 text-rio-muted hover:text-rio-ink transition-colors rounded-lg hover:bg-rio-surface-muted">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-[12px] text-rio-muted font-medium mb-5 bg-rio-surface-muted px-3 py-2 rounded-lg border border-rio-border">
-              Vista previa del formulario. En producción, este formulario guardará datos reales.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Nombre del Producto</label>
-                <input type="text" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background text-rio-ink" placeholder="Ej. Anillo Clásico" disabled />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Referencia (SKU)</label>
-                  <input type="text" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background text-rio-ink" placeholder="ANI-001" disabled />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Ubicación Bodega</label>
-                  <input type="text" className="w-full border border-rio-gold-light rounded-xl p-2.5 text-sm bg-rio-gold-light/10 text-rio-ink" placeholder="A-01-01" disabled />
-                  <p className="text-[10px] text-rio-muted mt-1 font-medium">Clave para orden de preparación.</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 flex gap-3">
-              <button onClick={() => setShowMockModal(false)} className="flex-1 py-2.5 border border-rio-border text-rio-ink rounded-xl text-sm font-semibold hover:bg-rio-surface-muted transition-colors">Cancelar</button>
-              <button onClick={() => setShowMockModal(false)} className="flex-1 py-2.5 bg-rio-ink text-white rounded-xl text-sm font-bold hover:bg-rio-ink/90 transition-colors">Guardar (Simulado)</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* New Product Modal */}
+      <CreateProductModal 
+        isOpen={showMockModal} 
+        onClose={() => setShowMockModal(false)} 
+        onComplete={() => {
+          setShowMockModal(false);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

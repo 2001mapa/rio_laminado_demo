@@ -6,10 +6,7 @@ export async function bulkUploadInventory(items: any[]) {
   try {
     console.log(`Processing ${items.length} items from CSV...`);
     
-    // Process items in chunks or sequentially since SQLite Prisma doesn't have an easy native upsertMany
-    // Actually, we can use a transaction with multiple upserts
     const operations = items.map((item) => {
-      // Ensure numeric fields
       const price = parseFloat(item.price?.toString().replace(/[^\d.-]/g, '')) || 0;
       const stock = parseInt(item.stock?.toString(), 10) || 0;
       
@@ -29,17 +26,47 @@ export async function bulkUploadInventory(items: any[]) {
           price: price,
           stock: stock,
           locationCode: item.locationCode || null,
-          imageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80', // Default image for new items
         }
       });
     });
 
-    // Execute all upserts in a transaction
     await prisma.$transaction(operations);
-
     return { success: true, message: `${items.length} referencias actualizadas correctamente.` };
   } catch (error: any) {
     console.error('Error during bulk upload:', error);
-    return { success: false, message: 'Ocurrió un error al guardar el inventario en la base de datos.' };
+    return { success: false, message: 'Ocurrió un error al guardar el inventario.' };
+  }
+}
+
+export async function createSingleProduct(data: {
+  sku: string;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+  locationCode?: string;
+}) {
+  try {
+    // Verificar si ya existe
+    const existing = await prisma.product.findUnique({ where: { sku: data.sku } });
+    if (existing) {
+      return { success: false, message: 'Ya existe un producto con esta referencia (SKU).' };
+    }
+
+    await prisma.product.create({
+      data: {
+        sku: data.sku,
+        name: data.name,
+        category: data.category,
+        price: data.price,
+        stock: data.stock,
+        locationCode: data.locationCode || null,
+      }
+    });
+
+    return { success: true, message: 'Producto creado exitosamente.' };
+  } catch (error: any) {
+    console.error('Error creating product:', error);
+    return { success: false, message: 'Error interno al crear el producto.' };
   }
 }
