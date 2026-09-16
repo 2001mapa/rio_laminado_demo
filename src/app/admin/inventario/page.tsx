@@ -5,6 +5,7 @@ import { Plus, Info, X, Printer, Database } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useState } from 'react';
 import CSVImporter from '@/components/CSVImporter';
+import BulkPhotoUploader from '@/components/BulkPhotoUploader';
 
 export default function InventarioPage() {
   const { products } = useDemo();
@@ -26,7 +27,7 @@ export default function InventarioPage() {
       <div className="flex items-start gap-3 bg-rio-ink/5 border border-rio-ink/10 rounded-xl px-4 py-3.5">
         <Database className="h-4 w-4 text-rio-ink shrink-0 mt-0.5" />
         <p className="text-[12px] text-rio-ink font-medium leading-snug">
-          Integración activada. El botón de <strong>Importar CSV</strong> ahora procesará los datos localmente y actualizará la base de datos de manera real.
+          Integración activada. El botón de <strong>Importar CSV</strong> y <strong>Subir Fotos</strong> ahora procesarán los datos localmente y actualizarán la base de datos de manera real.
         </p>
       </div>
 
@@ -50,6 +51,7 @@ export default function InventarioPage() {
             <Printer className="w-4 h-4 mr-2" />
             Imprimir Etiquetas
           </a>
+          <BulkPhotoUploader onComplete={() => window.location.reload()} />
           <CSVImporter onComplete={() => window.location.reload()} />
           <button
             onClick={() => setShowMockModal(true)}

@@ -28,6 +28,7 @@ model Product {
   price        Float
   stock        Int         @default(0)
   imageUrl     String?
+  hoverImageUrl String?
   locationCode String?
   createdAt    DateTime    @default(now())
   orderItems   OrderItem[]
