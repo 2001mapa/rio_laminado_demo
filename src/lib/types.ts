@@ -7,6 +7,7 @@ export type Product = {
   image: string;
   hoverImage?: string;
   lowStock: boolean;
+  stock: number;
   locationCode?: string;
 };
 

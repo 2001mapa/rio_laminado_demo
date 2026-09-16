@@ -131,13 +131,13 @@ export default function NuevaVentaPage() {
       const existing = prev.find(item => item.product.id === scannedProduct.id);
       if (existing) {
         return prev.map(item => item.product.id === scannedProduct.id 
-          ? { ...item, quantity: item.quantity + scanQuantity } 
+          ? { ...item, quantity: Math.min(scannedProduct.stock, item.quantity + scanQuantity) } 
           : item);
       }
-      return [...prev, { product: scannedProduct, quantity: scanQuantity }];
+      return [...prev, { product: scannedProduct, quantity: Math.min(scannedProduct.stock, scanQuantity) }];
     });
     
-    addToast(`${scanQuantity}x ${scannedProduct.name} agregados.`);
+    addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
     setScannedProduct(null);
     
     // Resume scanner
@@ -355,18 +355,25 @@ export default function NuevaVentaPage() {
                         <button onClick={cancelScan} className="text-rio-muted hover:text-rio-ink"><X className="w-5 h-5"/></button>
                       </div>
                       
-                      <div className="flex items-center gap-3 bg-rio-surface-muted p-2 rounded-xl mb-4 border border-rio-border">
+                      <div className="flex items-center gap-3 bg-rio-surface-muted p-2 rounded-xl mb-3 border border-rio-border">
                         <img src={scannedProduct.image} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-[10px] text-rio-muted font-mono">{scannedProduct.sku}</p>
-                          <p className="text-[13px] font-bold leading-tight">{scannedProduct.name}</p>
+                          <p className="text-[13px] font-bold leading-tight truncate">{scannedProduct.name}</p>
                           <p className="text-rio-gold-dark font-bold text-sm mt-0.5">{formatPrice(scannedProduct.price)}</p>
                         </div>
                       </div>
 
+                      <div className="bg-rio-background p-2 rounded-lg mb-4 text-center border border-rio-border flex flex-col items-center justify-center">
+                        <span className="text-[10px] text-rio-muted font-bold uppercase tracking-wider mb-0.5">Inventario Disponible</span>
+                        <span className={`text-sm font-black ${scannedProduct.stock > 10 ? 'text-rio-success' : scannedProduct.stock > 0 ? 'text-rio-warning' : 'text-rio-danger'}`}>
+                          {scannedProduct.stock} unidades
+                        </span>
+                      </div>
+
                       <p className="text-xs font-bold text-rio-ink mb-2 text-center uppercase tracking-wider">Cantidad Solicitada</p>
                       <div className="flex items-center justify-center gap-4 mb-6">
-                        <button onClick={() => setScanQuantity(Math.max(1, scanQuantity - 1))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink">
+                        <button onClick={() => setScanQuantity(Math.max(1, scanQuantity - 1))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink disabled:opacity-50" disabled={scannedProduct.stock === 0}>
                           <Minus className="w-5 h-5"/>
                         </button>
                         <input 
@@ -374,22 +381,30 @@ export default function NuevaVentaPage() {
                           inputMode="numeric"
                           pattern="[0-9]*"
                           value={scanQuantity === 0 ? '' : scanQuantity}
+                          disabled={scannedProduct.stock === 0}
                           onChange={(e) => {
                             const val = parseInt(e.target.value, 10);
-                            setScanQuantity(isNaN(val) ? 0 : val);
+                            let newQuantity = isNaN(val) ? 0 : val;
+                            if (newQuantity > scannedProduct.stock) newQuantity = scannedProduct.stock;
+                            setScanQuantity(newQuantity);
                           }}
                           onBlur={() => {
-                            if (scanQuantity < 1) setScanQuantity(1);
+                            if (scanQuantity < 1 && scannedProduct.stock > 0) setScanQuantity(1);
+                            if (scanQuantity > scannedProduct.stock) setScanQuantity(scannedProduct.stock);
                           }}
-                          className="text-3xl font-black w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0 text-rio-ink [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="text-3xl font-black w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0 text-rio-ink disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
-                        <button onClick={() => setScanQuantity(scanQuantity + 1)} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md">
+                        <button onClick={() => setScanQuantity(Math.min(scannedProduct.stock, scanQuantity + 1))} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md disabled:bg-rio-border disabled:text-rio-muted disabled:shadow-none" disabled={scanQuantity >= scannedProduct.stock || scannedProduct.stock === 0}>
                           <Plus className="w-5 h-5"/>
                         </button>
                       </div>
 
-                      <button onClick={confirmScan} className="w-full bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                        Agregar a la Orden
+                      <button 
+                        onClick={confirmScan} 
+                        disabled={scannedProduct.stock === 0}
+                        className="w-full bg-black disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                      >
+                        {scannedProduct.stock === 0 ? 'Sin Inventario' : 'Agregar a la Orden'}
                       </button>
                     </div>
                   </div>
