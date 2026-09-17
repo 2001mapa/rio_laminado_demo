@@ -427,24 +427,24 @@ function ProductModal({
     };
   }, []);
 
+  const handleGlobalTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setSwipeStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={handleCloseModal}
+      onTouchStart={handleGlobalTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
-        onTouchStart={(e) => {
-          if (e.touches.length === 1) {
-            setSwipeStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-          }
-        }}
-        onTouchEnd={handleTouchEnd}
-      />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
 
-      {/* Navigation Arrows (Up / Down) */}
-      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col justify-between py-6 md:py-8 pointer-events-none z-[60]">
+      {/* Navigation Arrows (Up / Down) - Solo en Desktop */}
+      <div className="hidden md:flex absolute inset-y-0 left-1/2 -translate-x-1/2 flex-col justify-between py-6 md:py-8 pointer-events-none z-[60]">
         <div className="pointer-events-auto">
           {onPrev ? (
             <button
