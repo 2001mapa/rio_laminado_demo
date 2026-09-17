@@ -443,29 +443,29 @@ function ProductModal({
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
 
-      {/* Navigation Arrows (Up / Down) - Solo en Desktop */}
-      <div className="hidden md:flex absolute inset-y-0 left-1/2 -translate-x-1/2 flex-col justify-between py-6 md:py-8 pointer-events-none z-[60]">
-        <div className="pointer-events-auto">
-          {onPrev ? (
+      {/* Navigation Arrows (Up / Down) */}
+      <div className="absolute inset-y-2 md:inset-y-4 left-1/2 -translate-x-1/2 flex flex-col justify-between pointer-events-none z-[60]">
+        <div className="pointer-events-auto flex justify-center">
+          {onPrev && (
             <button
               onClick={(e) => { e.stopPropagation(); onPrev(); }}
-              className="w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 transition-all shadow-lg active:scale-95 animate-bounce"
+              className="p-2 text-white/80 hover:text-white transition-all active:scale-95 animate-bounce"
               aria-label="Anterior producto"
             >
-              <ChevronLeft className="w-8 h-8 rotate-90" />
+              <ChevronLeft className="w-10 h-10 rotate-90 filter drop-shadow-md" />
             </button>
-          ) : <div className="w-12 h-12" />}
+          )}
         </div>
-        <div className="pointer-events-auto">
-          {onNext ? (
+        <div className="pointer-events-auto flex justify-center">
+          {onNext && (
             <button
               onClick={(e) => { e.stopPropagation(); onNext(); }}
-              className="w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 transition-all shadow-lg active:scale-95 animate-bounce"
+              className="p-2 text-white/80 hover:text-white transition-all active:scale-95 animate-bounce"
               aria-label="Siguiente producto"
             >
-              <ChevronRight className="w-8 h-8 rotate-90" />
+              <ChevronRight className="w-10 h-10 rotate-90 filter drop-shadow-md" />
             </button>
-          ) : <div className="w-12 h-12" />}
+          )}
         </div>
       </div>
 
@@ -533,17 +533,17 @@ function ProductModal({
         </div>
 
         {/* Info Container */}
-        <div className="p-5 space-y-4 overflow-y-auto">
+        <div className="p-4 space-y-3 overflow-y-auto">
           <div>
-            <p className="text-[11px] font-mono font-bold text-rio-muted">{product.sku}</p>
-            <h2 className="text-xl font-serif font-bold text-rio-ink mt-1 leading-snug">{product.name}</h2>
-            <p className="text-[13px] text-rio-muted font-medium mt-1">{product.category}</p>
+            <p className="text-[10px] font-mono font-bold text-rio-muted leading-tight">{product.sku}</p>
+            <h2 className="text-lg md:text-xl font-serif font-bold text-rio-ink mt-0.5 leading-snug">{product.name}</h2>
+            <p className="text-[12px] text-rio-muted font-medium">{product.category}</p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-2xl font-black text-rio-ink">{formatPrice(product.price)}</span>
+            <span className="text-xl font-black text-rio-ink">{formatPrice(product.price)}</span>
             {product.lowStock && (
-              <span className="inline-flex items-center gap-1 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[11px] font-bold px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full">
                 <Tag className="w-3 h-3" />
                 Pocas Unidades
               </span>
@@ -551,32 +551,32 @@ function ProductModal({
           </div>
 
           {cartItem && (
-            <div className="text-[12px] font-semibold text-rio-gold-dark bg-rio-gold-light/20 border border-rio-gold-light px-3 py-2 rounded-xl">
-              Ya tienes <strong>{currentCartQuantity}</strong> unidades de este producto en tu pedido.
+            <div className="text-[11px] font-semibold text-rio-gold-dark bg-rio-gold-light/20 border border-rio-gold-light px-3 py-1.5 rounded-lg">
+              Ya tienes <strong>{currentCartQuantity}</strong> unidades en tu pedido.
             </div>
           )}
 
           {/* Add to cart */}
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-12 flex-1">
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-12 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+          <div className="flex items-center gap-2 pt-0.5">
+            <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 flex-1">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="text-base font-bold flex-1 text-center text-rio-ink">{quantity}</span>
-              <button onClick={() => setQuantity(quantity + 1)} className="w-12 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+              <span className="text-sm font-bold flex-1 text-center text-rio-ink">{quantity}</span>
+              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
             <button
               onClick={handleAdd}
-              className={`h-12 flex-1 flex items-center justify-center gap-2 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+              className={`h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
                 added
                   ? 'bg-rio-success text-white'
                   : 'bg-rio-ink text-white hover:bg-rio-ink/90'
               }`}
             >
               <ShoppingBag className="w-4 h-4" />
-              {added ? '¡Agregado!' : 'Agregar al Pedido'}
+              {added ? '¡Agregado!' : 'Agregar'}
             </button>
           </div>
         </div>
