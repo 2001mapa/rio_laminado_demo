@@ -123,37 +123,43 @@ export default function MassPrintPage() {
         </div>
       </div>
 
-      <div className="hidden print:block w-full max-w-[105mm] overflow-hidden">
+      <div className="hidden print:block w-[103mm] mx-auto bg-white overflow-hidden">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
-            @page { margin: 0; }
-            body { margin: 0 !important; padding: 0 !important; }
+            @page { 
+              size: 103mm auto;
+              margin: 0; 
+            }
+            body { 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              background: white;
+            }
           }
         `}} />
-        <div className="grid grid-cols-3 gap-[2mm] px-[2mm] pt-[1mm]">
+        {/* Usamos pl-[0.5mm] ya que 32*3=96 + 6=102, sobrando 1mm del total de 103mm */}
+        <div className="grid grid-cols-3 gap-x-[3mm] gap-y-[3mm] pl-[0.5mm] pt-[1mm]">
           {currentBatch.map((product, i) => (
             <div 
               key={product.id + '-' + i} 
-              className="w-[31mm] h-[22mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden p-[1mm]"
+              className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
             >
-              <div className="w-[11mm] h-[11mm] flex-shrink-0 bg-white mr-1 flex items-center justify-center ml-[1mm]">
+              <div className="w-[12mm] h-[12mm] flex-shrink-0 bg-white flex items-center justify-center">
                 {product.sku && (
                   <QRCode 
                     value={product.sku} 
                     size={256} 
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }} 
+                    style={{ height: "100%", width: "100%", maxWidth: "100%" }} 
                     viewBox={`0 0 256 256`} 
                   />
                 )}
               </div>
-              <div className="flex flex-col items-end justify-center text-[7.5px] leading-[1.2] flex-1 mr-[1mm]">
-                <span className="font-black text-[9px] leading-tight text-right w-full break-all">{product.sku}</span>
-                <span className="font-bold">{formatPrice(product.price)}</span>
-                {product.locationCode ? (
-                  <span className="font-medium text-right text-[7px] truncate max-w-full">UB: {product.locationCode}</span>
-                ) : (
-                  <span className="font-medium text-right text-[7px] truncate max-w-full">UB: N/A</span>
-                )}
+              <div className="flex flex-col items-end justify-center leading-[1.1] flex-1 ml-[1mm] overflow-hidden">
+                <span className="font-black text-[8px] leading-tight text-right w-full break-all line-clamp-2">{product.sku}</span>
+                <span className="font-bold text-[8px] mt-[0.5mm]">{formatPrice(product.price)}</span>
+                <span className="font-medium text-right text-[6px] truncate w-full mt-[0.5mm]">
+                  UB: {product.locationCode || 'N/A'}
+                </span>
               </div>
             </div>
           ))}
