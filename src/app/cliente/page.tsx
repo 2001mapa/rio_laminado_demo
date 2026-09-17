@@ -247,7 +247,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
       {/* Clickable image */}
       <button
         onClick={onExpand}
-        className="relative aspect-[9/16] md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
+        className="relative aspect-square md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
         aria-label={`Ver detalle de ${product.name}`}
       >
         <img
