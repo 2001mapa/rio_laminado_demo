@@ -172,25 +172,27 @@ export default function MassPrintPage() {
               key={product.id + '-' + i} 
               className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
             >
-              {/* QR Code ampliado a 14x14mm (aprox 1.4x1.4cm) */}
-              <div className="w-[14mm] h-[14mm] flex-shrink-0 bg-white flex items-center justify-center">
-                {product.sku && (
-                  <QRCode 
-                    value={product.sku} 
-                    size={256} 
-                    style={{ height: "100%", width: "100%", maxWidth: "100%" }} 
-                    viewBox={`0 0 256 256`} 
+                {/* QR Code reducido a 12x12mm */}
+                <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
+                  <QRCode
+                    value={JSON.stringify({
+                      type: 'add_to_cart',
+                      productId: product.id,
+                      sku: product.sku
+                    })}
+                    size={120}
+                    level="L"
+                    className="w-full h-full"
                   />
-                )}
-              </div>
-              {/* Textos alineados a la izquierda para estar mas cerca del QR, altura de 14mm */}
-              <div className="flex flex-col items-start justify-between h-[14mm] leading-[1.1] flex-1 ml-[1.5mm] overflow-hidden">
-                <span className="font-black text-[11px] leading-none text-left w-full break-all line-clamp-1 tracking-tighter">{product.sku}</span>
-                <span className="font-black text-[12px] leading-none text-left tracking-tight">{formatPrice(product.price)}</span>
-                <span className="font-bold text-[8px] leading-none text-left w-full truncate tracking-tight">
-                  UB: {product.locationCode || 'N/A'}
-                </span>
-              </div>
+                </div>
+                {/* Contenedor de textos alineado a la izquierda, textos del mismo tamaño */}
+                <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
+                  <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{product.sku}</span>
+                  <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{formatPrice(product.price)}</span>
+                  <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">
+                    UB: {product.locationCode || 'N/A'}
+                  </span>
+                </div>
             </div>
           ))}
         </div>
