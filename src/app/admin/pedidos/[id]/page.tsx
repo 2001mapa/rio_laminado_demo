@@ -374,21 +374,15 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
         
         {(() => {
           const itemsToPrint = sortedItems.filter(item => printingSingle ? item.id === printingSingle : true);
-          const chunks = [];
-          for (let i = 0; i < itemsToPrint.length; i += 21) {
-            chunks.push(itemsToPrint.slice(i, i + 21));
-          }
           
-          return chunks.map((chunk, chunkIndex) => (
-            <div key={chunkIndex} className="break-after-page">
+          return (
+            <div>
               <div 
                 className="grid grid-cols-3 gap-x-[3mm]"
                 style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm` }}
               >
-                {chunk.map((item, index) => {
+                {itemsToPrint.map((item, index) => {
                   const product = products.find(p => p.id === item.productId);
-                  // Continuar con la numeracion global de la orden
-                  const globalIndex = chunkIndex * 21 + index;
                   return (
                     <div 
                       key={item.id} 
@@ -396,7 +390,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     >
                       {/* Fila superior de texto */}
                       <div className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
-                        <span className="font-bold text-[9px]">#{globalIndex + 1}</span>
+                        <span className="font-bold text-[9px]">#{index + 1}</span>
                         <span className="font-black text-[10px] tracking-tighter truncate mx-1">{product?.sku}</span>
                         <span className="font-bold text-[9px]">C:{item.quantity}</span>
                       </div>
@@ -419,7 +413,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 })}
               </div>
             </div>
-          ));
+          );
         })()}
       </div>
     </>
