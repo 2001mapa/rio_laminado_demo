@@ -15,37 +15,52 @@ export default function VendedorDashboard() {
   }, 0);
 
   return (
-    <div className="p-4 md:p-6 pb-24 space-y-6">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto pb-24 space-y-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-serif font-black text-rio-ink">
-          ¡Hola, {currentSeller?.name.split(' ')[1] || 'Vendedor'}!
+          ¡Hola, {currentSeller?.name.split(' ')[0] || 'Vendedor'}!
         </h1>
-        <p className="text-rio-muted text-sm font-medium">Aquí está el resumen de tus ventas.</p>
+        <p className="text-rio-muted text-sm font-medium">Aquí está el resumen de tu gestión.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-rio-surface-muted p-4 rounded-2xl border border-rio-border flex flex-col justify-between aspect-square">
-          <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
-            <Package className="w-4 h-4 text-rio-gold-dark" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {/* Card 1 */}
+        <div className="bg-white p-5 rounded-2xl border border-rio-border shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="bg-rio-gold-light/20 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-rio-gold-dark" />
           </div>
           <div>
-            <p className="text-3xl font-black text-rio-ink leading-none mb-1">{sellerOrders.length}</p>
-            <p className="text-[11px] font-bold text-rio-muted uppercase tracking-wider">Pedidos Hoy</p>
+            <p className="text-[10px] font-bold text-rio-muted uppercase tracking-wider mb-1">Pedidos Generados</p>
+            <p className="text-2xl font-black text-rio-ink leading-none">{sellerOrders.length}</p>
           </div>
         </div>
         
-        <div className="bg-rio-surface-muted p-4 rounded-2xl border border-rio-border flex flex-col justify-between aspect-square">
-          <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
-            <TrendingUp className="w-4 h-4 text-rio-gold-dark" />
+        {/* Card 2 */}
+        <div className="bg-white p-5 rounded-2xl border border-rio-border shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="bg-rio-gold-light/20 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+            <TrendingUp className="w-5 h-5 text-rio-gold-dark" />
           </div>
           <div>
-            <p className="text-lg font-black text-rio-ink leading-tight mb-1">{formatPrice(totalSales)}</p>
-            <p className="text-[11px] font-bold text-rio-muted uppercase tracking-wider">Ventas Est.</p>
+            <p className="text-[10px] font-bold text-rio-muted uppercase tracking-wider mb-1">Ventas Estimadas</p>
+            <p className="text-2xl font-black text-rio-ink leading-none">{formatPrice(totalSales)}</p>
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white p-5 rounded-2xl border border-rio-border shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="bg-rio-gold-light/20 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-rio-gold-dark" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-rio-muted uppercase tracking-wider mb-1">Clientes Atendidos</p>
+            <p className="text-2xl font-black text-rio-ink leading-none">
+              {new Set(sellerOrders.map(o => o.customerId)).size}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="pt-4">
+      <div className="pt-2">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-rio-ink">Tus pedidos recientes</h2>
           <Link href="#" className="text-xs font-bold text-rio-gold-dark hover:underline">
