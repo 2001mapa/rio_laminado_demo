@@ -96,25 +96,25 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Horizontal (mm)</h3>
             <div className="flex items-center gap-2">
-              <button onClick={() => setOffsetX(x => Number((x - 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-8 text-center">{offsetX}</span>
-              <button onClick={() => setOffsetX(x => Number((x + 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+              <button onClick={() => setOffsetX(x => Number((x - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-12 text-center">{offsetX}</span>
+              <button onClick={() => setOffsetX(x => Number((x + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
             </div>
           </div>
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Vertical (mm)</h3>
             <div className="flex items-center gap-2">
-              <button onClick={() => setOffsetY(y => Number((y - 1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-8 text-center">{offsetY}</span>
-              <button onClick={() => setOffsetY(y => Number((y + 1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+              <button onClick={() => setOffsetY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-12 text-center">{offsetY}</span>
+              <button onClick={() => setOffsetY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
             </div>
           </div>
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Distancia entre filas</h3>
             <div className="flex items-center gap-2">
-              <button onClick={() => setGapY(y => Number((y - 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-8 text-center">{gapY}</span>
-              <button onClick={() => setGapY(y => Number((y + 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+              <button onClick={() => setGapY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-12 text-center">{gapY}</span>
+              <button onClick={() => setGapY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
             </div>
           </div>
           <div className="text-[10px] text-rio-muted max-w-sm leading-relaxed">
