@@ -21,6 +21,7 @@ export default function PedidosAdminPage() {
   const { orders, customers, sellers, isLoaded } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
+  const [orderView, setOrderView] = useState<'todos' | 'clientes' | 'vendedores'>('todos');
 
   if (!isLoaded) {
     return (
@@ -59,15 +60,47 @@ export default function PedidosAdminPage() {
       order.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'Todos' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesView = orderView === 'todos' || 
+                        (orderView === 'clientes' && !order.sellerId) || 
+                        (orderView === 'vendedores' && !!order.sellerId);
+    
+    return matchesSearch && matchesStatus && matchesView;
   });
 
   return (
     <div className="p-6 md:p-10 space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-rio-muted uppercase tracking-[0.15em] mb-1">Gestión</p>
           <h1 className="text-3xl font-serif font-bold text-rio-ink">Bandeja de Pedidos</h1>
+        </div>
+        
+        {/* Source Tabs */}
+        <div className="flex bg-rio-surface rounded-lg p-1 border border-rio-border">
+          <button 
+            onClick={() => setOrderView('todos')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${
+              orderView === 'todos' ? 'bg-rio-ink text-white shadow-sm' : 'text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted'
+            }`}
+          >
+            Todos
+          </button>
+          <button 
+            onClick={() => setOrderView('clientes')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${
+              orderView === 'clientes' ? 'bg-rio-ink text-white shadow-sm' : 'text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted'
+            }`}
+          >
+            Directos
+          </button>
+          <button 
+            onClick={() => setOrderView('vendedores')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${
+              orderView === 'vendedores' ? 'bg-rio-ink text-white shadow-sm' : 'text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted'
+            }`}
+          >
+            Vendedores
+          </button>
         </div>
       </div>
 

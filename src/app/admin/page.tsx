@@ -3,6 +3,7 @@
 import { useDemo } from '@/lib/DemoContext';
 import { Package, Clock, CheckCircle, AlertTriangle, ArrowRight, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 import { StatCardSkeleton, OrderCardSkeleton } from '@/components/Skeletons';
 import { formatPrice } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ const STATUS_CLASSES: Record<string, string> = {
 
 export default function AdminDashboard() {
   const { orders, customers, isLoaded } = useDemo();
+  const [orderView, setOrderView] = useState<'clientes' | 'vendedores'>('clientes');
 
   if (!isLoaded) {
     return (
@@ -52,7 +54,10 @@ export default function AdminDashboard() {
   const urgentOrders = orders.filter(o =>
     o.status === 'Reservado' || o.status === 'Pendiente de verificación'
   );
-  const recentOrders = orders.slice(0, 8);
+
+  const displayedOrders = orders
+    .filter(o => orderView === 'clientes' ? !o.sellerId : !!o.sellerId)
+    .slice(0, 8);
 
   return (
     <div className="p-6 md:p-10 space-y-8">
@@ -83,8 +88,29 @@ export default function AdminDashboard() {
 
         {/* Orders Table — takes 2/3 width */}
         <div className="lg:col-span-2 bg-rio-surface rounded-xl border border-rio-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-rio-border flex justify-between items-center">
-            <h2 className="text-sm font-bold text-rio-ink uppercase tracking-wider">Todos los Pedidos</h2>
+          <div className="px-6 py-4 border-b border-rio-border flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex bg-rio-background rounded-lg p-1">
+              <button 
+                onClick={() => setOrderView('clientes')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  orderView === 'clientes' 
+                    ? 'bg-white text-rio-ink shadow-sm' 
+                    : 'text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted'
+                }`}
+              >
+                Clientes Directos
+              </button>
+              <button 
+                onClick={() => setOrderView('vendedores')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  orderView === 'vendedores' 
+                    ? 'bg-white text-rio-ink shadow-sm' 
+                    : 'text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted'
+                }`}
+              >
+                Por Vendedores
+              </button>
+            </div>
             <Link href="/admin/pedidos" className="text-xs font-bold text-rio-gold-dark hover:text-rio-gold transition-colors">
               Ver bandeja completa →
             </Link>
@@ -100,7 +126,14 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-rio-border">
-              {recentOrders.map(order => {
+              {displayedOrders.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-[12px] text-rio-muted font-medium">
+                    No hay pedidos en esta categoría.
+                  </td>
+                </tr>
+              )}
+              {displayedOrders.map(order => {
                 const customer = customers.find(c => c.id === order.customerId);
                 return (
                   <tr key={order.id} className="hover:bg-rio-background transition-colors group">
