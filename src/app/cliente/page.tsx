@@ -387,15 +387,16 @@ function ProductModal({
   };
 
   useEffect(() => {
-    const onPopState = () => {
-      onClose();
+    // Para cerrar con la tecla Escape en desktop
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
     };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
   const handleCloseModal = () => {
-    window.history.back();
+    onClose();
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
