@@ -16,7 +16,7 @@ export function SkeletonText({ className = '' }: { className?: string }) {
 export function ProductCardSkeleton() {
   return (
     <div className="bg-rio-surface rounded-2xl overflow-hidden border border-rio-border shadow-sm flex flex-col">
-      <div className="aspect-square bg-rio-border animate-pulse" />
+      <div className="aspect-[9/16] bg-rio-border animate-pulse" />
       <div className="p-3.5 space-y-2.5 flex flex-col flex-1">
         <SkeletonText className="h-3 w-14" />
         <SkeletonText className="h-4 w-full" />

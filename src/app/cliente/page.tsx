@@ -247,7 +247,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
       {/* Clickable image */}
       <button
         onClick={onExpand}
-        className="relative aspect-square md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
+        className="relative aspect-[9/16] md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
         aria-label={`Ver detalle de ${product.name}`}
       >
         <img
@@ -327,6 +327,7 @@ function ProductModal({
   const [added, setAdded] = useState(false);
   const [zoomState, setZoomState] = useState({ scale: 1, x: 0, y: 0 });
   const [initialPinch, setInitialPinch] = useState<{ dist: number, centerX: number, centerY: number } | null>(null);
+  const [swipeStart, setSwipeStart] = useState<{ x: number, y: number } | null>(null);
   
   const images = [product.image];
   if (product.hoverImage) images.push(product.hoverImage);
@@ -337,6 +338,7 @@ function ProductModal({
     setAdded(false);
     setZoomState({ scale: 1, x: 0, y: 0 });
     setInitialPinch(null);
+    setSwipeStart(null);
     setCurrentImageIndex(0);
   }, [product.id]);
 
@@ -363,6 +365,8 @@ function ProductModal({
       const centerX = (touch1.clientX + touch2.clientX) / 2;
       const centerY = (touch1.clientY + touch2.clientY) / 2;
       setInitialPinch({ dist, centerX, centerY });
+    } else if (e.touches.length === 1) {
+      setSwipeStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     }
   };
 
@@ -378,12 +382,11 @@ function ProductModal({
       const x = centerX - initialPinch.centerX;
       const y = centerY - initialPinch.centerY;
       
-      setZoomState({ scale, x, y });
+      setZoomState({ scale: Math.min(scale, 3), x, y });
     }
   };
 
   useEffect(() => {
-    window.history.pushState({ modalOpen: true }, '');
     const onPopState = () => {
       onClose();
     };
@@ -395,9 +398,25 @@ function ProductModal({
     window.history.back();
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     setInitialPinch(null);
     setZoomState({ scale: 1, x: 0, y: 0 });
+
+    // Swipe navigation logic
+    if (swipeStart && e.changedTouches.length === 1) {
+      const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+      const deltaY = swipeStart.y - touchEnd.y;
+      const deltaX = Math.abs(swipeStart.x - touchEnd.x);
+
+      if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > deltaX) {
+        if (deltaY > 0 && onNext) {
+          onNext(); // Swipe Up -> Next
+        } else if (deltaY < 0 && onPrev) {
+          onPrev(); // Swipe Down -> Prev
+        }
+      }
+    }
+    setSwipeStart(null);
   };
 
   useEffect(() => {
@@ -414,7 +433,15 @@ function ProductModal({
       onClick={handleCloseModal}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            setSwipeStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+          }
+        }}
+        onTouchEnd={handleTouchEnd}
+      />
 
       {/* Navigation Arrows (Up / Down) */}
       <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col justify-between py-6 md:py-8 pointer-events-none z-[60]">
@@ -464,7 +491,7 @@ function ProductModal({
 
         {/* Image Container with Instagram-style Pop-out Zoom */}
         <div 
-          className="relative aspect-[4/3] w-full bg-white shrink-0 rounded-t-2xl z-30"
+          className="relative aspect-[9/16] max-h-[55vh] w-full bg-white shrink-0 rounded-t-2xl z-30"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
