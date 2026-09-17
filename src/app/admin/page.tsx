@@ -275,8 +275,8 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-bold text-rio-muted w-4">{i + 1}</span>
                     <div className="w-8 h-8 rounded bg-rio-background overflow-hidden border border-rio-border shrink-0">
-                      {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.sku} className="w-full h-full object-cover" />
+                      {p.image ? (
+                        <img src={p.image} alt={p.sku} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[8px] text-rio-muted">Img</div>
                       )}
