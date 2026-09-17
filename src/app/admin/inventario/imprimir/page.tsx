@@ -48,9 +48,10 @@ export default function MassPrintPage() {
     return filteredProducts.slice(start, start + itemsPerPage);
   }, [filteredProducts, currentPage, itemsPerPage]);
 
-  const [offsetX, setOffsetX] = useState<number>(2.5);
-  const [offsetY, setOffsetY] = useState<number>(0);
+  const [offsetX, setOffsetX] = useState<number>(3.2);
+  const [offsetY, setOffsetY] = useState<number>(1.6);
   const [gapY, setGapY] = useState<number>(3.0);
+  const [gapX, setGapX] = useState<number>(3.0);
 
   return (
     <>
@@ -87,6 +88,14 @@ export default function MassPrintPage() {
               <button onClick={() => setOffsetY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
               <span className="font-mono text-sm font-bold w-12 text-center">{offsetY}</span>
               <button onClick={() => setOffsetY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Distancia entre columnas</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setGapX(x => Number((x - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-12 text-center">{gapX}</span>
+              <button onClick={() => setGapX(x => Number((x + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
             </div>
           </div>
           <div>
@@ -191,8 +200,8 @@ export default function MassPrintPage() {
           }
         `}} />
         <div 
-          className="grid grid-cols-3 gap-x-[3mm]"
-          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm` }}
+          className="grid grid-cols-3"
+          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
         >
           {currentBatch.map((product, i) => (
             <div 
