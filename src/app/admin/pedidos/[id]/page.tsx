@@ -58,6 +58,9 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     setAdjustingItem(null);
   };
 
+  const [offsetX, setOffsetX] = useState<number>(2.5);
+  const [offsetY, setOffsetY] = useState<number>(0);
+
   return (
     <>
       {/* Screen Layout - Hidden on Print */}
@@ -84,6 +87,29 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               <ClipboardCheck className="w-4 h-4 mr-2 text-rio-muted" />
               Hoja de Bodega
             </Link>
+          </div>
+        </div>
+
+        {/* Calibracion UI */}
+        <div className="bg-rio-surface-muted border border-rio-border rounded-xl p-4 flex flex-wrap gap-6 items-center">
+          <div>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Horizontal (mm)</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setOffsetX(x => Number((x - 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-8 text-center">{offsetX}</span>
+              <button onClick={() => setOffsetX(x => Number((x + 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Vertical (mm)</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setOffsetY(y => Number((y - 1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-8 text-center">{offsetY}</span>
+              <button onClick={() => setOffsetY(y => Number((y + 1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+            </div>
+          </div>
+          <div className="text-[10px] text-rio-muted max-w-xs leading-relaxed">
+            <strong>Tip:</strong> Usa esto si la impresora corta el sticker. Ej: Si imprime todo sobre la línea cortada de abajo, suma Vertical (+19mm aprox).
           </div>
         </div>
 
@@ -337,7 +363,10 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           }
         `}} />
         {/* Usamos pl-[0.5mm] para cuadrar 3 etiquetas de 32mm + 2 huecos de 3mm en 103mm */}
-        <div className="grid grid-cols-3 gap-x-[3mm] gap-y-[3mm] pl-[0.5mm] pt-[1mm]">
+        <div 
+          className="grid grid-cols-3 gap-x-[3mm] gap-y-[3mm]"
+          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm` }}
+        >
           {sortedItems.filter(item => printingSingle ? item.id === printingSingle : true).map((item, index) => {
             const product = products.find(p => p.id === item.productId);
             return (
