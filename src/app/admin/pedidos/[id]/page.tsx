@@ -384,18 +384,17 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
               >
                 {/* QR Code reducido a 12x12mm */}
-                <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
-                  <QRCode
-                    value={JSON.stringify({
-                      type: 'add_to_cart',
-                      productId: item.productId,
-                      sku: product?.sku
-                    })}
-                    size={120}
-                    level="L"
-                    className="w-full h-full"
-                  />
-                </div>
+                  <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
+                    {product?.sku && (
+                      <QRCode
+                        value={product.sku}
+                        size={120}
+                        level="L"
+                        style={{ height: "100%", width: "100%", maxWidth: "100%" }}
+                        viewBox={`0 0 120 120`}
+                      />
+                    )}
+                  </div>
                 {/* Contenedor de textos alineado a la izquierda, textos del mismo tamaño */}
                 <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
                   <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter"># {index + 1}</span>

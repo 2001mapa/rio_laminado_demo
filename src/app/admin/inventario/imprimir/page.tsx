@@ -182,16 +182,15 @@ export default function MassPrintPage() {
             >
                 {/* QR Code reducido a 12x12mm */}
                 <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
-                  <QRCode
-                    value={JSON.stringify({
-                      type: 'add_to_cart',
-                      productId: product.id,
-                      sku: product.sku
-                    })}
-                    size={120}
-                    level="L"
-                    className="w-full h-full"
-                  />
+                  {product.sku && (
+                    <QRCode
+                      value={product.sku}
+                      size={120}
+                      level="L"
+                      style={{ height: "100%", width: "100%", maxWidth: "100%" }}
+                      viewBox={`0 0 120 120`}
+                    />
+                  )}
                 </div>
                 {/* Contenedor de textos alineado a la izquierda, textos del mismo tamaño */}
                 <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
