@@ -356,11 +356,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     />
                   )}
                 </div>
-                {/* Contenedor de textos con 12mm de alto para que abarque al menos 1cm como se solicito */}
-                <div className="flex flex-col items-end justify-between h-[12mm] flex-1 ml-[1mm] overflow-hidden">
-                  <span className="font-bold text-[9px] leading-none text-right"># {index + 1}</span>
-                  <span className="font-black text-[10px] leading-none text-right w-full break-all line-clamp-1">{product?.sku}</span>
-                  <span className="font-black text-[11px] leading-none text-right">Cant: {item.quantity}</span>
+                {/* Contenedor de textos alineado a la izquierda */}
+                <div className="flex flex-col items-start justify-between h-[12mm] flex-1 ml-[1.5mm] overflow-hidden">
+                  <span className="font-bold text-[9px] leading-none text-left"># {index + 1}</span>
+                  <span className="font-black text-[10px] leading-none text-left w-full break-all line-clamp-1">{product?.sku}</span>
+                  <span className="font-black text-[11px] leading-none text-left">Cant: {item.quantity}</span>
                 </div>
               </div>
             );

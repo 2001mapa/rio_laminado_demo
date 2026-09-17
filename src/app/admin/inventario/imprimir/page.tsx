@@ -155,11 +155,11 @@ export default function MassPrintPage() {
                   />
                 )}
               </div>
-              {/* Textos con altura de 12mm para ocupar al menos 1cm */}
-              <div className="flex flex-col items-end justify-between h-[12mm] leading-[1.1] flex-1 ml-[1mm] overflow-hidden">
-                <span className="font-black text-[9px] leading-none text-right w-full break-all line-clamp-1">{product.sku}</span>
-                <span className="font-black text-[10px] leading-none">{formatPrice(product.price)}</span>
-                <span className="font-bold text-[7px] leading-none text-right w-full truncate">
+              {/* Textos alineados a la izquierda para estar mas cerca del QR */}
+              <div className="flex flex-col items-start justify-between h-[12mm] leading-[1.1] flex-1 ml-[1.5mm] overflow-hidden">
+                <span className="font-black text-[9px] leading-none text-left w-full break-all line-clamp-1">{product.sku}</span>
+                <span className="font-black text-[10px] leading-none text-left">{formatPrice(product.price)}</span>
+                <span className="font-bold text-[7px] leading-none text-left w-full truncate">
                   UB: {product.locationCode || 'N/A'}
                 </span>
               </div>
