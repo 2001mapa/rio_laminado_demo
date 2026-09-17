@@ -26,6 +26,16 @@ export default function CatalogoPage() {
     o => o.customerId === currentCustomer?.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
   );
 
+  const selectedProductIndex = selectedProduct ? filteredProducts.findIndex(p => p.id === selectedProduct.id) : -1;
+  
+  const handlePrevProduct = () => {
+    if (selectedProductIndex > 0) setSelectedProduct(filteredProducts[selectedProductIndex - 1]);
+  };
+  
+  const handleNextProduct = () => {
+    if (selectedProductIndex < filteredProducts.length - 1) setSelectedProduct(filteredProducts[selectedProductIndex + 1]);
+  };
+
   if (!isLoaded) {
     return (
       <div className="p-4 md:p-0 space-y-5">
@@ -194,6 +204,8 @@ export default function CatalogoPage() {
         <ProductModal
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
+          onPrev={selectedProductIndex > 0 ? handlePrevProduct : undefined}
+          onNext={selectedProductIndex < filteredProducts.length - 1 ? handleNextProduct : undefined}
         />
       )}
     </>
@@ -299,7 +311,17 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   );
 }
 
-function ProductModal({ product, onClose }: { product: Product; onClose: () => void }) {
+function ProductModal({ 
+  product, 
+  onClose,
+  onPrev,
+  onNext
+}: { 
+  product: Product; 
+  onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+}) {
   const { addToCart, cart } = useDemo();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -309,6 +331,14 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
   const images = [product.image];
   if (product.hoverImage) images.push(product.hoverImage);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    setQuantity(1);
+    setAdded(false);
+    setZoomState({ scale: 1, x: 0, y: 0 });
+    setInitialPinch(null);
+    setCurrentImageIndex(0);
+  }, [product.id]);
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -383,17 +413,39 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
         className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
+        {/* Navigation Arrows (Prev / Next) */}
+        <div className="absolute top-4 left-4 z-20 flex gap-2">
+          {onPrev && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onPrev(); }}
+              className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-ink hover:text-rio-gold-dark hover:border-rio-gold-dark transition-all shadow-sm active:scale-95"
+              aria-label="Anterior producto"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          {onNext && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onNext(); }}
+              className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-ink hover:text-rio-gold-dark hover:border-rio-gold-dark transition-all shadow-sm active:scale-95"
+              aria-label="Siguiente producto"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
         {/* Close */}
         <button
           onClick={handleCloseModal}
-          className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink transition-colors shadow-sm"
+          className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Zoom Hint */}
         {zoomState.scale === 1 && (
-          <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none transition-opacity">
+          <div className="absolute top-14 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none transition-opacity">
             Pellizca para acercar
           </div>
         )}
