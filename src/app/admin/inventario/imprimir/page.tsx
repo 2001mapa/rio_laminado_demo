@@ -144,7 +144,8 @@ export default function MassPrintPage() {
               key={product.id + '-' + i} 
               className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
             >
-              <div className="w-[12mm] h-[12mm] flex-shrink-0 bg-white flex items-center justify-center">
+              {/* QR Code ampliado a 14x14mm (aprox 1.4x1.4cm) */}
+              <div className="w-[14mm] h-[14mm] flex-shrink-0 bg-white flex items-center justify-center">
                 {product.sku && (
                   <QRCode 
                     value={product.sku} 
@@ -154,10 +155,11 @@ export default function MassPrintPage() {
                   />
                 )}
               </div>
-              <div className="flex flex-col items-end justify-center leading-[1.1] flex-1 ml-[1mm] overflow-hidden">
-                <span className="font-black text-[8px] leading-tight text-right w-full break-all line-clamp-2">{product.sku}</span>
-                <span className="font-bold text-[8px] mt-[0.5mm]">{formatPrice(product.price)}</span>
-                <span className="font-medium text-right text-[6px] truncate w-full mt-[0.5mm]">
+              {/* Textos con altura de 12mm para ocupar al menos 1cm */}
+              <div className="flex flex-col items-end justify-between h-[12mm] leading-[1.1] flex-1 ml-[1mm] overflow-hidden">
+                <span className="font-black text-[9px] leading-none text-right w-full break-all line-clamp-1">{product.sku}</span>
+                <span className="font-black text-[10px] leading-none">{formatPrice(product.price)}</span>
+                <span className="font-bold text-[7px] leading-none text-right w-full truncate">
                   UB: {product.locationCode || 'N/A'}
                 </span>
               </div>

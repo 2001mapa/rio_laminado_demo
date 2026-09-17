@@ -322,41 +322,45 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       )}
 
       {/* Print Layout: Thermal Labels (Stickers) */}
-      <div className="hidden print:block w-full max-w-[105mm] overflow-hidden">
+      <div className="hidden print:block w-[103mm] mx-auto bg-white overflow-hidden">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
-            @page {
-              margin: 0;
-              /* Si la impresora salta mucho espacio, puede ser necesario definir el tamaño exacto, ej: size: 100mm 25mm; */
+            @page { 
+              size: 103mm auto;
+              margin: 0; 
             }
-            body {
-              margin: 0 !important;
-              padding: 0 !important;
+            body { 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              background: white;
             }
           }
         `}} />
-        <div className="grid grid-cols-3 gap-[2mm] px-[2mm] pt-[1mm]">
+        {/* Usamos pl-[0.5mm] para cuadrar 3 etiquetas de 32mm + 2 huecos de 3mm en 103mm */}
+        <div className="grid grid-cols-3 gap-x-[3mm] gap-y-[3mm] pl-[0.5mm] pt-[1mm]">
           {sortedItems.filter(item => printingSingle ? item.id === printingSingle : true).map((item, index) => {
             const product = products.find(p => p.id === item.productId);
             return (
               <div 
                 key={item.id} 
-                className="w-[31mm] h-[22mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden p-[1mm]"
+                className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
               >
-                <div className="w-[11mm] h-[11mm] flex-shrink-0 bg-white mr-1 flex items-center justify-center ml-[1mm]">
+                {/* QR Code ampliado a 14x14mm (aprox 1.4x1.4cm) */}
+                <div className="w-[14mm] h-[14mm] flex-shrink-0 bg-white flex items-center justify-center">
                   {product?.sku && (
                     <QRCode 
                       value={product.sku} 
                       size={256} 
-                      style={{ height: "auto", maxWidth: "100%", width: "100%" }} 
+                      style={{ height: "100%", width: "100%", maxWidth: "100%" }} 
                       viewBox={`0 0 256 256`} 
                     />
                   )}
                 </div>
-                <div className="flex flex-col items-end justify-center text-[8px] leading-[1.2] flex-1 mr-[1mm]">
-                  <span className="font-bold"># {index + 1}</span>
-                  <span className="font-black text-[9px] leading-tight text-right w-full break-all">{product?.sku}</span>
-                  <span className="font-bold">Cant: {item.quantity}</span>
+                {/* Contenedor de textos con 12mm de alto para que abarque al menos 1cm como se solicito */}
+                <div className="flex flex-col items-end justify-between h-[12mm] flex-1 ml-[1mm] overflow-hidden">
+                  <span className="font-bold text-[9px] leading-none text-right"># {index + 1}</span>
+                  <span className="font-black text-[10px] leading-none text-right w-full break-all line-clamp-1">{product?.sku}</span>
+                  <span className="font-black text-[11px] leading-none text-right">Cant: {item.quantity}</span>
                 </div>
               </div>
             );
