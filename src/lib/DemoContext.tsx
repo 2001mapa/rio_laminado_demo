@@ -28,12 +28,13 @@ type DemoContextType = {
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateCustomer: (customer: Customer) => void;
   addCustomer: (customer: Customer) => void;
+  addSeller: (seller: Seller) => void;
   checkoutSeller: (customerId: string, cartItems: CartItem[]) => void;
   resetDemoData: () => void;
   isLoaded: boolean;
 };
 
-const DemoContext = createContext<DemoContextType | undefined>(undefined);
+export const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -176,6 +177,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     setCustomers(prev => [...prev, customer]);
   };
 
+  const addSeller = (seller: Seller) => {
+    setSellers(prev => [...prev, seller]);
+  };
+
   return (
     <DemoContext.Provider value={{
       products,
@@ -197,6 +202,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       updateCustomer,
       addCustomer,
+      addSeller,
+      checkoutSeller,
       resetDemoData,
       isLoaded,
     }}>

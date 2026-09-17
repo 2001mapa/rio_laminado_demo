@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Loader2, Link as LinkIcon, CheckCircle, Copy } from 'lucide-react';
 import { createCustomer } from '@/app/actions/clients';
+import { useDemo } from '@/lib/DemoContext';
 
 export default function CreateCustomerModal({ 
   isOpen, 
@@ -13,6 +14,7 @@ export default function CreateCustomerModal({
   onClose: () => void;
   onComplete: () => void;
 }) {
+  const { addCustomer } = useDemo();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successData, setSuccessData] = useState<any>(null);
@@ -43,6 +45,7 @@ export default function CreateCustomerModal({
         setError(res.message);
       } else {
         setSuccessData(res.customer);
+        addCustomer(res.customer);
       }
     } catch (err) {
       setError('Ocurrió un error inesperado.');

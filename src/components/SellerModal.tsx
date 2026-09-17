@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, CheckCircle, Copy } from 'lucide-react';
 import { createSeller, updateSeller } from '@/app/actions/sellers';
 import { Seller } from '@/lib/types';
+import { useDemo } from '@/lib/DemoContext';
 
 export default function SellerModal({ 
   isOpen, 
@@ -16,6 +17,7 @@ export default function SellerModal({
   onComplete: () => void;
   sellerToEdit?: Seller | null;
 }) {
+  const { addSeller } = useDemo();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successData, setSuccessData] = useState<any>(null);
@@ -66,6 +68,7 @@ export default function SellerModal({
           setError(res.message);
         } else {
           setSuccessData(res.seller);
+          addSeller(res.seller);
         }
       }
     } catch (err) {
@@ -78,7 +81,7 @@ export default function SellerModal({
   const copyInviteLink = () => {
     if (!successData) return;
     const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/pos?token=${successData.id}`;
+    const inviteUrl = `${baseUrl}/acceso-rio?token=${successData.id}`;
     
     navigator.clipboard.writeText(
       `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. \n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}`
@@ -165,7 +168,7 @@ export default function SellerModal({
               <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Mensaje Listo para Enviar:</p>
               <p className="text-sm text-rio-ink font-serif italic mb-4">
                 "¡Hola {successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. Ingresa a tu panel de ventas (POS) aquí: <br/><br/>
-                <span className="font-mono text-rio-gold-dark text-xs break-all">{window.location.origin}/pos?token={successData.id}</span>"
+                <span className="font-mono text-rio-gold-dark text-xs break-all">{window.location.origin}/acceso-rio?token={successData.id}</span>"
               </p>
               <button 
                 onClick={copyInviteLink}
