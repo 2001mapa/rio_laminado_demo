@@ -400,41 +400,53 @@ function ProductModal({
     setZoomState({ scale: 1, x: 0, y: 0 });
   };
 
+  useEffect(() => {
+    // Lock body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={handleCloseModal}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
+
+      {/* Navigation Arrows (Up / Down) */}
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col justify-between py-6 md:py-8 pointer-events-none z-[60]">
+        <div className="pointer-events-auto">
+          {onPrev ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onPrev(); }}
+              className="w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 transition-all shadow-lg active:scale-95 animate-bounce"
+              aria-label="Anterior producto"
+            >
+              <ChevronLeft className="w-8 h-8 rotate-90" />
+            </button>
+          ) : <div className="w-12 h-12" />}
+        </div>
+        <div className="pointer-events-auto">
+          {onNext ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onNext(); }}
+              className="w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 transition-all shadow-lg active:scale-95 animate-bounce"
+              aria-label="Siguiente producto"
+            >
+              <ChevronRight className="w-8 h-8 rotate-90" />
+            </button>
+          ) : <div className="w-12 h-12" />}
+        </div>
+      </div>
 
       {/* Modal Card */}
       <div
-        className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[90vh] flex flex-col"
+        className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[85vh] flex flex-col z-50"
         onClick={e => e.stopPropagation()}
       >
-        {/* Navigation Arrows (Prev / Next) */}
-        <div className="absolute top-4 left-4 z-20 flex gap-2">
-          {onPrev && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onPrev(); }}
-              className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-ink hover:text-rio-gold-dark hover:border-rio-gold-dark transition-all shadow-sm active:scale-95"
-              aria-label="Anterior producto"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
-          {onNext && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onNext(); }}
-              className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-ink hover:text-rio-gold-dark hover:border-rio-gold-dark transition-all shadow-sm active:scale-95"
-              aria-label="Siguiente producto"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-
         {/* Close */}
         <button
           onClick={handleCloseModal}
