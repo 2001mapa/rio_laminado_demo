@@ -471,25 +471,26 @@ function ProductModal({
 
       {/* Modal Card */}
       <div
-        className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[85vh] flex flex-col z-50"
+        className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[85vh] flex flex-col z-50 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Close */}
-        <button
-          onClick={handleCloseModal}
-          className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div key={product.id} className="animate-fade-in flex flex-col flex-1">
+          {/* Close */}
+          <button
+            onClick={handleCloseModal}
+            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
+          >
+            <X className="w-4 h-4" />
+          </button>
 
-        {/* Zoom Hint */}
-        {zoomState.scale === 1 && (
-          <div className="absolute top-14 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none transition-opacity">
-            Pellizca para acercar
-          </div>
-        )}
+          {/* Zoom Hint */}
+          {zoomState.scale === 1 && (
+            <div className="absolute top-14 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none transition-opacity">
+              Pellizca para acercar
+            </div>
+          )}
 
-        {/* Image Container with Instagram-style Pop-out Zoom */}
+          {/* Image Container with Instagram-style Pop-out Zoom */}
         <div 
           className="relative aspect-[9/16] max-h-[55vh] w-full bg-white shrink-0 rounded-t-2xl z-30"
           onTouchStart={handleTouchStart}
@@ -579,6 +580,7 @@ function ProductModal({
               {added ? '¡Agregado!' : 'Agregar'}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
