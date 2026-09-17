@@ -371,40 +371,54 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
             }
           }
         `}} />
-        {/* Usamos pl-[0.5mm] para cuadrar 3 etiquetas de 32mm + 2 huecos de 3mm en 103mm */}
-        <div 
-          className="grid grid-cols-3 gap-x-[3mm]"
-          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm` }}
-        >
-          {sortedItems.filter(item => printingSingle ? item.id === printingSingle : true).map((item, index) => {
-            const product = products.find(p => p.id === item.productId);
-            return (
+        
+        {(() => {
+          const itemsToPrint = sortedItems.filter(item => printingSingle ? item.id === printingSingle : true);
+          const chunks = [];
+          for (let i = 0; i < itemsToPrint.length; i += 21) {
+            chunks.push(itemsToPrint.slice(i, i + 21));
+          }
+          
+          return chunks.map((chunk, chunkIndex) => (
+            <div key={chunkIndex} className="break-after-page">
               <div 
-                key={item.id} 
-                className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+                className="grid grid-cols-3 gap-x-[3mm]"
+                style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm` }}
               >
-                {/* QR Code reducido a 12x12mm */}
-                  <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
-                    {product?.sku && (
-                      <QRCode
-                        value={product.sku}
-                        size={120}
-                        level="L"
-                        style={{ height: "100%", width: "100%", maxWidth: "100%" }}
-                        viewBox={`0 0 120 120`}
-                      />
-                    )}
-                  </div>
-                {/* Contenedor de textos alineado a la izquierda, textos del mismo tamaño */}
-                <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
-                  <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter"># {index + 1}</span>
-                  <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{product?.sku}</span>
-                  <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">Cant: {item.quantity}</span>
-                </div>
+                {chunk.map((item, index) => {
+                  const product = products.find(p => p.id === item.productId);
+                  // Continuar con la numeracion global de la orden
+                  const globalIndex = chunkIndex * 21 + index;
+                  return (
+                    <div 
+                      key={item.id} 
+                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+                    >
+                      {/* QR Code reducido a 12x12mm */}
+                        <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
+                          {product?.sku && (
+                            <QRCode
+                              value={product.sku}
+                              size={120}
+                              level="L"
+                              style={{ height: "100%", width: "100%", maxWidth: "100%" }}
+                              viewBox={`0 0 120 120`}
+                            />
+                          )}
+                        </div>
+                      {/* Contenedor de textos alineado a la izquierda, textos del mismo tamaño */}
+                      <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
+                        <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter"># {globalIndex + 1}</span>
+                        <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{product?.sku}</span>
+                        <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">Cant: {item.quantity}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          ));
+        })()}
       </div>
     </>
   );

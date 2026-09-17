@@ -11,7 +11,7 @@ export default function MassPrintPage() {
   const { products } = useDemo();
   
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
-  const [itemsPerPage, setItemsPerPage] = useState<number>(30); // E.g., 30 tags per batch
+  const [itemsPerPage, setItemsPerPage] = useState<number>(21); // E.g., 21 tags per batch (7 rows, fits in 4x6 exactly)
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
@@ -117,10 +117,9 @@ export default function MassPrintPage() {
                   setCurrentPage(1);
                 }}
               >
-                <option value={15}>15 etiquetas (5 filas)</option>
-                <option value={30}>30 etiquetas (10 filas)</option>
-                <option value={60}>60 etiquetas (20 filas)</option>
-                <option value={90}>90 etiquetas (30 filas)</option>
+                <option value={21}>21 etiquetas (7 filas) - RECOMENDADO</option>
+                <option value={42}>42 etiquetas (14 filas)</option>
+                <option value={63}>63 etiquetas (21 filas)</option>
                 <option value={9999}>Imprimir Todo (¡Cuidado!)</option>
               </select>
             </div>
