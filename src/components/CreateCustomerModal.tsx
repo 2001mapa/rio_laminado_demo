@@ -45,7 +45,18 @@ export default function CreateCustomerModal({
         setError(res.message);
       } else {
         setSuccessData(res.customer);
-        addCustomer(res.customer);
+        if (res.customer) {
+          addCustomer({
+            id: res.customer.id,
+            name: res.customer.name,
+            email: res.customer.email || '',
+            phone: res.customer.phone || '',
+            address: res.customer.address || '',
+            discount: res.customer.discount,
+            showDiscount: res.customer.showDiscount,
+            status: res.customer.status as 'active' | 'suspended'
+          });
+        }
       }
     } catch (err) {
       setError('Ocurrió un error inesperado.');

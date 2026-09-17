@@ -203,7 +203,6 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       updateCustomer,
       addCustomer,
       addSeller,
-      checkoutSeller,
       resetDemoData,
       isLoaded,
     }}>

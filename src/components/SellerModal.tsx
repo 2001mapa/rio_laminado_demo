@@ -68,7 +68,14 @@ export default function SellerModal({
           setError(res.message);
         } else {
           setSuccessData(res.seller);
-          addSeller(res.seller);
+          if (res.seller) {
+            addSeller({
+              id: res.seller.id,
+              name: res.seller.name,
+              email: res.seller.email,
+              status: res.seller.status as 'active' | 'suspended'
+            });
+          }
         }
       }
     } catch (err) {
