@@ -1,7 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Printer, AlertTriangle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -13,14 +13,34 @@ export default function MassPrintPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [itemsPerPage, setItemsPerPage] = useState<number>(21); // E.g., 21 tags per batch (7 rows, fits in 4x6 exactly)
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [newOnly, setNewOnly] = useState(false);
+  const [newSkus, setNewSkus] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const search = new URLSearchParams(window.location.search);
+      if (search.get('new_only') === 'true') {
+        setNewOnly(true);
+        const stored = localStorage.getItem('rio_new_skus_to_print');
+        if (stored) {
+           try { setNewSkus(JSON.parse(stored)); } catch(e) {}
+        }
+      }
+    }
+  }, []);
 
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
   const filterOptions = ['Todas', ...categories];
 
   const filteredProducts = useMemo(() => {
-    if (categoryFilter === 'Todas') return products;
-    return products.filter(p => p.category === categoryFilter);
-  }, [products, categoryFilter]);
+    let base = products;
+    if (newOnly && newSkus.length > 0) {
+      base = products.filter(p => newSkus.includes(p.sku));
+    } else if (categoryFilter !== 'Todas') {
+      base = products.filter(p => p.category === categoryFilter);
+    }
+    return base;
+  }, [products, categoryFilter, newOnly, newSkus]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
   const currentBatch = useMemo(() => {

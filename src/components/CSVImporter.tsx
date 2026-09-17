@@ -2,15 +2,18 @@
 
 import { useState } from 'react';
 import Papa from 'papaparse';
-import { Upload, FileSpreadsheet, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, CheckCircle, AlertTriangle, Printer } from 'lucide-react';
 import { bulkUploadInventory } from '@/app/actions/inventory';
+import { useRouter } from 'next/navigation';
 
 export default function CSVImporter({ onComplete }: { onComplete?: () => void }) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'parsing' | 'uploading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [previewCount, setPreviewCount] = useState(0);
+  const [nuevosProductos, setNuevosProductos] = useState<any[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -73,7 +76,9 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
           if (response.success) {
             setStatus('success');
             setMessage(response.message);
-            if (onComplete) onComplete();
+            if (response.newProducts && response.newProducts.length > 0) {
+              setNuevosProductos(response.newProducts);
+            }
           } else {
             setStatus('error');
             setMessage(response.message);
@@ -91,6 +96,9 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
   };
 
   const closeModal = () => {
+    if (status === 'success' && onComplete) {
+      onComplete();
+    }
     setIsOpen(false);
     setFile(null);
     setStatus('idle');
@@ -167,10 +175,26 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
               )}
 
               <div className="pt-2">
-                {status === 'success' ? (
-                  <button onClick={closeModal} className="w-full bg-rio-ink text-white font-bold py-3 rounded-xl hover:bg-rio-ink/90 transition-colors">
-                    Cerrar y ver inventario
-                  </button>
+              {status === 'success' ? (
+                  <div className="flex flex-col gap-2">
+                    {nuevosProductos.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          const skus = nuevosProductos.map(p => p.sku);
+                          localStorage.setItem('rio_new_skus_to_print', JSON.stringify(skus));
+                          closeModal();
+                          router.push('/admin/inventario/imprimir?new_only=true');
+                        }}
+                        className="w-full bg-rio-ink text-white font-bold py-3 rounded-xl shadow-md hover:bg-rio-ink/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                      >
+                        <Printer className="w-5 h-5" />
+                        Imprimir Etiquetas Nuevas ({nuevosProductos.length})
+                      </button>
+                    )}
+                    <button onClick={closeModal} className="w-full bg-rio-surface text-rio-ink border border-rio-border font-bold py-3 rounded-xl hover:bg-rio-surface-muted transition-colors">
+                      Cerrar y ver inventario
+                    </button>
+                  </div>
                 ) : (
                   <button 
                     onClick={handleUpload} 
