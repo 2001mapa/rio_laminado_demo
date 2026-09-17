@@ -19,64 +19,43 @@ export default function AdminVendedoresPage() {
         </button>
       </div>
 
-      <div className="bg-rio-surface rounded-2xl shadow-sm border border-rio-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-rio-border">
-            <thead className="bg-rio-background">
-              <tr>
-                <th className="px-6 py-3 text-left text-[11px] font-bold text-rio-muted uppercase tracking-wider">Vendedor</th>
-                <th className="px-6 py-3 text-left text-[11px] font-bold text-rio-muted uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-[11px] font-bold text-rio-muted uppercase tracking-wider">Ventas Generadas</th>
-                <th className="px-6 py-3 text-left text-[11px] font-bold text-rio-muted uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-right text-[11px] font-bold text-rio-muted uppercase tracking-wider">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="bg-rio-surface divide-y divide-rio-border">
-              {sellers.map((seller) => {
-                const sellerOrders = orders.filter(o => o.sellerId === seller.id);
-                
-                return (
-                  <tr key={seller.id} className="hover:bg-rio-surface-muted/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8 bg-rio-gold/10 text-rio-gold-dark rounded-full flex items-center justify-center font-bold font-serif">
-                          {seller.name.charAt(0)}
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-[13px] font-bold text-rio-ink">{seller.name}</div>
-                          <div className="text-[10px] text-rio-muted font-mono">{seller.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[13px] font-medium text-rio-muted">
-                      {seller.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-[13px] font-bold text-rio-ink">{sellerOrders.length}</div>
-                      <div className="text-[10px] text-rio-muted">pedidos</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {seller.status === 'active' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rio-success/10 text-rio-success border border-rio-success/20">
-                          <CheckCircle className="w-3 h-3 mr-1" /> Activo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rio-danger/10 text-rio-danger border border-rio-danger/20">
-                          <XCircle className="w-3 h-3 mr-1" /> Inactivo
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-[13px] font-bold">
-                      <button className="text-rio-gold-dark hover:text-rio-gold transition-colors">
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {sellers.map((seller) => {
+          const sellerOrders = orders.filter(o => o.sellerId === seller.id);
+          
+          return (
+            <div key={seller.id} className="bg-rio-surface rounded-2xl shadow-sm border border-rio-border p-6 flex flex-col hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center text-xl font-serif text-rio-gold-dark border border-rio-border shrink-0 shadow-sm">
+                  {seller.name.charAt(0)}
+                </div>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${
+                  seller.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'
+                }`}>
+                  {seller.status === 'active' ? (
+                    <><CheckCircle className="w-3 h-3 mr-1" /> Activo</>
+                  ) : (
+                    <><XCircle className="w-3 h-3 mr-1" /> Inactivo</>
+                  )}
+                </span>
+              </div>
+              
+              <h3 className="font-bold text-rio-ink line-clamp-1">{seller.name}</h3>
+              <p className="text-sm text-rio-muted mt-1">{seller.email}</p>
+              <p className="text-[11px] text-rio-muted font-mono mt-1">ID: {seller.id.split('-')[0]}</p>
+              
+              <div className="mt-4 pt-4 border-t border-rio-border flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] text-rio-muted uppercase font-bold tracking-wider">Ventas Generadas</p>
+                  <p className="text-lg font-black text-rio-ink">{sellerOrders.length}</p>
+                </div>
+                <button className="flex items-center px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted">
+                  Editar
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
