@@ -60,6 +60,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
   const [offsetX, setOffsetX] = useState<number>(2.5);
   const [offsetY, setOffsetY] = useState<number>(0);
+  const [gapY, setGapY] = useState<number>(3.0);
 
   return (
     <>
@@ -108,8 +109,16 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               <button onClick={() => setOffsetY(y => Number((y + 1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
             </div>
           </div>
-          <div className="text-[10px] text-rio-muted max-w-xs leading-relaxed">
-            <strong>Tip:</strong> Usa esto si la impresora corta el sticker. Ej: Si imprime todo sobre la línea cortada de abajo, suma Vertical (+19mm aprox).
+          <div>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Distancia entre filas</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setGapY(y => Number((y - 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+              <span className="font-mono text-sm font-bold w-8 text-center">{gapY}</span>
+              <button onClick={() => setGapY(y => Number((y + 0.5).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+            </div>
+          </div>
+          <div className="text-[10px] text-rio-muted max-w-sm leading-relaxed">
+            <strong>Tip:</strong> Si ves que cada fila se imprime un poquito más arriba que la anterior, aumenta la distancia entre filas (+). Y OJO: En las opciones de impresión pon <strong>Escala: Personalizado 100%</strong>.
           </div>
         </div>
 
@@ -364,8 +373,8 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
         `}} />
         {/* Usamos pl-[0.5mm] para cuadrar 3 etiquetas de 32mm + 2 huecos de 3mm en 103mm */}
         <div 
-          className="grid grid-cols-3 gap-x-[3mm] gap-y-[3mm]"
-          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm` }}
+          className="grid grid-cols-3 gap-x-[3mm]"
+          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm` }}
         >
           {sortedItems.filter(item => printingSingle ? item.id === printingSingle : true).map((item, index) => {
             const product = products.find(p => p.id === item.productId);
