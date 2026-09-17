@@ -356,11 +356,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     />
                   )}
                 </div>
-                {/* Contenedor de textos alineado a la izquierda */}
-                <div className="flex flex-col items-start justify-between h-[12mm] flex-1 ml-[1.5mm] overflow-hidden">
-                  <span className="font-bold text-[9px] leading-none text-left"># {index + 1}</span>
-                  <span className="font-black text-[10px] leading-none text-left w-full break-all line-clamp-1">{product?.sku}</span>
-                  <span className="font-black text-[11px] leading-none text-left">Cant: {item.quantity}</span>
+                {/* Contenedor de textos alineado a la izquierda, expandido a 14mm de alto y con letra mucho mas grande */}
+                <div className="flex flex-col items-start justify-between h-[14mm] flex-1 ml-[1.5mm] overflow-hidden">
+                  <span className="font-bold text-[10px] leading-none text-left tracking-tight"># {index + 1}</span>
+                  <span className="font-black text-[12px] leading-none text-left w-full break-all line-clamp-1 tracking-tighter">{product?.sku}</span>
+                  <span className="font-black text-[14px] leading-none text-left tracking-tighter">Cant: {item.quantity}</span>
                 </div>
               </div>
             );
