@@ -392,25 +392,27 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   return (
                     <div 
                       key={item.id} 
-                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
                     >
-                      {/* QR Code reducido a 12x12mm */}
-                        <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
-                          {product?.sku && (
-                            <QRCode
-                              value={product.sku}
-                              size={120}
-                              level="L"
-                              style={{ height: "100%", width: "100%", maxWidth: "100%" }}
-                              viewBox={`0 0 120 120`}
-                            />
-                          )}
-                        </div>
-                      {/* Contenedor de textos alineado a la izquierda, textos del mismo tamaño */}
-                      <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
-                        <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter"># {globalIndex + 1}</span>
-                        <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{product?.sku}</span>
-                        <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">Cant: {item.quantity}</span>
+                      {/* Fila superior de texto */}
+                      <div className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
+                        <span className="font-bold text-[9px]">#{globalIndex + 1}</span>
+                        <span className="font-black text-[10px] tracking-tighter truncate mx-1">{product?.sku}</span>
+                        <span className="font-bold text-[9px]">C:{item.quantity}</span>
+                      </div>
+                      
+                      {/* Código de barras 1D */}
+                      <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
+                        {product?.sku ? (
+                          <img 
+                            src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(product.sku)}&scaleX=2&scaleY=1&includetext=false`}
+                            alt={product.sku}
+                            className="w-full h-full object-contain mix-blend-multiply"
+                            loading="eager"
+                          />
+                        ) : (
+                          <span className="text-[8px] text-gray-400">Sin SKU</span>
+                        )}
                       </div>
                     </div>
                   );
