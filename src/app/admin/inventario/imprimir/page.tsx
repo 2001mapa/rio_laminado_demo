@@ -185,7 +185,7 @@ export default function MassPrintPage() {
         </div>
       </div>
 
-      <div className="hidden print:block w-[103mm] mx-auto bg-white overflow-hidden">
+      <div className="hidden print:block bg-white w-max">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page { 

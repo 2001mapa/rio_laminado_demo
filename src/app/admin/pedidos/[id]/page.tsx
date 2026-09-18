@@ -366,7 +366,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       )}
 
       {/* Print Layout: Thermal Labels (Stickers) */}
-      <div className="hidden print:block w-[103mm] mx-auto bg-white overflow-hidden">
+      <div className="hidden print:block bg-white w-max">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page { 
