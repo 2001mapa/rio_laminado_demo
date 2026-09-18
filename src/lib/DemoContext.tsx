@@ -34,6 +34,8 @@ type DemoContextType = {
   isLoaded: boolean;
 };
 
+import { getAppData } from '@/app/actions/queries';
+
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
@@ -47,51 +49,34 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const DEMO_VERSION = 'v11'; // bumped to add even bigger order and test pagination
-    const storedVersion = localStorage.getItem('rio_demo_version');
-
-    if (storedVersion !== DEMO_VERSION) {
-      localStorage.clear();
-      localStorage.setItem('rio_demo_version', DEMO_VERSION);
-      setProducts(initialProducts);
-      setCustomers(initialCustomers);
-      setOrders(initialOrders);
-      setSellers(initialSellers);
-      setCurrentCustomer(initialCustomers[0]);
-      setCurrentSeller(initialSellers[0]);
-      setIsLoaded(true);
-      return;
+    // 1. Fetch real data from Supabase
+    async function fetchRealData() {
+      try {
+        const result = await getAppData();
+        if (result.success && result.data) {
+          // Transform DB data to match frontend types if needed
+          setProducts(result.data.products as any[]);
+          setCustomers(result.data.customers as any[]);
+          setSellers(result.data.sellers as any[]);
+          setOrders(result.data.orders as any[]);
+        }
+      } catch (err) {
+        console.error("Error cargando base de datos:", err);
+      } finally {
+        setIsLoaded(true);
+      }
     }
 
-    const storedProducts = localStorage.getItem('rio_products');
-    const storedCustomers = localStorage.getItem('rio_customers');
-    const storedOrders = localStorage.getItem('rio_orders');
-    const storedSellers = localStorage.getItem('rio_sellers');
+    fetchRealData();
+
+    // 2. Load Local Session & Cart
     const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
     const storedCurrentSeller = localStorage.getItem('rio_current_seller');
-
-    if (storedProducts) setProducts(JSON.parse(storedProducts));
-    else setProducts(initialProducts);
-
-    if (storedCustomers) setCustomers(JSON.parse(storedCustomers));
-    else setCustomers(initialCustomers);
-
-    if (storedOrders) setOrders(JSON.parse(storedOrders));
-    else setOrders(initialOrders);
-
-    if (storedSellers) setSellers(JSON.parse(storedSellers));
-    else setSellers(initialSellers);
+    const storedCart = localStorage.getItem('rio_cart');
 
     if (storedCurrentCustomer) setCurrentCustomer(JSON.parse(storedCurrentCustomer));
-    else setCurrentCustomer(initialCustomers[0]);
-
     if (storedCurrentSeller) setCurrentSeller(JSON.parse(storedCurrentSeller));
-    else setCurrentSeller(initialSellers[0]);
-
-    const storedCart = localStorage.getItem('rio_cart');
     if (storedCart) setCart(JSON.parse(storedCart));
-
-    setIsLoaded(true);
   }, []);
 
   useEffect(() => {
