@@ -101,14 +101,14 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="space-y-4 mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-serif font-bold text-rio-ink">Referencias ({order.items.length})</h2>
-          {isEditable && (
-            <button className="text-xs font-bold text-rio-gold-dark flex items-center hover:text-rio-gold transition-colors" onClick={() => alert('En esta demo simulada, para editar, puedes cancelar el pedido y crear uno nuevo.')}>
-              <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-              Editar
-            </button>
-          )}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-serif font-bold text-rio-ink">Referencias ({order.items.length})</h2>
+            {isEditable && (
+              <button className="text-xs font-bold text-rio-gold-dark flex items-center hover:text-rio-gold transition-colors" onClick={() => alert('Para editar, por favor cancela el pedido y crea uno nuevo o contacta a tu asesor.')}>
+                <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                Editar
+              </button>
+            )}
         </div>
         
         {order.items.map(item => {

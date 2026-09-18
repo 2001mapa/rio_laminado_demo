@@ -34,7 +34,7 @@ export default function ClienteLayout({
         <div className="flex items-center space-x-3">
           <div className="font-serif font-black text-2xl tracking-tight text-rio-ink">RIO</div>
           <div className="text-[10px] uppercase tracking-wider bg-rio-surface-muted text-rio-gold-dark px-2.5 py-1 rounded-full font-bold border border-rio-border">
-            Demo
+            Mayorista
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export default function ClienteLayout({
         <Link 
           href="/acceso-rio"
           className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center gap-2 rounded-xl hover:bg-rio-danger/5"
-          title="Salir de la Demo"
+          title="Cerrar sesión"
         >
           <span className="hidden md:inline text-sm font-semibold text-rio-danger">Salir</span>
           <LogOut className="w-5 h-5 text-rio-danger" />

@@ -7,17 +7,20 @@ import Link from 'next/link';
 export default function PerfilPage() {
   const { currentCustomer, orders, resetDemoData } = useDemo();
 
-  if (!currentCustomer) return null;
-
-  const customerOrders = orders.filter(o => o.customerId === currentCustomer.id)
+  const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleReset = () => {
-    if (confirm('¿Restablecer todos los datos de demostración a su estado inicial?')) {
+    if (confirm('¿Restablecer tu sesión a su estado inicial?')) {
       resetDemoData();
       alert('Datos restablecidos');
+      window.location.reload();
     }
   };
+
+  if (!currentCustomer) {
+    return <div className="p-8 text-center text-rio-muted font-medium">No has iniciado sesión</div>;
+  }
 
   const ActionButtons = () => (
     <div className="space-y-3">
@@ -26,14 +29,14 @@ export default function PerfilPage() {
         className="w-full flex items-center justify-center py-3.5 px-4 border border-rio-border rounded-xl text-sm font-semibold text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors shadow-sm"
       >
         <RefreshCw className="w-4 h-4 mr-2 text-rio-muted" />
-        Restablecer Datos de Demo
+        Restablecer Datos Locales
       </button>
       <Link
         href="/acceso-rio"
         className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"
       >
         <LogOut className="w-4 h-4 mr-2" />
-        Salir de la Demo
+        Cerrar sesión
       </Link>
     </div>
   );

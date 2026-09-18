@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useDemo } from '@/lib/DemoContext';
 import { Package, Mail, LogOut, RefreshCw, CheckCircle2 } from 'lucide-react';
@@ -13,27 +13,28 @@ export default function VendedorPerfilPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleReset = () => {
-    if (confirm('¿Restablecer todos los datos de demostración a su estado inicial?')) {
+    if (confirm('¿Restablecer tu sesión a su estado inicial?')) {
       resetDemoData();
       alert('Datos restablecidos');
+      window.location.reload();
     }
   };
 
   const ActionButtons = () => (
     <div className="space-y-3">
-      <button
+      <button 
         onClick={handleReset}
         className="w-full flex items-center justify-center py-3.5 px-4 border border-rio-border rounded-xl text-sm font-semibold text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors shadow-sm"
       >
         <RefreshCw className="w-4 h-4 mr-2 text-rio-muted" />
-        Restablecer Datos de Demo
+        Restablecer Datos Locales
       </button>
-      <Link
+      <Link 
         href="/acceso-rio"
-        className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"
+        className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/10 hover:bg-rio-danger/20 transition-colors shadow-sm"
       >
         <LogOut className="w-4 h-4 mr-2" />
-        Salir de la Demo
+        Cerrar sesión
       </Link>
     </div>
   );

@@ -60,7 +60,7 @@ function AccesoContent() {
         <p className="text-[11px] text-rio-muted uppercase tracking-[0.2em] font-bold">Oro Laminado • B2B</p>
         <div className="mt-3 bg-rio-surface-muted text-rio-gold-dark text-[10px] font-bold px-3 py-1 rounded-full inline-flex items-center border border-rio-border gap-1.5">
           <Sparkles className="w-3 h-3" />
-          Modo Demostración Interactiva
+          Portal Mayoristas
         </div>
       </div>
 
@@ -115,7 +115,7 @@ function AccesoContent() {
       </div>
 
       <p className="text-[11px] text-rio-muted leading-relaxed">
-        Todos los datos son ficticios. Esta demo es solo para ilustrar el flujo de trabajo B2B de RIO.
+        Acceso exclusivo para distribuidores mayoristas de Río Laminado.
       </p>
     </div>
   );

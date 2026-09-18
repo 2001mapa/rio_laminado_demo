@@ -20,8 +20,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RIO B2B - Demo",
-  description: "Demostración de catálogo B2B y gestión de bodega RIO.",
+  title: "RIO B2B - Portal Mayoristas",
+  description: "Portal exclusivo de catálogo B2B y gestión de bodega RIO.",
 };
 
 export const viewport: Viewport = {
