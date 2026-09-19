@@ -158,6 +158,7 @@ export default function NuevaVentaPage() {
     const tempId = `temp-${Date.now()}`;
     const newCustomer: Customer = {
       id: tempId,
+      username: 'temp_' + tempId,
       name: newCustomerName.trim(),
       email: newCustomerEmail.trim() || `temp_${tempId}@local.test`,
       discount: 0,

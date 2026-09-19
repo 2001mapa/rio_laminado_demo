@@ -1,100 +1,82 @@
 import { Product, Customer, Order, Seller } from './types';
 
 export const initialSellers: Seller[] = [
-  { id: 'v1', name: '',
-    username: '', email: 'andres@rio.com', status: 'active' },
-  { id: 'v2', name: '',
-    username: '', email: 'laura@rio.com', status: 'active' },
+  { id: 'v1', name: 'Vendedor Andrés', username: 'vendedorandrs', email: 'andres@rio.com', status: 'active' },
+  { id: 'v2', name: 'Vendedora Laura', username: 'vendedoralaura', email: 'laura@rio.com', status: 'active' },
 ];
 
 export const initialProducts: Product[] = [
   // Anillos
   {
-    id: 'p1', sku: 'ANI-001', name: '',
-    username: '', category: 'Anillos', price: 45000, lowStock: false, stock: 25, locationCode: 'A-01-01',
+    id: 'p1', sku: 'ANI-001', name: 'Anillo Circones Clásico', category: 'Anillos', price: 45000, lowStock: false, stock: 25, locationCode: 'A-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1605100804763-247f66126e28?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p2', sku: 'ANI-002', name: '',
-    username: '', category: 'Anillos', price: 55000, lowStock: true, stock: 3, locationCode: 'A-01-02',
+    id: 'p2', sku: 'ANI-002', name: 'Anillo Sello Liso', category: 'Anillos', price: 55000, lowStock: true, stock: 3, locationCode: 'A-01-02',
     imageUrl:      'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p3', sku: 'ANI-003', name: '',
-    username: '', category: 'Anillos', price: 38000, lowStock: false, stock: 25, locationCode: 'A-02-01',
+    id: 'p3', sku: 'ANI-003', name: 'Anillo Cruz Delgada', category: 'Anillos', price: 38000, lowStock: false, stock: 25, locationCode: 'A-02-01',
     imageUrl:      'https://images.unsplash.com/photo-1617038220319-276d3cfab638?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?fit=crop&w=600&h=600&q=80',
   },
   // Cadenas
   {
-    id: 'p4', sku: 'CAD-001', name: '',
-    username: '', category: 'Cadenas', price: 85000, lowStock: false, stock: 25, locationCode: 'B-01-01',
+    id: 'p4', sku: 'CAD-001', name: 'Cadena Fígaro 45cm', category: 'Cadenas', price: 85000, lowStock: false, stock: 25, locationCode: 'B-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p5', sku: 'CAD-002', name: '',
-    username: '', category: 'Cadenas', price: 92000, lowStock: true, stock: 3, locationCode: 'B-01-03',
+    id: 'p5', sku: 'CAD-002', name: 'Cadena Serpiente 50cm', category: 'Cadenas', price: 92000, lowStock: true, stock: 3, locationCode: 'B-01-03',
     imageUrl:      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p6', sku: 'CAD-003', name: '',
-    username: '', category: 'Cadenas', price: 110000, lowStock: false, stock: 25, locationCode: 'B-02-01',
+    id: 'p6', sku: 'CAD-003', name: 'Cadena Eslabón Cubano', category: 'Cadenas', price: 110000, lowStock: false, stock: 25, locationCode: 'B-02-01',
     imageUrl:      'https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?fit=crop&w=600&h=600&q=80',
   },
   // Pulseras
   {
-    id: 'p7', sku: 'PUL-001', name: '',
-    username: '', category: 'Pulseras', price: 65000, lowStock: false, stock: 25, locationCode: 'C-01-01',
+    id: 'p7', sku: 'PUL-001', name: 'Pulsera Balines', category: 'Pulseras', price: 65000, lowStock: false, stock: 25, locationCode: 'C-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p8', sku: 'PUL-002', name: '',
-    username: '', category: 'Pulseras', price: 72000, lowStock: false, stock: 25, locationCode: 'C-01-02',
+    id: 'p8', sku: 'PUL-002', name: 'Pulsera Tejido Mágico', category: 'Pulseras', price: 72000, lowStock: false, stock: 25, locationCode: 'C-01-02',
     imageUrl:      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p9', sku: 'PUL-003', name: '',
-    username: '', category: 'Pulseras', price: 48000, lowStock: true, stock: 3, locationCode: 'C-02-01',
+    id: 'p9', sku: 'PUL-003', name: 'Pulsera Infinito', category: 'Pulseras', price: 48000, lowStock: true, stock: 3, locationCode: 'C-02-01',
     imageUrl:      'https://images.unsplash.com/photo-1630019852942-f89202989a59?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?fit=crop&w=600&h=600&q=80',
   },
   // Aretes
   {
-    id: 'p10', sku: 'ARE-001', name: '',
-    username: '', category: 'Aretes', price: 25000, lowStock: false, stock: 25, locationCode: 'D-01-01',
+    id: 'p10', sku: 'ARE-001', name: 'Topos Estrella', category: 'Aretes', price: 25000, lowStock: false, stock: 25, locationCode: 'D-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1617038220319-276d3cfab638?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p11', sku: 'ARE-002', name: '',
-    username: '', category: 'Aretes', price: 42000, lowStock: false, stock: 25, locationCode: 'D-01-02',
+    id: 'p11', sku: 'ARE-002', name: 'Candongas Lisas Medianas', category: 'Aretes', price: 42000, lowStock: false, stock: 25, locationCode: 'D-01-02',
     imageUrl:      'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p12', sku: 'ARE-003', name: '',
-    username: '', category: 'Aretes', price: 49000, lowStock: false, stock: 25,
+    id: 'p12', sku: 'ARE-003', name: 'Candongas Entorchadas', category: 'Aretes', price: 49000, lowStock: false, stock: 25,
     imageUrl:      'https://images.unsplash.com/photo-1630019852942-f89202989a59?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?fit=crop&w=600&h=600&q=80',
   },
 ];
 
 export const initialCustomers: Customer[] = [
-  { id: 'c1', name: '',
-    username: '', email: 'contacto@eldiamante.com', discount: 15, showDiscount: false, status: 'active', phone: '3001234567', address: 'Calle 10 # 45-23, Medellín' },
-  { id: 'c2', name: '',
-    username: '', email: 'ventas@accesoriosmaria.co', discount: 10, showDiscount: false, status: 'active', phone: '3109876543', address: 'Cra 15 # 2-11, Bogotá' },
-  { id: 'c3', name: '',
-    username: '', email: 'info@oroyestilo.com', discount: 20, showDiscount: true, status: 'active', phone: '3156667788', address: 'C.C. El Puente Local 101, Cali' },
-  { id: 'c4', name: '',
-    username: '', email: 'distri@dorada.com', discount: 5, showDiscount: false, status: 'suspended', phone: '3205554433', address: 'Av 33 # 65-10, Barranquilla' },
+  { id: 'c1', name: 'Joyería El Diamante', username: 'joyeraeldiamante', email: 'contacto@eldiamante.com', discount: 15, showDiscount: false, status: 'active', phone: '3001234567', address: 'Calle 10 # 45-23, Medellín' },
+  { id: 'c2', name: 'Accesorios María', username: 'accesoriosmara', email: 'ventas@accesoriosmaria.co', discount: 10, showDiscount: false, status: 'active', phone: '3109876543', address: 'Cra 15 # 2-11, Bogotá' },
+  { id: 'c3', name: 'Oro y Estilo', username: 'oroyestilo', email: 'info@oroyestilo.com', discount: 20, showDiscount: true, status: 'active', phone: '3156667788', address: 'C.C. El Puente Local 101, Cali' },
+  { id: 'c4', name: 'Distribuidora Dorada', username: 'distribuidoradorada', email: 'distri@dorada.com', discount: 5, showDiscount: false, status: 'suspended', phone: '3205554433', address: 'Av 33 # 65-10, Barranquilla' },
 ];
 
 export const initialOrders: Order[] = [
