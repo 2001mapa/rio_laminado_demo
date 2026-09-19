@@ -85,14 +85,23 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        const username = session.user.email?.replace('@rio.local', '')?.toLowerCase();
+        const username = session.user.email?.replace('@rio.local', '')?.toLowerCase().trim();
         const role = session.user.user_metadata?.role;
+        const metaUsername = session.user.user_metadata?.username?.toLowerCase().trim();
         
         if (role === 'cliente') {
-          const matched = customers.find(c => c.username?.toLowerCase() === username);
+          const matched = customers.find(c => 
+            c.authUserId === session.user.id || 
+            c.username?.toLowerCase().trim() === username ||
+            (metaUsername && c.username?.toLowerCase().trim() === metaUsername)
+          );
           if (matched) setCurrentCustomer(matched);
         } else if (role === 'vendedor' || role === 'admin') {
-          const matched = sellers.find(s => s.username?.toLowerCase() === username);
+          const matched = sellers.find(s => 
+            s.authUserId === session.user.id || 
+            s.username?.toLowerCase().trim() === username ||
+            (metaUsername && s.username?.toLowerCase().trim() === metaUsername)
+          );
           if (matched) setCurrentSeller(matched);
         }
       } else {
