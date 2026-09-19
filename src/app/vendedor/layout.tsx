@@ -54,7 +54,7 @@ export default function VendedorLayout({
 
         <div className="flex justify-end md:w-1/3">
           <Link 
-            href="/acceso-rio"
+            href="/api/auth/logout"
             className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center gap-2 rounded-xl hover:bg-rio-danger/5"
             title="Salir de la Demo"
           >

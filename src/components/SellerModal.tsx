@@ -89,7 +89,7 @@ export default function SellerModal({
   const copyInviteLink = () => {
     if (!successData) return;
     const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/acceso-rio?token=${successData.id}`;
+    const inviteUrl = `${baseUrl}/login`;
     
     navigator.clipboard.writeText(
       `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. \n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}`
@@ -176,7 +176,7 @@ export default function SellerModal({
               <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Mensaje Listo para Enviar:</p>
               <p className="text-sm text-rio-ink font-serif italic mb-4">
                 "¡Hola {successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. Ingresa a tu panel de ventas (POS) aquí: <br/><br/>
-                <span className="font-mono text-rio-gold-dark text-xs break-all">{window.location.origin}/acceso-rio?token={successData.id}</span>"
+                <span className="font-mono text-rio-gold-dark text-xs break-all">{window.location.origin}/login</span>"
               </p>
               <button 
                 onClick={copyInviteLink}

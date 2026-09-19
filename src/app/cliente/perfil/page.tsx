@@ -32,7 +32,7 @@ export default function PerfilPage() {
         Restablecer Datos Locales
       </button>
       <Link
-        href="/acceso-rio"
+        href="/api/auth/logout"
         className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"
       >
         <LogOut className="w-4 h-4 mr-2" />

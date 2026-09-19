@@ -50,7 +50,7 @@ export default function AdminLayout({
               Demo
             </div>
             <Link 
-              href="/acceso-rio"
+              href="/api/auth/logout"
               className="p-2 -mr-2 text-white/40 hover:text-white transition-colors flex items-center"
               title="Salir de la Demo"
             >
@@ -88,7 +88,7 @@ export default function AdminLayout({
 
         <div className={classNames("p-4 hidden md:block border-t border-white/10", isCollapsed ? "px-2 flex justify-center" : "")}>
           <Link
-            href="/acceso-rio"
+            href="/api/auth/logout"
             title={isCollapsed ? "Salir de la Demo" : undefined}
             className={classNames(
               "flex items-center py-2 text-[13px] font-semibold text-white/40 hover:text-white hover:bg-white/8 rounded-lg transition-all",
