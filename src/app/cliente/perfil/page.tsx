@@ -5,7 +5,7 @@ import { Package, MapPin, Phone, Mail, ChevronRight, LogOut, RefreshCw } from 'l
 import Link from 'next/link';
 
 export default function PerfilPage() {
-  const { currentCustomer, orders, resetDemoData } = useDemo();
+  const { currentCustomer, orders, resetDemoData, isLoaded } = useDemo();
 
   const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -18,8 +18,12 @@ export default function PerfilPage() {
     }
   };
 
+  if (!isLoaded) {
+    return <div className="min-h-[50vh] flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
+  }
+
   if (!currentCustomer) {
-    return <div className="p-8 text-center text-rio-muted font-medium">No has iniciado sesión</div>;
+    return <div className="p-8 text-center text-rio-muted font-medium">No se encontró la información del cliente. Por favor, recarga la página.</div>;
   }
 
   const ActionButtons = () => (
