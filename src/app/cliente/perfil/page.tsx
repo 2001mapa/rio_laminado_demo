@@ -5,7 +5,14 @@ import { Package, MapPin, Phone, Mail, ChevronRight, LogOut, RefreshCw } from 'l
 import Link from 'next/link';
 
 export default function PerfilPage() {
-  const { currentCustomer, orders, resetDemoData, isLoaded } = useDemo();
+  const { currentCustomer, orders, resetDemoData, isLoaded, customers } = useDemo();
+  const [debugSession, setDebugSession] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    import('@/utils/supabase/client').then(({ createClient }) => {
+      createClient().auth.getSession().then(({ data }) => setDebugSession(data.session));
+    });
+  }, []);
 
   const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -23,7 +30,22 @@ export default function PerfilPage() {
   }
 
   if (!currentCustomer) {
-    return <div className="p-8 text-center text-rio-muted font-medium">No se encontró la información del cliente. Por favor, recarga la página.</div>;
+    const debugInfo = {
+      customersCount: customers.length,
+      availableUsernames: customers.map(c => `${c.username} (authId: ${c.authUserId})`),
+      isLoaded,
+      sessionUserEmail: debugSession?.user?.email,
+      sessionUserId: debugSession?.user?.id,
+      sessionMetadata: debugSession?.user?.user_metadata
+    };
+    return (
+      <div className="p-8 text-center text-rio-muted font-medium">
+        <p className="mb-4">No se encontró la información del cliente. Por favor, recarga la página.</p>
+        <pre className="text-[10px] text-left bg-gray-100 p-4 rounded overflow-auto max-w-full text-black">
+          DEBUG INFO: {JSON.stringify(debugInfo, null, 2)}
+        </pre>
+      </div>
+    );
   }
 
   const ActionButtons = () => (
