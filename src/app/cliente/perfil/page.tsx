@@ -3,12 +3,13 @@
 import { useDemo } from '@/lib/DemoContext';
 import { Package, MapPin, Phone, Mail, ChevronRight, LogOut, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
   const { currentCustomer, orders, resetDemoData, isLoaded, customers } = useDemo();
-  const [debugSession, setDebugSession] = React.useState<any>(null);
+  const [debugSession, setDebugSession] = useState<any>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     import('@/utils/supabase/client').then(({ createClient }) => {
       createClient().auth.getSession().then(({ data }) => setDebugSession(data.session));
     });
