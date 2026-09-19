@@ -50,7 +50,7 @@ async function main() {
         category: product.category,
         price: product.price,
         stock: (product as any).stock || (product.lowStock ? 3 : 25),
-        imageUrl: product.image,
+        imageUrl: product.imageUrl,
         locationCode: product.locationCode,
       },
     });

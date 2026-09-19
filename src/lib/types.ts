@@ -4,8 +4,8 @@ export type Product = {
   name: string;
   category: string;
   price: number;
-  image: string;
-  hoverImage?: string;
+  imageUrl: string;
+  hoverImageUrl?: string;
   lowStock: boolean;
   stock: number;
   locationCode?: string;

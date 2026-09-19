@@ -6,17 +6,16 @@ export async function createOrder(data: {
   customerId: string;
   sellerId: string;
   items: { productId: string; quantity: number; priceAtTime: number }[];
-  total: number;
-  discountApplied: number;
+  totalAmount: number;
 }) {
   try {
     const order = await prisma.order.create({
       data: {
+        orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
         customerId: data.customerId,
         sellerId: data.sellerId,
-        status: 'pending',
-        total: data.total,
-        discountApplied: data.discountApplied,
+        status: 'Reservado',
+        totalAmount: data.totalAmount,
         items: {
           create: data.items.map(item => ({
             productId: item.productId,
