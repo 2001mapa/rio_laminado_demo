@@ -219,13 +219,13 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const [showAlt, setShowAlt] = useState(false);
 
   useEffect(() => {
-    if (product.hoverImage) {
+    if (product.hoverImageUrl) {
       const interval = setInterval(() => {
         setShowAlt(prev => !prev);
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [product.hoverImage]);
+  }, [product.hoverImageUrl]);
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -251,13 +251,13 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         aria-label={`Ver detalle de ${product.name}`}
       >
         <img
-          src={product.image}
+          src={product.imageUrl}
           alt={product.name}
           className={`object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-0' : 'opacity-100'}`}
         />
-        {product.hoverImage && (
+        {product.hoverImageUrl && (
           <img
-            src={product.hoverImage}
+            src={product.hoverImageUrl}
             alt={`${product.name} alternate view`}
             className={`absolute inset-0 object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-100' : 'opacity-0'}`}
           />
@@ -329,8 +329,8 @@ function ProductModal({
   const [initialPinch, setInitialPinch] = useState<{ dist: number, centerX: number, centerY: number } | null>(null);
   const [swipeStart, setSwipeStart] = useState<{ x: number, y: number } | null>(null);
   
-  const images = [product.image];
-  if (product.hoverImage) images.push(product.hoverImage);
+  const images = [product.imageUrl];
+  if (product.hoverImageUrl) images.push(product.hoverImageUrl);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {

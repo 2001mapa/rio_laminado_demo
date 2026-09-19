@@ -118,7 +118,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
           return (
             <div key={item.id} className="bg-white p-3 rounded-xl border border-rio-border flex gap-4 items-center shadow-sm">
               <div className="w-14 h-14 rounded-lg bg-rio-surface-muted overflow-hidden shrink-0 border border-rio-border/50">
-                <img src={product.image} alt="" className="w-full h-full object-cover mix-blend-multiply" />
+                <img src={product.imageUrl} alt="" className="w-full h-full object-cover mix-blend-multiply" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1">

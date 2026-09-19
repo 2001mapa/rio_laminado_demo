@@ -148,7 +148,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   return (
                     <div key={item.id} className="flex gap-4 border-b border-rio-border/50 pb-4 last:border-0 last:pb-0">
                       <div className="w-16 h-16 rounded-xl bg-rio-surface-muted shrink-0 overflow-hidden border border-rio-border">
-                        <img src={product.image} alt="" className="w-full h-full object-cover mix-blend-multiply" />
+                        <img src={product.imageUrl} alt="" className="w-full h-full object-cover mix-blend-multiply" />
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between mb-1.5">

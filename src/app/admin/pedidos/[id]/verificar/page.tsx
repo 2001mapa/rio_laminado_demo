@@ -112,7 +112,7 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex flex-1 items-center">
                   <div className="w-16 h-16 rounded-xl overflow-hidden bg-rio-surface-muted shrink-0 mr-4 border border-rio-border">
-                    <img src={product.image} alt="" className="w-full h-full object-cover mix-blend-multiply" />
+                    <img src={product.imageUrl} alt="" className="w-full h-full object-cover mix-blend-multiply" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">

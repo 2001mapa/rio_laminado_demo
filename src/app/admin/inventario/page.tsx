@@ -84,7 +84,7 @@ export default function InventarioPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 shrink-0 bg-rio-surface-muted rounded-xl border border-rio-border overflow-hidden">
-                        <img src={product.image} alt="" className="h-full w-full object-cover mix-blend-multiply" />
+                        <img src={product.imageUrl} alt="" className="h-full w-full object-cover mix-blend-multiply" />
                       </div>
                       <div>
                         <div className="text-[11px] font-mono font-bold text-rio-muted">{product.sku}</div>

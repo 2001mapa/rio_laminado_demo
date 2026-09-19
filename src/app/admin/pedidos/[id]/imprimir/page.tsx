@@ -98,7 +98,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
                   </td>
                   <td className="py-2 px-1 text-center">
                     <img 
-                      src={product.image} 
+                      src={product.imageUrl} 
                       alt="" 
                       className="w-10 h-10 object-cover border border-gray-300 rounded-sm inline-block"
                     />

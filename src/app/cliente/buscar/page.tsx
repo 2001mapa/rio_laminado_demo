@@ -71,7 +71,7 @@ export default function BuscarPage() {
               {filteredProducts.map(product => (
                 <div key={product.id} className="flex items-center gap-3.5 bg-rio-surface p-3.5 rounded-2xl border border-rio-border shadow-sm">
                   <div className="h-16 w-16 rounded-xl overflow-hidden bg-rio-surface-muted shrink-0 border border-rio-border">
-                    <img src={product.image} alt={product.name} className="object-cover h-full w-full mix-blend-multiply" />
+                    <img src={product.imageUrl} alt={product.name} className="object-cover h-full w-full mix-blend-multiply" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-mono font-bold text-rio-muted leading-none mb-1">{product.sku}</p>
