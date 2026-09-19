@@ -27,8 +27,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Proteger las rutas que requieren inicio de sesión
   if (!user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/vendedor') || request.nextUrl.pathname.startsWith('/cliente'))) {
