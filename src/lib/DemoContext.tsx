@@ -35,6 +35,9 @@ type DemoContextType = {
 };
 
 import { getAppData } from '@/app/actions/queries';
+import { createCustomer as createCustomerAction } from '@/app/actions/clients';
+import { createSeller as createSellerAction } from '@/app/actions/sellers';
+import { createOrder as createOrderAction, updateOrderStatus as updateOrderStatusAction } from '@/app/actions/orders';
 
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
@@ -110,16 +113,39 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const addOrder = (order: Order) => {
+  const addOrder = async (order: Order) => {
     setOrders(prev => [order, ...prev]);
+    try {
+      let totalAmount = 0;
+      order.items.forEach(item => {
+         const product = products.find(p => p.id === item.productId);
+         if (product) totalAmount += product.price * item.quantity;
+      });
+      
+      const res = await createOrderAction({
+         customerId: order.customerId,
+         sellerId: order.sellerId || '',
+         items: order.items.map(i => {
+           const p = products.find(prod => prod.id === i.productId);
+           return { productId: i.productId, quantity: i.quantity, priceAtTime: p ? p.price : 0 };
+         }),
+         totalAmount: totalAmount
+      });
+      if (res.success && res.order) {
+        setOrders(prev => prev.map(o => o.id === order.id ? (res.order as any) : o));
+      }
+    } catch(e) { console.error(e) }
   };
 
   const updateOrder = (order: Order) => {
     setOrders(prev => prev.map(o => o.id === order.id ? order : o));
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+    try {
+      await updateOrderStatusAction(orderId, status);
+    } catch(e) { console.error(e) }
   };
   
   const checkoutSeller = (customerId: string, cartItems: CartItem[]) => {
@@ -131,7 +157,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       customerId,
       sellerId: currentSeller.id,
       createdAt: new Date().toISOString(),
-      status: 'En preparación',
+      status: 'Reservado',
       items: cartItems.map((item, index) => ({
         id: `oi-${Date.now()}-${index}`,
         productId: item.product.id,
@@ -154,16 +180,38 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const updateCustomer = (customer: Customer) => {
     setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
-    // keep currentCustomer in sync if it's the same person
     setCurrentCustomer(prev => prev?.id === customer.id ? customer : prev);
+    // Para simplificar, no conectaremos el updateCustomer a BD en esta iteración sin su propia Server Action.
   };
 
-  const addCustomer = (customer: Customer) => {
+  const addCustomer = async (customer: Customer) => {
     setCustomers(prev => [...prev, customer]);
+    try {
+      const res = await createCustomerAction({
+         name: customer.name,
+         email: customer.email,
+         phone: customer.phone,
+         address: customer.address,
+         discount: customer.discount || 0,
+         showDiscount: customer.showDiscount || false,
+      });
+      if (res.success && res.customer) {
+         setCustomers(prev => prev.map(c => c.id === customer.id ? (res.customer as any) : c));
+      }
+    } catch (e) { console.error(e) }
   };
 
-  const addSeller = (seller: Seller) => {
+  const addSeller = async (seller: Seller) => {
     setSellers(prev => [...prev, seller]);
+    try {
+      const res = await createSellerAction({
+         name: seller.name,
+         email: seller.email || '',
+      });
+      if (res.success && res.seller) {
+         setSellers(prev => prev.map(s => s.id === seller.id ? (res.seller as any) : s));
+      }
+    } catch (e) { console.error(e) }
   };
 
   return (
