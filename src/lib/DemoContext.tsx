@@ -80,10 +80,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
 
-    async function loadAuth() {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+    const supabase = createClient();
+
+    async function processSession(session: any) {
       if (session?.user) {
         const username = session.user.email?.replace('@rio.local', '')?.toLowerCase().trim();
         const role = session.user.user_metadata?.role;
@@ -96,6 +95,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             (metaUsername && c.username?.toLowerCase().trim() === metaUsername)
           );
           if (matched) setCurrentCustomer(matched);
+          else setCurrentCustomer(null);
         } else if (role === 'vendedor' || role === 'admin') {
           const matched = sellers.find(s => 
             s.authUserId === session.user.id || 
@@ -103,6 +103,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             (metaUsername && s.username?.toLowerCase().trim() === metaUsername)
           );
           if (matched) setCurrentSeller(matched);
+          else setCurrentSeller(null);
         }
       } else {
         // Fallback to local storage if no session
@@ -113,11 +114,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             const parsed = JSON.parse(storedCurrentCustomer);
             const matched = customers.find(c => c.id === parsed.id) || parsed;
             setCurrentCustomer(matched);
+          } else {
+            setCurrentCustomer(null);
           }
           if (storedCurrentSeller && storedCurrentSeller !== "undefined") {
             const parsed = JSON.parse(storedCurrentSeller);
             const matched = sellers.find(s => s.id === parsed.id) || parsed;
             setCurrentSeller(matched);
+          } else {
+            setCurrentSeller(null);
           }
         } catch (e) {
           console.error("Failed to parse local storage user", e);
@@ -131,8 +136,20 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to parse cart", e);
       }
     }
-    
-    loadAuth();
+
+    // Load initial session
+    supabase.auth.getSession().then(({ data }) => {
+      processSession(data.session);
+    });
+
+    // Listen for auth changes (like login/logout in other tabs or soft navigations)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      processSession(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [isLoaded, customers, sellers]);
 
   // 3. Save to LocalStorage whenever things change
