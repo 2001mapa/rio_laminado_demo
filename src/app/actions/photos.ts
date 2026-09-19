@@ -24,24 +24,41 @@ export async function uploadProductPhoto(formData: FormData) {
       return { success: false, message: `Producto ${sku} no encontrado en la base de datos.` };
     }
 
-    // Convert file to buffer
+    // --- NUEVA LÓGICA PARA SUPABASE STORAGE ---
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return { success: false, message: 'Error: Faltan credenciales de Supabase en el archivo .env' };
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Save locally (Simulating Supabase Storage)
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    const filename = `${sku}_${type}.webp`;
+    
+    // Subir a Supabase Storage (Bucket llamado "productos")
+    const uploadUrl = `${supabaseUrl}/storage/v1/object/productos/${filename}`;
+    
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey,
+        'Content-Type': file.type || 'image/webp',
+        'x-upsert': 'true' // Sobrescribir si ya existe una foto vieja
+      },
+      body: buffer
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Error de Supabase:', errorData);
+      return { success: false, message: 'Error al subir la imagen. Revisa que el Bucket "productos" exista y sea público.' };
     }
 
-    // Name the file securely
-    const filename = `${sku}_${type}.webp`;
-    const filepath = join(uploadsDir, filename);
-
-    await writeFile(filepath, buffer);
-
-    // The public URL to access this locally
-    const publicUrl = `/uploads/${filename}`;
+    // La URL pública para acceder a la foto en cualquier parte del mundo
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/productos/${filename}`;
 
     // Update database
     if (type === '1') {
