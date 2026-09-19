@@ -7,11 +7,11 @@ import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
   const { currentCustomer, orders, resetDemoData, isLoaded, customers } = useDemo();
-  const [debugSession, setDebugSession] = useState<any>(null);
+  const [debugSession, setDebugSession] = useState<any>('PENDING');
 
   useEffect(() => {
     import('@/utils/supabase/client').then(({ createClient }) => {
-      createClient().auth.getSession().then(({ data }) => setDebugSession(data.session));
+      createClient().auth.getSession().then(({ data }) => setDebugSession(data.session || 'NULL_SESSION'));
     });
   }, []);
 
@@ -35,9 +35,10 @@ export default function PerfilPage() {
       customersCount: customers.length,
       availableUsernames: customers.map(c => `${c.username} (authId: ${c.authUserId})`),
       isLoaded,
-      sessionUserEmail: debugSession?.user?.email,
-      sessionUserId: debugSession?.user?.id,
-      sessionMetadata: debugSession?.user?.user_metadata
+      sessionStatus: debugSession === 'PENDING' ? 'Loading...' : (debugSession === 'NULL_SESSION' ? 'Null Session' : 'Valid Session'),
+      sessionUserEmail: debugSession?.user?.email || 'N/A',
+      sessionUserId: debugSession?.user?.id || 'N/A',
+      sessionMetadata: debugSession?.user?.user_metadata || 'N/A'
     };
     return (
       <div className="p-8 text-center text-rio-muted font-medium">
