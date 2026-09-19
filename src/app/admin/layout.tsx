@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store } from 'lucide-react';
 import { classNames } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
 
 export default function AdminLayout({
   children,
@@ -12,7 +13,24 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.user_metadata?.role !== 'admin') {
+        router.push('/login');
+      } else {
+        setIsAuthorized(true);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
   
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },

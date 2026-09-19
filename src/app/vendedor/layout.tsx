@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ScanLine, User, LogOut } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import ToastContainer from '@/components/ToastContainer';
+import { createClient } from '@/utils/supabase/client';
+import { useEffect, useState } from 'react';
 
 export default function VendedorLayout({
   children,
@@ -12,6 +14,23 @@ export default function VendedorLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.user_metadata?.role !== 'vendedor') {
+        router.push('/login');
+      } else {
+        setIsAuthorized(true);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
 
   const navItems = [
     { name: 'Dashboard', href: '/vendedor', icon: LayoutDashboard },

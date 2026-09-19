@@ -30,26 +30,8 @@ export async function updateSession(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
 
-  // Proteger las rutas que requieren inicio de sesión
-  if (!user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/vendedor') || request.nextUrl.pathname.startsWith('/cliente'))) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  // Redireccionar si el usuario ya inició sesión y trata de entrar al login
-  if (user && request.nextUrl.pathname === '/login') {
-    // Buscar los metadatos del usuario para saber a dónde mandarlo
-    const role = user.user_metadata?.role || 'admin';
-    const url = request.nextUrl.clone()
-    
-    if (role === 'admin') url.pathname = '/admin'
-    else if (role === 'vendedor') url.pathname = '/vendedor'
-    else if (role === 'cliente') url.pathname = '/cliente'
-    else url.pathname = '/'
-    
-    return NextResponse.redirect(url)
-  }
+  // Removed edge middleware redirects because of Edge timeout unreliability.
+  // Security and routing is handled via Client/Server Components.
 
   // Prevenir que el navegador guarde la página en caché (Evita el error del botón "Atrás" en móviles)
   if (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/vendedor') || request.nextUrl.pathname.startsWith('/cliente')) {
