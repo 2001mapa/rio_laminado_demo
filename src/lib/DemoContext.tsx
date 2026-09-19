@@ -32,6 +32,7 @@ type DemoContextType = {
   addSeller: (seller: Seller) => void;
   checkoutSeller: (customerId: string, cartItems: CartItem[]) => void;
   resetDemoData: () => void;
+  refreshData: () => Promise<void>;
   isLoaded: boolean;
 };
 
@@ -39,6 +40,7 @@ import { getAppData } from '@/app/actions/queries';
 import { createCustomer as createCustomerAction } from '@/app/actions/clients';
 import { createSeller as createSellerAction } from '@/app/actions/sellers';
 import { createOrder as createOrderAction, updateOrderStatus as updateOrderStatusAction } from '@/app/actions/orders';
+import { createClient } from '@/utils/supabase/client';
 
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
@@ -52,28 +54,34 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const refreshData = async () => {
+    try {
+      const result = await getAppData();
+      if (result.success && result.data) {
+        // Transform DB data to match frontend types if needed
+        setProducts(result.data.products as any[]);
+        setCustomers(result.data.customers as any[]);
+        setSellers(result.data.sellers as any[]);
+        setOrders(result.data.orders as any[]);
+      }
+    } catch (err) {
+      console.error("Error cargando base de datos:", err);
+    }
+  };
+
   useEffect(() => {
     // 1. Fetch real data from Supabase
     async function fetchRealData() {
-      try {
-        const result = await getAppData();
-        if (result.success && result.data) {
-          // Transform DB data to match frontend types if needed
-          setProducts(result.data.products as any[]);
-          setCustomers(result.data.customers as any[]);
-          setSellers(result.data.sellers as any[]);
-          setOrders(result.data.orders as any[]);
-        }
-      } catch (err) {
-        console.error("Error cargando base de datos:", err);
-      } finally {
-        setIsLoaded(true);
-      }
+      await refreshData();
+      setIsLoaded(true);
     }
-
     fetchRealData();
+  }, []);
 
-    // 2. Load Supabase Auth Session
+  // 2. Load Supabase Auth Session ONCE data is loaded
+  useEffect(() => {
+    if (!isLoaded) return;
+
     async function loadAuth() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -83,23 +91,26 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         const role = session.user.user_metadata?.role;
         
         if (role === 'cliente') {
-          // Wait for customers to be loaded
-          const c = localStorage.getItem('rio_customers');
-          const savedCustomers = c ? JSON.parse(c) : initialCustomers;
-          const matched = savedCustomers.find((cust: Customer) => cust.username === username);
+          const matched = customers.find(c => c.username === username);
           if (matched) setCurrentCustomer(matched);
         } else if (role === 'vendedor' || role === 'admin') {
-          const s = localStorage.getItem('rio_sellers');
-          const savedSellers = s ? JSON.parse(s) : initialSellers;
-          const matched = savedSellers.find((sell: Seller) => sell.username === username);
+          const matched = sellers.find(s => s.username === username);
           if (matched) setCurrentSeller(matched);
         }
       } else {
         // Fallback to local storage if no session
         const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
         const storedCurrentSeller = localStorage.getItem('rio_current_seller');
-        if (storedCurrentCustomer) setCurrentCustomer(JSON.parse(storedCurrentCustomer));
-        if (storedCurrentSeller) setCurrentSeller(JSON.parse(storedCurrentSeller));
+        if (storedCurrentCustomer) {
+          const parsed = JSON.parse(storedCurrentCustomer);
+          const matched = customers.find(c => c.id === parsed.id) || parsed;
+          setCurrentCustomer(matched);
+        }
+        if (storedCurrentSeller) {
+          const parsed = JSON.parse(storedCurrentSeller);
+          const matched = sellers.find(s => s.id === parsed.id) || parsed;
+          setCurrentSeller(matched);
+        }
       }
       
       const storedCart = localStorage.getItem('rio_cart');
@@ -107,8 +118,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }
     
     loadAuth();
-  }, []);
+  }, [isLoaded, customers, sellers]);
 
+  // 3. Save to LocalStorage whenever things change
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('rio_products', JSON.stringify(products));
@@ -265,6 +277,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       addCustomer,
       addSeller,
       resetDemoData,
+      refreshData,
       isLoaded,
     }}>
       {children}

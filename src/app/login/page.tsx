@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { login } from './actions';
 import { Loader2 } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -14,12 +16,38 @@ export default function LoginPage() {
     setError(null);
     
     const formData = new FormData(e.currentTarget);
-    const result = await login(formData);
-    
-    if (result && !result.success) {
-      setError(result.message);
+    const rawUser = formData.get('username') as string;
+    const password = formData.get('password') as string;
+
+    if (!rawUser || !password) {
+      setError('Faltan credenciales');
       setLoading(false);
+      return;
     }
+
+    const email = rawUser.includes('@') ? rawUser : `${rawUser}@rio.local`;
+    const supabase = createClient();
+
+    const { error, data } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError('Usuario o contrasea incorrectos');
+      setLoading(false);
+      return;
+    }
+
+    const role = data.user?.user_metadata?.role || 'admin';
+    
+    // Force a full router refresh so context loads correctly
+    router.refresh();
+    
+    if (role === 'admin') router.push('/admin');
+    else if (role === 'vendedor') router.push('/vendedor');
+    else if (role === 'cliente') router.push('/cliente');
+    else router.push('/');
   };
 
   return (

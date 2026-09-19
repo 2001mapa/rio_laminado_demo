@@ -9,7 +9,7 @@ import BulkPhotoUploader from '@/components/BulkPhotoUploader';
 import CreateProductModal from '@/components/CreateProductModal';
 
 export default function InventarioPage() {
-  const { products } = useDemo();
+  const { products, refreshData } = useDemo();
   const [locationFilter, setLocationFilter] = useState<string>('Todas');
   const [showMockModal, setShowMockModal] = useState(false);
 
@@ -52,8 +52,8 @@ export default function InventarioPage() {
             <Printer className="w-4 h-4 mr-2" />
             Imprimir Etiquetas
           </a>
-          <BulkPhotoUploader onComplete={() => window.location.reload()} />
-          <CSVImporter onComplete={() => window.location.reload()} />
+          <BulkPhotoUploader onComplete={() => refreshData()} />
+          <CSVImporter onComplete={() => refreshData()} />
           <button
             onClick={() => setShowMockModal(true)}
             className="flex items-center px-4 py-2.5 border border-rio-border text-[13px] font-semibold rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors shadow-sm"
@@ -134,7 +134,7 @@ export default function InventarioPage() {
         onClose={() => setShowMockModal(false)} 
         onComplete={() => {
           setShowMockModal(false);
-          window.location.reload();
+          refreshData();
         }}
       />
     </div>

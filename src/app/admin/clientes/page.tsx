@@ -7,7 +7,7 @@ import { useState } from 'react';
 import CreateCustomerModal from '@/components/CreateCustomerModal';
 
 export default function ClientesPage() {
-  const { customers } = useDemo();
+  const { customers, refreshData } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
 
@@ -85,7 +85,7 @@ export default function ClientesPage() {
         onClose={() => setShowModal(false)} 
         onComplete={() => {
           setShowModal(false);
-          window.location.reload();
+          refreshData();
         }}
       />
     </div>

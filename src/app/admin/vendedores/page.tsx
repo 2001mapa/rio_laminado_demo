@@ -8,7 +8,7 @@ import SellerModal from '@/components/SellerModal';
 import { Seller } from '@/lib/types';
 
 export default function AdminVendedoresPage() {
-  const { sellers, orders } = useDemo();
+  const { sellers, orders, refreshData } = useDemo();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
 
@@ -82,7 +82,7 @@ export default function AdminVendedoresPage() {
         onClose={() => setIsModalOpen(false)}
         onComplete={() => {
           setIsModalOpen(false);
-          window.location.reload();
+          refreshData();
         }}
       />
     </div>
