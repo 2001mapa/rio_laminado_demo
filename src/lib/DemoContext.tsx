@@ -4,6 +4,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product, Customer, Order, OrderStatus, Seller } from './types';
 import { initialProducts, initialCustomers, initialOrders, initialSellers } from './mockData';
 import { createClient } from '@/utils/supabase/client';
+import { getAppData } from '@/app/actions/queries';
+import { createCustomer as createCustomerAction } from '@/app/actions/clients';
+import { createSeller as createSellerAction } from '@/app/actions/sellers';
+import { createOrder as createOrderAction, updateOrderStatus as updateOrderStatusAction } from '@/app/actions/orders';
 
 export type CartItem = {
   product: Product;
@@ -35,12 +39,6 @@ type DemoContextType = {
   refreshData: () => Promise<void>;
   isLoaded: boolean;
 };
-
-import { getAppData } from '@/app/actions/queries';
-import { createCustomer as createCustomerAction } from '@/app/actions/clients';
-import { createSeller as createSellerAction } from '@/app/actions/sellers';
-import { createOrder as createOrderAction, updateOrderStatus as updateOrderStatusAction } from '@/app/actions/orders';
-import { createClient } from '@/utils/supabase/client';
 
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
