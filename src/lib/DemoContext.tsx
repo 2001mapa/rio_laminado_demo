@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product, Customer, Order, OrderStatus, Seller } from './types';
 import { initialProducts, initialCustomers, initialOrders, initialSellers } from './mockData';
+import { createClient } from '@/utils/supabase/client';
 
 export type CartItem = {
   product: Product;
@@ -72,14 +73,40 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
     fetchRealData();
 
-    // 2. Load Local Session & Cart
-    const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
-    const storedCurrentSeller = localStorage.getItem('rio_current_seller');
-    const storedCart = localStorage.getItem('rio_cart');
-
-    if (storedCurrentCustomer) setCurrentCustomer(JSON.parse(storedCurrentCustomer));
-    if (storedCurrentSeller) setCurrentSeller(JSON.parse(storedCurrentSeller));
-    if (storedCart) setCart(JSON.parse(storedCart));
+    // 2. Load Supabase Auth Session
+    async function loadAuth() {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const username = session.user.email?.replace('@rio.local', '');
+        const role = session.user.user_metadata?.role;
+        
+        if (role === 'cliente') {
+          // Wait for customers to be loaded
+          const c = localStorage.getItem('rio_customers');
+          const savedCustomers = c ? JSON.parse(c) : initialCustomers;
+          const matched = savedCustomers.find((cust: Customer) => cust.username === username);
+          if (matched) setCurrentCustomer(matched);
+        } else if (role === 'vendedor' || role === 'admin') {
+          const s = localStorage.getItem('rio_sellers');
+          const savedSellers = s ? JSON.parse(s) : initialSellers;
+          const matched = savedSellers.find((sell: Seller) => sell.username === username);
+          if (matched) setCurrentSeller(matched);
+        }
+      } else {
+        // Fallback to local storage if no session
+        const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
+        const storedCurrentSeller = localStorage.getItem('rio_current_seller');
+        if (storedCurrentCustomer) setCurrentCustomer(JSON.parse(storedCurrentCustomer));
+        if (storedCurrentSeller) setCurrentSeller(JSON.parse(storedCurrentSeller));
+      }
+      
+      const storedCart = localStorage.getItem('rio_cart');
+      if (storedCart) setCart(JSON.parse(storedCart));
+    }
+    
+    loadAuth();
   }, []);
 
   useEffect(() => {
