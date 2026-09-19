@@ -91,7 +91,7 @@ export default function PerfilPage() {
             </div>
             <h1 className="text-xl md:text-2xl font-serif font-bold text-rio-ink leading-tight">{currentCustomer.name}</h1>
             <div className="mt-2.5 inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rio-gold-light/20 text-rio-gold-dark border border-rio-gold-light/50">
-              Mayorista ({currentCustomer.discount}% dcto)
+              Mayorista {currentCustomer.showDiscount && `(${currentCustomer.discount}% dcto)`}
             </div>
             
             <div className="mt-6 md:mt-8 flex flex-col space-y-3.5 text-[13px] text-left mx-auto">

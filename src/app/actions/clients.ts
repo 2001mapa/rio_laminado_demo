@@ -90,3 +90,24 @@ export async function createCustomer(data: {
     return { success: false, message: `Error interno al crear el cliente: ${error.message}` };
   }
 }
+
+export async function updateCustomerStatusAction(id: string, data: {
+  status?: string;
+  showDiscount?: boolean;
+  discount?: number;
+}) {
+  try {
+    const customer = await prisma.customer.update({
+      where: { id },
+      data: {
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.showDiscount !== undefined && { showDiscount: data.showDiscount }),
+        ...(data.discount !== undefined && { discount: data.discount })
+      }
+    });
+    return { success: true, message: 'Cliente actualizado exitosamente.', customer };
+  } catch (error: any) {
+    console.error('Error updating customer:', error);
+    return { success: false, message: `Error interno al actualizar el cliente: ${error.message}` };
+  }
+}

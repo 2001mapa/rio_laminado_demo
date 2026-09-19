@@ -5,7 +5,7 @@ import { Product, Customer, Order, OrderStatus, Seller } from './types';
 import { initialProducts, initialCustomers, initialOrders, initialSellers } from './mockData';
 import { createClient } from '@/utils/supabase/client';
 import { getAppData } from '@/app/actions/queries';
-import { createCustomer as createCustomerAction } from '@/app/actions/clients';
+import { createCustomer as createCustomerAction, updateCustomerStatusAction } from '@/app/actions/clients';
 import { createSeller as createSellerAction } from '@/app/actions/sellers';
 import { createOrder as createOrderAction, updateOrderStatus as updateOrderStatusAction } from '@/app/actions/orders';
 
@@ -249,10 +249,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('rio_cart');
   };
 
-  const updateCustomer = (customer: Customer) => {
+  const updateCustomer = async (customer: Customer) => {
+    // Optimistic UI update
     setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
     setCurrentCustomer(prev => prev?.id === customer.id ? customer : prev);
-    // Para simplificar, no conectaremos el updateCustomer a BD en esta iteración sin su propia Server Action.
+    
+    // Save to DB
+    try {
+      await updateCustomerStatusAction(customer.id, {
+        status: customer.status,
+        showDiscount: customer.showDiscount,
+        discount: customer.discount
+      });
+    } catch (error) {
+      console.error('Error updating customer in DB:', error);
+      // Optional: rollback optimistic update if needed
+    }
   };
 
   const addCustomer = async (customer: Customer) => {

@@ -126,20 +126,29 @@ export default function CarritoPage() {
         {/* Order Summary Panel */}
         <div className="lg:w-80 shrink-0 mt-8 lg:mt-0 lg:sticky lg:top-24">
           <div className="bg-rio-surface p-5 rounded-2xl border border-rio-border shadow-sm space-y-3">
-            <div className="flex justify-between text-sm text-rio-muted">
-              <span>Subtotal ({totalItems} un.)</span>
-              <span className="font-medium">{formatPrice(subtotal)}</span>
-            </div>
-            {currentCustomer && currentCustomer.showDiscount && currentCustomer.discount > 0 && (
-              <div className="flex justify-between text-sm text-rio-success">
-                <span>Descuento Mayorista ({currentCustomer.discount}%)</span>
-                <span className="font-medium">-{formatPrice(discountAmount)}</span>
+            {currentCustomer?.showDiscount ? (
+              <>
+                <div className="flex justify-between text-sm text-rio-muted">
+                  <span>Subtotal ({totalItems} un.)</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
+                </div>
+                {currentCustomer.discount > 0 && (
+                  <div className="flex justify-between text-sm text-rio-success">
+                    <span>Descuento Mayorista ({currentCustomer.discount}%)</span>
+                    <span className="font-medium">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
+                <div className="border-t border-rio-border pt-3 flex justify-between font-bold text-rio-ink text-lg">
+                  <span>Total Estimado</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <span className="text-rio-ink font-bold text-lg block mb-1">{totalItems} unidades</span>
+                <span className="text-rio-muted text-sm block">en tu pedido actual</span>
               </div>
             )}
-            <div className="border-t border-rio-border pt-3 flex justify-between font-bold text-rio-ink text-lg">
-              <span>Total Estimado</span>
-              <span>{formatPrice(currentCustomer?.showDiscount ? total : subtotal)}</span>
-            </div>
           </div>
 
           <div className="mt-4 lg:mt-6">
