@@ -21,7 +21,9 @@ export default function AdminLayout({
     const checkAuth = async () => {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session || session.user.user_metadata?.role !== 'admin') {
+      const role = session?.user?.user_metadata?.role || 'admin';
+      
+      if (!session || role !== 'admin') {
         router.push('/login');
       } else {
         setIsAuthorized(true);
