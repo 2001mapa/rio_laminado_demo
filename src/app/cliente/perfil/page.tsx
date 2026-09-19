@@ -41,8 +41,17 @@ export default function PerfilPage() {
       sessionMetadata: debugSession?.user?.user_metadata || 'N/A'
     };
     return (
-      <div className="p-8 text-center text-rio-muted font-medium">
+      <div className="p-8 text-center text-rio-muted font-medium flex flex-col items-center">
         <p className="mb-4">No se encontró la información del cliente. Por favor, recarga la página.</p>
+        
+        <Link
+          href="/api/auth/logout"
+          className="mb-6 inline-flex items-center justify-center py-2 px-6 border border-transparent rounded-xl text-sm font-semibold text-white bg-rio-danger hover:bg-rio-danger/90 transition-colors shadow-sm"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Forzar Cierre de Sesión (Reparar)
+        </Link>
+
         <pre className="text-[10px] text-left bg-gray-100 p-4 rounded overflow-auto max-w-full text-black">
           DEBUG INFO: {JSON.stringify(debugInfo, null, 2)}
         </pre>
