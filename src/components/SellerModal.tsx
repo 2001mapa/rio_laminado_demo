@@ -72,6 +72,7 @@ export default function SellerModal({
             addSeller({
               id: res.seller.id,
               name: res.seller.name,
+            username: sellerData.email,
               email: res.seller.email,
               status: res.seller.status as 'active' | 'suspended'
             });

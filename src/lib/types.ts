@@ -14,6 +14,7 @@ export type Product = {
 export type Customer = {
   id: string;
   name: string;
+  username: string; // Nuevo
   email: string;
   discount: number;
   showDiscount: boolean; // admin controls whether client sees their discount
@@ -45,6 +46,7 @@ export type OrderItem = {
 export type Seller = {
   id: string;
   name: string;
+  username: string; // Nuevo
   email: string;
   status: 'active' | 'suspended';
 };

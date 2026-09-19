@@ -1,0 +1,88 @@
+'use client';
+
+import { useState } from 'react';
+import { login } from './actions';
+import { Loader2 } from 'lucide-react';
+
+export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    const formData = new FormData(e.currentTarget);
+    const result = await login(formData);
+    
+    if (result && !result.success) {
+      setError(result.message);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-rio-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-rio-ink text-white rounded-2xl flex items-center justify-center text-4xl font-serif font-bold mx-auto shadow-xl mb-6">
+            R
+          </div>
+          <h1 className="text-3xl font-serif font-bold text-rio-ink">Portal RIO</h1>
+          <p className="text-rio-muted mt-2">Acceso a mayoristas y equipo</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl shadow-sm border border-rio-border space-y-6">
+          {error && (
+            <div className="p-4 bg-rio-danger/10 text-rio-danger border border-rio-danger/20 rounded-xl text-sm font-medium text-center">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">
+              Usuario o Identificación
+            </label>
+            <input 
+              name="username"
+              type="text" 
+              required
+              placeholder="Ej: 1012345678 o maria.oro"
+              className="w-full px-4 py-3 bg-rio-surface border border-rio-border rounded-xl focus:outline-none focus:ring-2 focus:ring-rio-gold text-rio-ink"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">
+              Contraseña
+            </label>
+            <input 
+              name="password"
+              type="password" 
+              required
+              placeholder="••••••••"
+              className="w-full px-4 py-3 bg-rio-surface border border-rio-border rounded-xl focus:outline-none focus:ring-2 focus:ring-rio-gold text-rio-ink"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-3.5 bg-rio-ink text-white font-bold rounded-xl hover:bg-rio-ink/90 transition-colors shadow-sm flex items-center justify-center"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              'Ingresar'
+            )}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-rio-muted mt-8">
+          ¿No tienes acceso? Contacta a tu asesor comercial.
+        </p>
+      </div>
+    </div>
+  );
+}

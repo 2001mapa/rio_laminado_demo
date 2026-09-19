@@ -189,6 +189,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await createCustomerAction({
          name: customer.name,
+         username: customer.username,
          email: customer.email,
          phone: customer.phone,
          address: customer.address,

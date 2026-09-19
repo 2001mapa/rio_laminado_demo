@@ -31,10 +31,12 @@ export default function CreateCustomerModal({
     
     const customerData = {
       name: formData.get('name') as string,
-      email: formData.get('email') as string || undefined,
-      phone: formData.get('phone') as string || undefined,
-      address: formData.get('address') as string || undefined,
-      discount: parseInt(formData.get('discount') as string, 10) || 0,
+      username: formData.get('username') as string,
+      temporaryPassword: formData.get('temporaryPassword') as string,
+      email: (formData.get('email') as string) || undefined,
+      phone: (formData.get('phone') as string) || undefined,
+      address: (formData.get('address') as string) || undefined,
+      discount: parseInt(formData.get('discount') as string),
       showDiscount: formData.get('showDiscount') === 'true',
     };
 
@@ -44,11 +46,15 @@ export default function CreateCustomerModal({
       if (!res.success) {
         setError(res.message);
       } else {
-        setSuccessData(res.customer);
         if (res.customer) {
+          setSuccessData({
+            ...res.customer,
+            username: customerData.username,
+          });
           addCustomer({
             id: res.customer.id,
             name: res.customer.name,
+            username: customerData.username,
             email: res.customer.email || '',
             phone: res.customer.phone || '',
             address: res.customer.address || '',
@@ -69,11 +75,11 @@ export default function CreateCustomerModal({
     if (!successData) return;
     
     // En producción esto debería ser el dominio real (ej. https://riob2b.com)
-    const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/acceso-rio?token=${successData.id}`;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const inviteUrl = `${baseUrl}/login`;
     
     navigator.clipboard.writeText(
-      `¡Hola ${successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. \n\nIngresa aquí: ${inviteUrl}`
+      `¡Hola ${successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Usuario: ${successData.username}\n🔑 Contraseña temporal: RIO2024`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -115,6 +121,17 @@ export default function CreateCustomerModal({
               <div>
                 <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Nombre de la Empresa o Cliente *</label>
                 <input name="name" required type="text" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="Joyería El Diamante" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Usuario (Login) *</label>
+                  <input name="username" required type="text" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="Ej. joyeria.diamante" />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Contraseña Temporal *</label>
+                  <input name="temporaryPassword" required type="text" defaultValue="RIO2024" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="Ej. RIO1234" />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -175,9 +192,11 @@ export default function CreateCustomerModal({
 
             <div className="bg-rio-background border border-rio-border rounded-xl p-4 text-left">
               <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Mensaje Listo para Enviar:</p>
-              <p className="text-sm text-rio-ink font-serif italic mb-4">
-                "¡Hola {successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. Ingresa aquí: <br/><br/>
-                <span className="font-mono text-rio-gold-dark text-xs break-all">{window.location.origin}/acceso-rio?token={successData.id}</span>"
+              <p className="text-sm text-rio-ink font-serif italic mb-4 whitespace-pre-wrap">
+                "¡Hola {successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. <br/><br/>
+                🔗 Ingresa aquí: <span className="font-mono text-rio-gold-dark font-bold">{window.location.origin}/login</span><br/>
+                👤 Usuario: <span className="font-mono text-rio-gold-dark font-bold">{successData.username}</span><br/>
+                🔑 Contraseña: <span className="font-mono text-rio-gold-dark font-bold">RIO2024</span>"
               </p>
               <button 
                 onClick={copyInviteLink}
