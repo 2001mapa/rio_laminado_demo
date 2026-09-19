@@ -29,7 +29,7 @@ export async function login(formData: FormData) {
   const role = data.user?.user_metadata?.role || 'admin';
   if (role === 'admin') redirect('/admin');
   if (role === 'vendedor') redirect('/vendedor');
-  if (role === 'cliente') redirect('/cliente/buscar');
+  if (role === 'cliente') redirect('/cliente');
   
   redirect('/admin')
 }

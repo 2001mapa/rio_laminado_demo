@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
     
     if (role === 'admin') url.pathname = '/admin'
     else if (role === 'vendedor') url.pathname = '/vendedor'
-    else if (role === 'cliente') url.pathname = '/cliente/buscar'
+    else if (role === 'cliente') url.pathname = '/cliente'
     else url.pathname = '/'
     
     return NextResponse.redirect(url)
