@@ -106,22 +106,30 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Fallback to local storage if no session
-        const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
-        const storedCurrentSeller = localStorage.getItem('rio_current_seller');
-        if (storedCurrentCustomer) {
-          const parsed = JSON.parse(storedCurrentCustomer);
-          const matched = customers.find(c => c.id === parsed.id) || parsed;
-          setCurrentCustomer(matched);
-        }
-        if (storedCurrentSeller) {
-          const parsed = JSON.parse(storedCurrentSeller);
-          const matched = sellers.find(s => s.id === parsed.id) || parsed;
-          setCurrentSeller(matched);
+        try {
+          const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
+          const storedCurrentSeller = localStorage.getItem('rio_current_seller');
+          if (storedCurrentCustomer && storedCurrentCustomer !== "undefined") {
+            const parsed = JSON.parse(storedCurrentCustomer);
+            const matched = customers.find(c => c.id === parsed.id) || parsed;
+            setCurrentCustomer(matched);
+          }
+          if (storedCurrentSeller && storedCurrentSeller !== "undefined") {
+            const parsed = JSON.parse(storedCurrentSeller);
+            const matched = sellers.find(s => s.id === parsed.id) || parsed;
+            setCurrentSeller(matched);
+          }
+        } catch (e) {
+          console.error("Failed to parse local storage user", e);
         }
       }
       
-      const storedCart = localStorage.getItem('rio_cart');
-      if (storedCart) setCart(JSON.parse(storedCart));
+      try {
+        const storedCart = localStorage.getItem('rio_cart');
+        if (storedCart && storedCart !== "undefined") setCart(JSON.parse(storedCart));
+      } catch (e) {
+        console.error("Failed to parse cart", e);
+      }
     }
     
     loadAuth();
