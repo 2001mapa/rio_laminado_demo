@@ -22,8 +22,14 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
 export async function requireRole(allowedRoles: Role[]): Promise<User> {
   const { user, role } = await getSessionUser();
   
-  if (!user || !role || !allowedRoles.includes(role)) {
-    throw new Error('No autorizado');
+  if (!user) {
+    throw new Error('No autorizado: Sesión de Supabase no encontrada (user=null)');
+  }
+  if (!role) {
+    throw new Error('No autorizado: Rol no encontrado');
+  }
+  if (!allowedRoles.includes(role)) {
+    throw new Error(`No autorizado: Rol "${role}" no permitido`);
   }
   
   return user;
