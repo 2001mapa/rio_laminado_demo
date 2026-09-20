@@ -27,8 +27,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Removed edge middleware redirects because of Edge timeout unreliability.
   // Security and routing is handled via Client/Server Components.

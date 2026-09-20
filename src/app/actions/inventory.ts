@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 
 import { requireRole } from '@/utils/auth-helpers'
 
-export async function bulkUploadInventory(items: any[], token?: string) {
+export async function bulkUploadInventory(items: any[]) {
   try {
-    await requireRole(['admin'], token);
+    await requireRole(['admin']);
     console.log(`Processing ${items.length} items from CSV...`);
     
     // 1. Identificar referencias existentes ANTES del upsert
@@ -63,9 +63,9 @@ export async function createSingleProduct(data: {
   price: number;
   physicalStock: number;
   locationCode?: string;
-}, token?: string) {
+}) {
   try {
-    await requireRole(['admin'], token);
+    await requireRole(['admin']);
     const product = await prisma.product.upsert({
       where: { sku: data.sku },
       update: {
@@ -95,9 +95,9 @@ export async function createSingleProduct(data: {
   }
 }
 
-export async function previewCSVUpload(items: any[], token?: string) {
+export async function previewCSVUpload(items: any[]) {
   try {
-    await requireRole(['admin'], token);
+    await requireRole(['admin']);
     const skus = items.map(i => i.sku).filter(Boolean);
     const existingProducts = await prisma.product.findMany({
       where: { sku: { in: skus } },
