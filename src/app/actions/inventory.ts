@@ -5,8 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
 
 export async function bulkUploadInventory(items: any[]) {
-  await requireRole(['admin']);
   try {
+    await requireRole(['admin']);
     console.log(`Processing ${items.length} items from CSV...`);
     
     // 1. Identificar referencias existentes ANTES del upsert
@@ -18,7 +18,8 @@ export async function bulkUploadInventory(items: any[]) {
 
     // 3. Ejecutar el upsert masivo
     const operations = items.map((item) => {
-      const price = parseFloat(item.price?.toString().replace(/[^\d.-]/g, '')) || 0;
+      const priceStr = item.price ? item.price.toString() : '0';
+      const price = parseFloat(priceStr.replace(/[^\d.-]/g, '')) || 0;
       const physicalStock = parseInt(item.physicalStock?.toString(), 10) || 0;
       
       return prisma.product.upsert({
@@ -63,8 +64,8 @@ export async function createSingleProduct(data: {
   physicalStock: number;
   locationCode?: string;
 }) {
-  await requireRole(['admin']);
   try {
+    await requireRole(['admin']);
     const product = await prisma.product.upsert({
       where: { sku: data.sku },
       update: {
@@ -95,8 +96,8 @@ export async function createSingleProduct(data: {
 }
 
 export async function previewCSVUpload(items: any[]) {
-  await requireRole(['admin']);
   try {
+    await requireRole(['admin']);
     const skus = items.map(i => i.sku).filter(Boolean);
     const existingProducts = await prisma.product.findMany({
       where: { sku: { in: skus } },
@@ -115,7 +116,8 @@ export async function previewCSVUpload(items: any[]) {
         return;
       }
       
-      const price = parseFloat(item.price?.toString().replace(/[^\d.-]/g, ''));
+      const priceStr = item.price ? item.price.toString() : '0';
+      const price = parseFloat(priceStr.replace(/[^\d.-]/g, ''));
       if (isNaN(price)) {
         errors.push({ row: index + 2, error: 'Precio inválido' });
         return;
