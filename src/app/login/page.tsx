@@ -16,38 +16,24 @@ export default function LoginPage() {
     setError(null);
     
     const formData = new FormData(e.currentTarget);
-    const rawUser = formData.get('username') as string;
-    const password = formData.get('password') as string;
-
-    if (!rawUser || !password) {
-      setError('Faltan credenciales');
-      setLoading(false);
-      return;
-    }
-
-    const email = rawUser.includes('@') ? rawUser : `${rawUser}@rio.local`;
-    const supabase = createClient();
-
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError('Usuario o contrasea incorrectos');
-      setLoading(false);
-      return;
-    }
-
-    const role = data.user?.user_metadata?.role || 'admin';
     
-    // Force a full router refresh so context loads correctly
-    router.refresh();
-    
-    if (role === 'admin') router.push('/admin');
-    else if (role === 'vendedor') router.push('/vendedor');
-    else if (role === 'cliente') router.push('/cliente');
-    else router.push('/');
+    try {
+      const { login } = await import('./actions');
+      const result = await login(formData);
+      
+      if (result && !result.success) {
+        setError(result.message || 'Error al iniciar sesión');
+        setLoading(false);
+      }
+    } catch (err: any) {
+      // Si Next.js hace redirect(), lanza un error interno. Lo ignoramos.
+      if (err.message && err.message.includes('NEXT_REDIRECT')) {
+        return;
+      }
+      console.error(err);
+      setError('Ocurrió un error inesperado.');
+      setLoading(false);
+    }
   };
 
   return (
