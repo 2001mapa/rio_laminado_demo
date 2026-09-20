@@ -19,9 +19,15 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // DIAGNOSTIC PREVENT WIPE: Si Supabase intenta borrar la cookie enviando un valor vacío, lo bloqueamos
+            // Esto nos permitirá ver si la cookie sobrevive y qué error lanza exactamente getUser() en el Server Action
+            if (!value) {
+              console.log(`[Proxy] Bloqueando intento de borrar cookie: ${name}`);
+              return;
+            }
             supabaseResponse.cookies.set({ name, value, ...options, path: '/' })
-          )
+          })
         },
       },
     }
