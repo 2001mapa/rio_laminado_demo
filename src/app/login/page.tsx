@@ -28,21 +28,23 @@ export default function LoginPage() {
     const email = rawUser.includes('@') ? rawUser : `${rawUser}@rio.local`;
     
     try {
-      const { createClient } = await import('@/utils/supabase/client');
-      const supabase = createClient();
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
+      
+      const result = await res.json();
 
-      if (error) {
-        setError('Usuario o contraseña incorrectos');
+      if (!res.ok || !result.success) {
+        setError(result.error || 'Usuario o contraseña incorrectos');
         setLoading(false);
         return;
       }
 
-      const role = data.user?.user_metadata?.role || 'admin';
+      const role = result.role || 'admin';
       
       router.refresh(); // Crucial to update Next.js server cache
       
