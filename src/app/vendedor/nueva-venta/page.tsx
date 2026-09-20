@@ -357,7 +357,7 @@ export default function NuevaVentaPage() {
                       </div>
                       
                       <div className="flex items-center gap-3 bg-rio-surface-muted p-2 rounded-xl mb-3 border border-rio-border">
-                        <img src={scannedProduct.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                        <img src={scannedProduct.imageUrl || undefined} alt="" className="w-12 h-12 rounded-lg object-cover" />
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] text-rio-muted font-mono">{scannedProduct.sku}</p>
                           <p className="text-[13px] font-bold leading-tight truncate">{scannedProduct.name}</p>
@@ -434,7 +434,7 @@ export default function NuevaVentaPage() {
             ) : (
               cartItems.map((item, index) => (
                 <div key={index} className="flex gap-3 bg-white p-2 rounded-lg border border-rio-border shadow-sm">
-                  <img src={item.product.imageUrl} alt="" className="w-12 h-12 rounded-md object-cover border border-rio-border" />
+                  <img src={item.product.imageUrl || undefined} alt="" className="w-12 h-12 rounded-md object-cover border border-rio-border" />
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="text-[10px] text-rio-muted font-mono">{item.product.sku}</p>
                     <p className="text-xs font-bold text-rio-ink truncate">{item.product.name}</p>

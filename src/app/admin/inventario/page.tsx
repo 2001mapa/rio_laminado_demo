@@ -84,7 +84,7 @@ export default function InventarioPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 shrink-0 bg-rio-surface-muted rounded-xl border border-rio-border overflow-hidden">
-                        <img src={product.imageUrl} alt="" className="h-full w-full object-cover mix-blend-multiply" />
+                        <img src={product.imageUrl || undefined} alt="" className="h-full w-full object-cover mix-blend-multiply" />
                       </div>
                       <div>
                         <div className="text-[11px] font-mono font-bold text-rio-muted">{product.sku}</div>
@@ -108,7 +108,7 @@ export default function InventarioPage() {
                     {formatPrice(product.price)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                    {product.lowStock ? (
+                    {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider bg-rio-warning/10 text-rio-warning border-rio-warning/20">
                         Pocas unidades
                       </span>

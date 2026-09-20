@@ -79,7 +79,7 @@ export default function CarritoPage() {
           {cart.map((item) => (
             <div key={item.product.id} className="flex gap-4 p-3.5 bg-rio-surface rounded-2xl border border-rio-border shadow-sm">
               <div className="w-20 h-20 rounded-xl overflow-hidden bg-rio-surface-muted shrink-0 border border-rio-border">
-                <img src={item.product.imageUrl} alt={item.product.name} className="object-cover h-full w-full mix-blend-multiply" />
+                <img src={item.product.imageUrl || undefined} alt={item.product.name} className="object-cover h-full w-full mix-blend-multiply" />
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>

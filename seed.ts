@@ -49,7 +49,7 @@ async function main() {
         name: product.name,
         category: product.category,
         price: product.price,
-        stock: (product as any).stock || (product.lowStock ? 3 : 25),
+        physicalStock: (product as any).stock || ((product as any).lowStock ? 3 : 25),
         imageUrl: product.imageUrl,
         locationCode: product.locationCode,
       },

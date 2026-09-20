@@ -27,7 +27,7 @@ export async function bulkUploadInventory(items: any[]) {
           name: item.name,
           category: item.category,
           price: price,
-          physicalStock: stock,
+          physicalStock: physicalStock,
           locationCode: item.locationCode || null,
         },
         create: {
@@ -35,7 +35,7 @@ export async function bulkUploadInventory(items: any[]) {
           name: item.name || 'Sin nombre',
           category: item.category || 'Sin categora',
           price: price,
-          physicalStock: stock,
+          physicalStock: physicalStock,
           locationCode: item.locationCode || null,
         }
       });
@@ -81,7 +81,6 @@ export async function createSingleProduct(data: {
         category: data.category,
         price: data.price,
         physicalStock: data.physicalStock,
-          isActive: true,
         reservedStock: 0,
         isActive: true,
         locationCode: data.locationCode || null,
@@ -92,5 +91,45 @@ export async function createSingleProduct(data: {
   } catch (error: any) {
     console.error('Error creating product:', error);
     return { success: false, message: 'Error interno al crear el producto.' };
+  }
+}
+
+export async function previewCSVUpload(items: any[]) {
+  await requireRole(['admin']);
+  try {
+    const skus = items.map(i => i.sku).filter(Boolean);
+    const existingProducts = await prisma.product.findMany({
+      where: { sku: { in: skus } },
+      select: { sku: true }
+    });
+    
+    const existingSkus = new Set(existingProducts.map(p => p.sku));
+    
+    let toCreate = 0;
+    let toUpdate = 0;
+    let errors: { row: number, error: string }[] = [];
+    
+    items.forEach((item, index) => {
+      if (!item.sku) {
+        errors.push({ row: index + 2, error: 'Falta SKU' });
+        return;
+      }
+      
+      const price = parseFloat(item.price?.toString().replace(/[^\d.-]/g, ''));
+      if (isNaN(price)) {
+        errors.push({ row: index + 2, error: 'Precio inválido' });
+        return;
+      }
+      
+      if (existingSkus.has(item.sku)) {
+        toUpdate++;
+      } else {
+        toCreate++;
+      }
+    });
+    
+    return { success: true, toCreate, toUpdate, errors };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }

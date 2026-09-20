@@ -255,13 +255,13 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         aria-label={`Ver detalle de ${product.name}`}
       >
         <img
-          src={product.imageUrl}
+          src={product.imageUrl || undefined}
           alt={product.name}
           className={`object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-0' : 'opacity-100'}`}
         />
         {product.hoverImageUrl && (
           <img
-            src={product.hoverImageUrl}
+            src={product.hoverImageUrl || undefined}
             alt={`${product.name} alternate view`}
             className={`absolute inset-0 object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-100' : 'opacity-0'}`}
           />
@@ -527,7 +527,7 @@ function ProductModal({
           )}
 
           <img
-            src={images[currentImageIndex]}
+            src={images[currentImageIndex] || undefined}
             alt={product.name}
             className={`object-cover w-full h-full transition-transform duration-75 origin-center pointer-events-none ${
               zoomState.scale > 1 ? 'rounded-2xl shadow-2xl bg-white relative z-[100]' : 'rounded-t-2xl z-10'

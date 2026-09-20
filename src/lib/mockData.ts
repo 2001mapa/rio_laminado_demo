@@ -8,65 +8,65 @@ export const initialSellers: Seller[] = [
 export const initialProducts: Product[] = [
   // Anillos
   {
-    id: 'p1', sku: 'ANI-001', name: 'Anillo Circones Clásico', category: 'Anillos', price: 45000, lowStock: false, stock: 25, locationCode: 'A-01-01',
+    id: 'p1', sku: 'ANI-001', name: 'Anillo Circones Clásico', category: 'Anillos', price: 45000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'A-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1605100804763-247f66126e28?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p2', sku: 'ANI-002', name: 'Anillo Sello Liso', category: 'Anillos', price: 55000, lowStock: true, stock: 3, locationCode: 'A-01-02',
+    id: 'p2', sku: 'ANI-002', name: 'Anillo Sello Liso', category: 'Anillos', price: 55000, reservedStock: 0, isActive: true, physicalStock: 3, locationCode: 'A-01-02',
     imageUrl:      'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p3', sku: 'ANI-003', name: 'Anillo Cruz Delgada', category: 'Anillos', price: 38000, lowStock: false, stock: 25, locationCode: 'A-02-01',
+    id: 'p3', sku: 'ANI-003', name: 'Anillo Cruz Delgada', category: 'Anillos', price: 38000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'A-02-01',
     imageUrl:      'https://images.unsplash.com/photo-1617038220319-276d3cfab638?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?fit=crop&w=600&h=600&q=80',
   },
   // Cadenas
   {
-    id: 'p4', sku: 'CAD-001', name: 'Cadena Fígaro 45cm', category: 'Cadenas', price: 85000, lowStock: false, stock: 25, locationCode: 'B-01-01',
+    id: 'p4', sku: 'CAD-001', name: 'Cadena Fígaro 45cm', category: 'Cadenas', price: 85000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'B-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p5', sku: 'CAD-002', name: 'Cadena Serpiente 50cm', category: 'Cadenas', price: 92000, lowStock: true, stock: 3, locationCode: 'B-01-03',
+    id: 'p5', sku: 'CAD-002', name: 'Cadena Serpiente 50cm', category: 'Cadenas', price: 92000, reservedStock: 0, isActive: true, physicalStock: 3, locationCode: 'B-01-03',
     imageUrl:      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p6', sku: 'CAD-003', name: 'Cadena Eslabón Cubano', category: 'Cadenas', price: 110000, lowStock: false, stock: 25, locationCode: 'B-02-01',
+    id: 'p6', sku: 'CAD-003', name: 'Cadena Eslabón Cubano', category: 'Cadenas', price: 110000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'B-02-01',
     imageUrl:      'https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?fit=crop&w=600&h=600&q=80',
   },
   // Pulseras
   {
-    id: 'p7', sku: 'PUL-001', name: 'Pulsera Balines', category: 'Pulseras', price: 65000, lowStock: false, stock: 25, locationCode: 'C-01-01',
+    id: 'p7', sku: 'PUL-001', name: 'Pulsera Balines', category: 'Pulseras', price: 65000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'C-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p8', sku: 'PUL-002', name: 'Pulsera Tejido Mágico', category: 'Pulseras', price: 72000, lowStock: false, stock: 25, locationCode: 'C-01-02',
+    id: 'p8', sku: 'PUL-002', name: 'Pulsera Tejido Mágico', category: 'Pulseras', price: 72000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'C-01-02',
     imageUrl:      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p9', sku: 'PUL-003', name: 'Pulsera Infinito', category: 'Pulseras', price: 48000, lowStock: true, stock: 3, locationCode: 'C-02-01',
+    id: 'p9', sku: 'PUL-003', name: 'Pulsera Infinito', category: 'Pulseras', price: 48000, reservedStock: 0, isActive: true, physicalStock: 3, locationCode: 'C-02-01',
     imageUrl:      'https://images.unsplash.com/photo-1630019852942-f89202989a59?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?fit=crop&w=600&h=600&q=80',
   },
   // Aretes
   {
-    id: 'p10', sku: 'ARE-001', name: 'Topos Estrella', category: 'Aretes', price: 25000, lowStock: false, stock: 25, locationCode: 'D-01-01',
+    id: 'p10', sku: 'ARE-001', name: 'Topos Estrella', category: 'Aretes', price: 25000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'D-01-01',
     imageUrl:      'https://images.unsplash.com/photo-1617038220319-276d3cfab638?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p11', sku: 'ARE-002', name: 'Candongas Lisas Medianas', category: 'Aretes', price: 42000, lowStock: false, stock: 25, locationCode: 'D-01-02',
+    id: 'p11', sku: 'ARE-002', name: 'Candongas Lisas Medianas', category: 'Aretes', price: 42000, reservedStock: 0, isActive: true, physicalStock: 25, locationCode: 'D-01-02',
     imageUrl:      'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?fit=crop&w=600&h=600&q=80',
   },
   {
-    id: 'p12', sku: 'ARE-003', name: 'Candongas Entorchadas', category: 'Aretes', price: 49000, lowStock: false, stock: 25,
+    id: 'p12', sku: 'ARE-003', name: 'Candongas Entorchadas', category: 'Aretes', price: 49000, reservedStock: 0, isActive: true, physicalStock: 25,
     imageUrl:      'https://images.unsplash.com/photo-1630019852942-f89202989a59?fit=crop&w=600&h=600&q=80',
     hoverImageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?fit=crop&w=600&h=600&q=80',
   },
