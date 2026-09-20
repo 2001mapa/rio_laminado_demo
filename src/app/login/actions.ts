@@ -25,13 +25,9 @@ export async function login(formData: FormData) {
     return { success: false, message: 'Usuario o contraseña incorrectos' }
   }
 
-  // Redirigir basado en el rol
+  // Retornar éxito en lugar de redirigir, para que el cliente procese la cookie primero
   const role = data.user?.user_metadata?.role || 'admin';
-  if (role === 'admin') redirect('/admin');
-  if (role === 'vendedor') redirect('/vendedor');
-  if (role === 'cliente') redirect('/cliente');
-  
-  redirect('/admin')
+  return { success: true, role };
 }
 
 export async function logout() {

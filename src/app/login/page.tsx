@@ -24,12 +24,15 @@ export default function LoginPage() {
       if (result && !result.success) {
         setError(result.message || 'Error al iniciar sesión');
         setLoading(false);
+      } else if (result && result.success) {
+        // La cookie ya se guardó, ahora navegamos
+        router.refresh();
+        if (result.role === 'admin') router.push('/admin');
+        else if (result.role === 'vendedor') router.push('/vendedor');
+        else if (result.role === 'cliente') router.push('/cliente');
+        else router.push('/');
       }
     } catch (err: any) {
-      // Si Next.js hace redirect(), lanza un error interno. Lo ignoramos.
-      if (err.message && err.message.includes('NEXT_REDIRECT')) {
-        return;
-      }
       console.error(err);
       setError('Ocurrió un error inesperado.');
       setLoading(false);
