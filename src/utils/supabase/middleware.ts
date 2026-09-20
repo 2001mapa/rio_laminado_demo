@@ -27,7 +27,16 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const cookieNames = request.cookies.getAll().map(c => c.name);
+  console.log(`[Proxy] Route: ${request.nextUrl.pathname} | Cookies: ${cookieNames.join(', ')}`);
+
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error) {
+    console.error(`[Proxy] Supabase Auth Error: ${error.name} - ${error.message} - ${error.status}`);
+  } else {
+    console.log(`[Proxy] User found: ${!!user} | Role: ${user?.user_metadata?.role}`);
+  }
 
   // Removed edge middleware redirects because of Edge timeout unreliability.
   // Security and routing is handled via Client/Server Components.
