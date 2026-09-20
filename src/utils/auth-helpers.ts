@@ -8,14 +8,17 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (error || !user) {
+    if (error) {
+      throw new Error('Supabase Auth Error: ' + error.message);
+    }
+    if (!user) {
       return { user: null, role: null };
     }
 
     const role = (user.user_metadata?.role as Role) || 'admin'; // Fallback to admin if not specified (manual accounts)
     return { user, role };
-  } catch (e) {
-    return { user: null, role: null };
+  } catch (e: any) {
+    throw new Error('Auth Helper Crash: ' + e.message);
   }
 }
 
