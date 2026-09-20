@@ -47,7 +47,10 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
             setParsedItems(mappedItems);
             
             // Call server for staging validation
-            const previewResponse = await previewCSVUpload(mappedItems);
+            const { createClient } = await import('@/utils/supabase/client');
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            const previewResponse = await previewCSVUpload(mappedItems, session?.access_token);
             
             if (previewResponse.success) {
               setPreviewData({
@@ -78,7 +81,10 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
     setStatus('uploading');
     
     try {
-      const response = await bulkUploadInventory(parsedItems);
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await bulkUploadInventory(parsedItems, session?.access_token);
       
       if (response.success) {
         setStatus('success');
