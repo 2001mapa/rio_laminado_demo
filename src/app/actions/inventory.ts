@@ -63,7 +63,7 @@ export async function createSingleProduct(data: {
   price: number;
   physicalStock: number;
   locationCode?: string;
-}) {
+}, token?: string) {
   try {
     await requireRole(['admin'], token);
     const product = await prisma.product.upsert({

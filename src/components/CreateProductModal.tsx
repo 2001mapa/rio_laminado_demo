@@ -48,7 +48,10 @@ export default function CreateProductModal({
 
     try {
       // 1. Crear producto base
-      const createRes = await createSingleProduct(productData);
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const createRes = await createSingleProduct(productData, session?.access_token);
       
       if (!createRes.success) {
         setError(createRes.message);
