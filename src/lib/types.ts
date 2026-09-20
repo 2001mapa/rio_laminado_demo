@@ -4,11 +4,12 @@ export type Product = {
   name: string;
   category: string;
   price: number;
-  imageUrl: string;
-  hoverImageUrl?: string;
-  lowStock: boolean;
-  stock: number;
-  locationCode?: string;
+  physicalStock: number;
+  reservedStock: number;
+  isActive: boolean;
+  imageUrl?: string | null;
+  hoverImageUrl?: string | null;
+  locationCode?: string | null;
 };
 
 export type Customer = {

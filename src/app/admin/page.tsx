@@ -99,8 +99,8 @@ export default function AdminDashboard() {
     })
     .filter(c => c.name);
 
-  const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 5).length;
-  const outOfStockCount = products.filter(p => p.stock === 0).length;
+  const lowStockCount = products.filter(p => (p.physicalStock - p.reservedStock) > 0 && (p.physicalStock - p.reservedStock) <= 5).length;
+  const outOfStockCount = products.filter(p => (p.physicalStock - p.reservedStock) === 0).length;
 
   return (
     <div className="p-6 md:p-10 space-y-8">

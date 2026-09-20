@@ -67,7 +67,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
             name: row.name || row.Nombre || row.nombre,
             category: row.category || row.Categoría || row.categoria || 'General',
             price: row.price || row.Precio || row.precio || 0,
-            stock: row.stock || row.Stock || row.cantidad || row.Cantidad || 0,
+            physicalStock: row.stock || row.Stock || row.cantidad || row.Cantidad || 0,
             locationCode: row.locationCode || row.Ubicación || row.ubicacion || null,
           }));
 

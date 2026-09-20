@@ -2,7 +2,10 @@
 
 import { prisma } from '@/lib/prisma'
 
+import { requireRole } from '@/utils/auth-helpers'
+
 export async function bulkUploadInventory(items: any[]) {
+  await requireRole(['admin']);
   try {
     console.log(`Processing ${items.length} items from CSV...`);
     
@@ -16,7 +19,7 @@ export async function bulkUploadInventory(items: any[]) {
     // 3. Ejecutar el upsert masivo
     const operations = items.map((item) => {
       const price = parseFloat(item.price?.toString().replace(/[^\d.-]/g, '')) || 0;
-      const stock = parseInt(item.stock?.toString(), 10) || 0;
+      const physicalStock = parseInt(item.physicalStock?.toString(), 10) || 0;
       
       return prisma.product.upsert({
         where: { sku: item.sku },
@@ -24,7 +27,7 @@ export async function bulkUploadInventory(items: any[]) {
           name: item.name,
           category: item.category,
           price: price,
-          stock: stock,
+          physicalStock: stock,
           locationCode: item.locationCode || null,
         },
         create: {
@@ -32,7 +35,7 @@ export async function bulkUploadInventory(items: any[]) {
           name: item.name || 'Sin nombre',
           category: item.category || 'Sin categora',
           price: price,
-          stock: stock,
+          physicalStock: stock,
           locationCode: item.locationCode || null,
         }
       });
@@ -57,23 +60,30 @@ export async function createSingleProduct(data: {
   name: string;
   category: string;
   price: number;
-  stock: number;
+  physicalStock: number;
   locationCode?: string;
 }) {
+  await requireRole(['admin']);
   try {
-    // Verificar si ya existe
-    const existing = await prisma.product.findUnique({ where: { sku: data.sku } });
-    if (existing) {
-      return { success: false, message: 'Ya existe un producto con esta referencia (SKU).' };
-    }
-
-    await prisma.product.create({
-      data: {
+    const product = await prisma.product.upsert({
+      where: { sku: data.sku },
+      update: {
+        name: data.name,
+        category: data.category,
+        price: data.price,
+        physicalStock: data.physicalStock,
+          isActive: true,
+        locationCode: data.locationCode || null,
+      },
+      create: {
         sku: data.sku,
         name: data.name,
         category: data.category,
         price: data.price,
-        stock: data.stock,
+        physicalStock: data.physicalStock,
+          isActive: true,
+        reservedStock: 0,
+        isActive: true,
         locationCode: data.locationCode || null,
       }
     });

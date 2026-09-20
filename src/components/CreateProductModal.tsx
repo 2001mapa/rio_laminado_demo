@@ -40,7 +40,9 @@ export default function CreateProductModal({
       name: formData.get('name') as string,
       category: formData.get('category') as string,
       price: parseFloat(formData.get('price') as string),
-      stock: parseInt(formData.get('stock') as string, 10),
+      physicalStock: parseInt(formData.get('physicalStock') as string, 10),
+      reservedStock: 0,
+      isActive: true,
       locationCode: formData.get('locationCode') as string || undefined,
     };
 
@@ -181,8 +183,8 @@ export default function CreateProductModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Cantidad Inicial *</label>
-                <input name="stock" required type="number" min="0" defaultValue="0" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" />
+                <label className="block text-xs font-bold text-rio-ink mb-1.5 uppercase tracking-wider">Stock Físico</label>
+                <input name="physicalStock" required type="number" min="0" defaultValue="0" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" />
               </div>
               <div>
                 <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Ubicación (Opcional)</label>

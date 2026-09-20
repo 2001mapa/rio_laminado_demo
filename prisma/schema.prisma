@@ -24,17 +24,19 @@ model Customer {
 }
 
 model Product {
-  id           String      @id @default(uuid())
-  sku          String      @unique
-  name         String
-  category     String
-  price        Float
-  stock        Int         @default(0)
-  imageUrl     String?
+  id            String      @id @default(uuid())
+  sku           String      @unique
+  name          String
+  category      String
+  price         Float
+  physicalStock Int         @default(0)
+  reservedStock Int         @default(0)
+  isActive      Boolean     @default(true)
+  imageUrl      String?
   hoverImageUrl String?
-  locationCode String?
-  createdAt    DateTime    @default(now())
-  orderItems   OrderItem[]
+  locationCode  String?
+  createdAt     DateTime    @default(now())
+  orderItems    OrderItem[]
 }
 
 model Seller {

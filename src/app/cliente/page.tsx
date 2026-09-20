@@ -17,6 +17,9 @@ export default function CatalogoPage() {
 
   const categories = ['Todos', ...Array.from(new Set(products.map(p => p.category)))];
   const filteredProducts = products.filter(p => {
+    const stockDisponible = p.physicalStock - p.reservedStock;
+    if (stockDisponible <= 0) return false;
+
     const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -231,8 +234,9 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = () => {
-    if (quantity + currentCartQuantity > 50) {
-      addToast('Límite de inventario alcanzado (50 unidades)');
+    const stockDisponible = product.physicalStock - product.reservedStock;
+    if (quantity + currentCartQuantity > stockDisponible) {
+      addToast('Límite de inventario alcanzado ( unidades disponibles)');
       return;
     }
     addToCart(product, quantity);
@@ -262,7 +266,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
             className={`absolute inset-0 object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-100' : 'opacity-0'}`}
           />
         )}
-        {product.lowStock && (
+        {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) && (
           <div className="absolute top-2 left-2 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
             Pocas Unidades
           </div>
@@ -290,7 +294,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
               <Minus className="w-3.5 h-3.5" />
             </button>
             <span className="text-sm font-semibold flex-1 text-center text-rio-ink">{quantity}</span>
-            <button onClick={() => setQuantity(quantity + 1)} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
+            <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
               <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -346,8 +350,9 @@ function ProductModal({
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = () => {
-    if (quantity + currentCartQuantity > 50) {
-      addToast('Límite de inventario alcanzado (50 unidades)');
+    const stockDisponible = product.physicalStock - product.reservedStock;
+    if (quantity + currentCartQuantity > stockDisponible) {
+      addToast('Límite de inventario alcanzado ( unidades disponibles)');
       return;
     }
     addToCart(product, quantity);
@@ -544,7 +549,7 @@ function ProductModal({
 
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-xl font-black text-rio-ink">{formatPrice(product.price)}</span>
-            {product.lowStock && (
+            {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) && (
               <span className="inline-flex items-center gap-1 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full">
                 <Tag className="w-3 h-3" />
                 Pocas Unidades
@@ -565,7 +570,7 @@ function ProductModal({
                 <Minus className="w-4 h-4" />
               </button>
               <span className="text-sm font-bold flex-1 text-center text-rio-ink">{quantity}</span>
-              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+              <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
             </div>

@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
 
+import { requireRole } from '@/utils/auth-helpers'
+
 export async function createCustomer(data: {
   name: string;
   username: string; // Nuevo campo
@@ -13,6 +15,7 @@ export async function createCustomer(data: {
   showDiscount: boolean;
   temporaryPassword?: string;
 }) {
+  await requireRole(['admin']);
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -96,6 +99,7 @@ export async function updateCustomerStatusAction(id: string, data: {
   showDiscount?: boolean;
   discount?: number;
 }) {
+  await requireRole(['admin']);
   try {
     const customer = await prisma.customer.update({
       where: { id },
