@@ -61,8 +61,9 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
               setMessage(previewResponse.error || 'Error al validar el archivo.');
             }
           } catch (err: any) {
+            console.error(err);
             setStatus('error');
-            setMessage('Ocurrió un error inesperado al leer el archivo.');
+            setMessage(err.message || 'Ocurrió un error inesperado al leer el archivo.');
           }
         },
         error: (error) => {
