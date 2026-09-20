@@ -128,7 +128,7 @@ export async function previewCSVUpload(items: any[]) {
       }
     });
     
-    return { success: true, toCreate, toUpdate, errors };
+    return { success: true, toCreate: toCreate, toUpdate: toUpdate, errors: errors };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

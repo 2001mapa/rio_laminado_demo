@@ -51,9 +51,9 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
             
             if (previewResponse.success) {
               setPreviewData({
-                toCreate: previewResponse.toCreate,
-                toUpdate: previewResponse.toUpdate,
-                errors: previewResponse.errors
+                toCreate: previewResponse.toCreate || 0,
+                toUpdate: previewResponse.toUpdate || 0,
+                errors: previewResponse.errors || []
               });
               setStatus('staging');
             } else {
