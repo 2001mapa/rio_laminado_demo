@@ -80,13 +80,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
 
-    const supabase = createClient();
-
+    // DIAGNOSTIC PATCH: Desactivamos la lectura/escucha del cliente de Supabase
+    // porque el SDK del navegador está asesinando la cookie por desfase de reloj (Clock Skew).
+    // Solo mantendremos la lógica de localStorage para que la UI se pinte sin borrar la cookie del servidor.
+    
     async function processSession(session: any) {
       if (session?.user) {
-        const username = session.user.email?.replace('@rio.local', '')?.toLowerCase().trim();
-        const role = session.user.user_metadata?.role;
+        const role = session.user.user_metadata?.role || 'admin';
         const metaUsername = session.user.user_metadata?.username?.toLowerCase().trim();
+        const emailPrefix = session.user.email?.split('@')[0]?.toLowerCase().trim();
+        const username = metaUsername || emailPrefix;
         
         if (role === 'cliente') {
           const matched = customers.find(c => 
@@ -154,18 +157,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Load initial session
-    supabase.auth.getSession().then(({ data }) => {
-      processSession(data.session);
-    });
-
-    // Listen for auth changes (like login/logout in other tabs or soft navigations)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      processSession(session);
-    });
+    // Simulamos que pasamos un session null para que recupere de localStorage
+    // y NO llame a supabase.auth.getSession() ni onAuthStateChange.
+    processSession(null);
 
     return () => {
-      subscription.unsubscribe();
+      // Nada que limpiar
     };
   }, [isLoaded, customers, sellers]);
 
