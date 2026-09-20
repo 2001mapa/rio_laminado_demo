@@ -16,22 +16,41 @@ export default function LoginPage() {
     setError(null);
     
     const formData = new FormData(e.currentTarget);
+    const rawUser = formData.get('username') as string;
+    const password = formData.get('password') as string;
+
+    if (!rawUser || !password) {
+      setError('Faltan credenciales');
+      setLoading(false);
+      return;
+    }
+
+    const email = rawUser.includes('@') ? rawUser : `${rawUser}@rio.local`;
     
     try {
-      const { login } = await import('./actions');
-      const result = await login(formData);
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
       
-      if (result && !result.success) {
-        setError(result.message || 'Error al iniciar sesión');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError('Usuario o contraseña incorrectos');
         setLoading(false);
-      } else if (result && result.success) {
-        // La cookie ya se guardó, ahora navegamos
-        router.refresh();
-        if (result.role === 'admin') router.push('/admin');
-        else if (result.role === 'vendedor') router.push('/vendedor');
-        else if (result.role === 'cliente') router.push('/cliente');
-        else router.push('/');
+        return;
       }
+
+      const role = data.user?.user_metadata?.role || 'admin';
+      
+      router.refresh(); // Crucial to update Next.js server cache
+      
+      if (role === 'admin') router.push('/admin');
+      else if (role === 'vendedor') router.push('/vendedor');
+      else if (role === 'cliente') router.push('/cliente');
+      else router.push('/');
+      
     } catch (err: any) {
       console.error(err);
       setError('Ocurrió un error inesperado.');

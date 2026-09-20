@@ -109,18 +109,35 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         // Fallback to local storage if no session
         try {
           const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
-          const storedCurrentSeller = localStorage.getItem('rio_current_seller');
-          if (storedCurrentCustomer && storedCurrentCustomer !== "undefined") {
-            const parsed = JSON.parse(storedCurrentCustomer);
-            const matched = customers.find(c => c.id === parsed.id) || parsed;
-            setCurrentCustomer(matched);
+          if (storedCurrentCustomer && storedCurrentCustomer !== "undefined" && storedCurrentCustomer !== "null") {
+            try {
+              const parsed = JSON.parse(storedCurrentCustomer);
+              if (parsed && parsed.id) {
+                const matched = customers.find(c => c.id === parsed.id) || parsed;
+                setCurrentCustomer(matched);
+              } else {
+                setCurrentCustomer(null);
+              }
+            } catch (e) {
+              setCurrentCustomer(null);
+            }
           } else {
             setCurrentCustomer(null);
           }
-          if (storedCurrentSeller && storedCurrentSeller !== "undefined") {
-            const parsed = JSON.parse(storedCurrentSeller);
-            const matched = sellers.find(s => s.id === parsed.id) || parsed;
-            setCurrentSeller(matched);
+
+          const storedCurrentSeller = localStorage.getItem('rio_current_seller');
+          if (storedCurrentSeller && storedCurrentSeller !== "undefined" && storedCurrentSeller !== "null") {
+            try {
+              const parsed = JSON.parse(storedCurrentSeller);
+              if (parsed && parsed.id) {
+                const matched = sellers.find(s => s.id === parsed.id) || parsed;
+                setCurrentSeller(matched);
+              } else {
+                setCurrentSeller(null);
+              }
+            } catch (e) {
+              setCurrentSeller(null);
+            }
           } else {
             setCurrentSeller(null);
           }
