@@ -38,6 +38,7 @@ type DemoContextType = {
   resetDemoData: () => void;
   refreshData: () => Promise<void>;
   isLoaded: boolean;
+  contextDebug: string;
 };
 
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
@@ -79,25 +80,27 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   // 2. Load Supabase Auth Session ONCE data is loaded
   useEffect(() => {
     if (!isLoaded) return;
-
-    // DIAGNOSTIC PATCH: Desactivamos la lectura/escucha del cliente de Supabase
-    // porque el SDK del navegador está asesinando la cookie por desfase de reloj (Clock Skew).
-    // Solo mantendremos la lógica de localStorage para que la UI se pinte sin borrar la cookie del servidor.
     
     async function processSession(session: any) {
+      let trace = `ProcessSession start. HasUser: ${!!session?.user}. `;
       if (session?.user) {
         const role = session.user.user_metadata?.role || 'admin';
         const metaUsername = session.user.user_metadata?.username?.toLowerCase().trim();
         const emailPrefix = session.user.email?.split('@')[0]?.toLowerCase().trim();
         const username = metaUsername || emailPrefix;
         
+        trace += `Role: ${role}. `;
         if (role === 'cliente') {
           const matched = customers.find(c => 
             c.authUserId === session.user.id || 
             c.username?.toLowerCase().trim() === username ||
             (metaUsername && c.username?.toLowerCase().trim() === metaUsername)
           );
-          if (matched) setCurrentCustomer(matched);
+          trace += `Customers: ${customers.length}. Matched: ${!!matched}. `;
+          if (matched) {
+            trace += `MatchedName: ${matched.name}. `;
+            setCurrentCustomer(matched);
+          }
           else setCurrentCustomer(null);
         } else if (role === 'vendedor' || role === 'admin') {
           const matched = sellers.find(s => 
@@ -109,7 +112,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           else setCurrentSeller(null);
         }
       } else {
-        // Fallback to local storage if no session
+        trace += `No session. Fallback to localStorage. `;
         try {
           const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
           if (storedCurrentCustomer && storedCurrentCustomer !== "undefined" && storedCurrentCustomer !== "null") {
@@ -155,15 +158,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error("Failed to parse cart", e);
       }
+      setContextDebug(trace);
     }
 
     async function loadServerSession() {
+      setContextDebug("Loading server session...");
       try {
         const { getCurrentSession } = await import('@/app/actions/auth');
         const session = await getCurrentSession();
         processSession(session);
-      } catch (error) {
-        console.error("Error loading server session in DemoContext:", error);
+      } catch (error: any) {
+        setContextDebug(`Error loadServerSession: ${error.message}`);
         processSession(null);
       }
     }
@@ -346,6 +351,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       resetDemoData,
       refreshData,
       isLoaded,
+      contextDebug,
     }}>
       {children}
     </DemoContext.Provider>
