@@ -7,13 +7,16 @@ import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
   const { currentCustomer, orders, resetDemoData, isLoaded, customers } = useDemo();
-  const [debugSession, setDebugSession] = useState<any>('PENDING');
+  const [debugSession, setDebugSession] = useState<any>(null);
 
   useEffect(() => {
-    import('@/utils/supabase/client').then(({ createClient }) => {
-      createClient().auth.getSession().then(({ data }) => setDebugSession(data.session || 'NULL_SESSION'));
-    });
-  }, []);
+    if (!currentCustomer) {
+      // Usar Server Action para debug info
+      import('@/app/actions/auth').then(({ getCurrentSession }) => {
+        getCurrentSession().then(session => setDebugSession(session || 'NULL_SESSION'));
+      });
+    }
+  }, [currentCustomer]);
 
   const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

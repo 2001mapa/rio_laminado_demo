@@ -157,9 +157,18 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Simulamos que pasamos un session null para que recupere de localStorage
-    // y NO llame a supabase.auth.getSession() ni onAuthStateChange.
-    processSession(null);
+    async function loadServerSession() {
+      try {
+        const { getCurrentSession } = await import('@/app/actions/auth');
+        const session = await getCurrentSession();
+        processSession(session);
+      } catch (error) {
+        console.error("Error loading server session in DemoContext:", error);
+        processSession(null);
+      }
+    }
+
+    loadServerSession();
 
     return () => {
       // Nada que limpiar
