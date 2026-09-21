@@ -15,14 +15,21 @@ export default function CatalogoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const categories = ['Todos', ...Array.from(new Set(products.map(p => p.category)))];
+  const categories = ['Todos', ...Array.from(new Set(products.filter(p => p.imageUrl).map(p => p.category)))];
   const filteredProducts = products.filter(p => {
+    // 1. Ocultar productos sin imagen principal en el catálogo público
+    if (!p.imageUrl) return false;
+
+    // 2. Ocultar productos sin stock
     const stockDisponible = p.physicalStock - p.reservedStock;
     if (stockDisponible <= 0) return false;
 
-    const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
+    // 3. Filtrar por categoría
+    if (activeCategory !== 'Todos' && p.category !== activeCategory) return false;
+    
+    // 4. Filtrar por búsqueda
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesSearch;
   });
 
   const adjustedOrders = orders.filter(
@@ -220,15 +227,20 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [showAlt, setShowAlt] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    if (product.hoverImageUrl) {
+    if (product.hoverImageUrl && !imageError) {
       const interval = setInterval(() => {
         setShowAlt(prev => !prev);
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [product.hoverImageUrl]);
+  }, [product.hoverImageUrl, imageError]);
+
+  if (!product.imageUrl || imageError) {
+    return null;
+  }
 
   const cartItem = cart.find(item => item.product.id === product.id);
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
@@ -257,7 +269,8 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         <img
           src={product.imageUrl || undefined}
           alt={product.name}
-          className={`object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-0' : 'opacity-100'}`}
+          onError={() => setImageError(true)}
+          className={`object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt && product.hoverImageUrl ? 'opacity-0' : 'opacity-100'}`}
         />
         {product.hoverImageUrl && (
           <img
