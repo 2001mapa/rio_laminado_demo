@@ -59,6 +59,7 @@ model Order {
   status      String      @default("Reservado")
   totalAmount Float
   createdAt   DateTime    @default(now())
+  adjustmentAcknowledged Boolean @default(false)
   items       OrderItem[]
 }
 

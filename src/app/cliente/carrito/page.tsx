@@ -17,29 +17,26 @@ export default function CarritoPage() {
   const total = subtotal - discountAmount;
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (cart.length === 0 || !currentCustomer) return;
     setIsSubmitting(true);
     
-    setTimeout(() => {
-      const newOrder = {
-        id: `o${Date.now()}`,
-        number: `PED-${Math.floor(1000 + Math.random() * 9000)}`,
-        customerId: currentCustomer.id,
-        createdAt: new Date().toISOString(),
-        status: 'Reservado' as const,
-        items: cart.map(item => ({
-          id: `i${Date.now()}${Math.random()}`,
-          productId: item.product.id,
-          quantity: item.quantity
-        }))
-      };
+    const orderData = {
+      items: cart.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity
+      }))
+    };
 
-      addOrder(newOrder);
+    const result = await addOrder(orderData);
+    
+    if (result && result.success) {
       clearCart();
+      router.push(`/cliente/pedido/${result.order.id}`);
+    } else {
+      alert(`Error al crear el pedido: ${result?.error || 'Error desconocido'}`);
       setIsSubmitting(false);
-      router.push(`/cliente/pedido/${newOrder.id}`);
-    }, 800);
+    }
   };
 
   if (!isLoaded) {

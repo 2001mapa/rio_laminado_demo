@@ -98,7 +98,7 @@ export async function createSingleProduct(data: {
 export async function previewCSVUpload(items: any[]) {
   console.log(`[previewCSVUpload] Action triggered with ${items?.length} items`);
   try {
-    const user = await requireRole(['admin']);
+    const { user } = await requireRole(['admin']);
     console.log(`[previewCSVUpload] Authorized as: ${user.id}`);
     const skus = items.map(i => i.sku).filter(Boolean);
     const existingProducts = await prisma.product.findMany({

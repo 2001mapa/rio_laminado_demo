@@ -188,9 +188,7 @@ export default function NuevaVentaPage() {
       await scannerRef.current.stop();
     }
     
-    checkoutSeller(selectedCustomer.id, cartItems);
-    addToast('¡Venta registrada con éxito!');
-    router.push('/vendedor');
+    const result = await checkoutSeller(selectedCustomer.id, cartItems); if(result && result.success) { addToast('Venta registrada con �xito!'); router.push('/vendedor'); } else { alert('Error: ' + (result?.error || '')); }
   };
 
   const totalAmount = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
@@ -546,3 +544,4 @@ export default function NuevaVentaPage() {
     </div>
   );
 }
+

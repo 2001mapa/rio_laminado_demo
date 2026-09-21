@@ -28,13 +28,13 @@ type DemoContextType = {
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  addOrder: (order: Order) => void;
+  addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number }[] }) => Promise<any>;
   updateOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateCustomer: (customer: Customer) => void;
   addCustomer: (customer: Customer) => void;
   addSeller: (seller: Seller) => void;
-  checkoutSeller: (customerId: string, cartItems: CartItem[]) => void;
+  checkoutSeller: (customerId: string, cartItems: CartItem[]) => Promise<any>;
   resetDemoData: () => void;
   refreshData: () => Promise<void>;
   isLoaded: boolean;
@@ -176,32 +176,42 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const addOrder = async (order: Order) => {
-    setOrders(prev => [order, ...prev]);
+  const addOrder = async (orderData: { customerId?: string, items: { productId: string, quantity: number }[] }) => {
     try {
-      let totalAmount = 0;
-      order.items.forEach(item => {
-         const product = products.find(p => p.id === item.productId);
-         if (product) totalAmount += product.price * item.quantity;
-      });
+      const res = await createOrderAction(orderData);
       
-      const res = await createOrderAction({
-         customerId: order.customerId,
-         sellerId: order.sellerId || '',
-         items: order.items.map(i => {
-           const p = products.find(prod => prod.id === i.productId);
-           return { productId: i.productId, quantity: i.quantity, priceAtTime: p ? p.price : 0 };
-         }),
-         totalAmount: totalAmount
-      });
       if (res.success && res.order) {
-        setOrders(prev => prev.map(o => o.id === order.id ? (res.order as any) : o));
+        setOrders(prev => [res.order as any, ...prev]);
+        return res;
+      } else {
+        console.error("Error creating order:", res.error);
+        return res;
       }
-    } catch(e) { console.error(e) }
+    } catch(e: any) { 
+      console.error(e);
+      return { success: false, error: e.message };
+    }
   };
 
-  const updateOrder = (order: Order) => {
-    setOrders(prev => prev.map(o => o.id === order.id ? order : o));
+  const updateOrder = async (order: Order) => {
+    // Si la orden tiene items ajustados o fue validada/acknowledgement, 
+    // llamamos al server action que acabamos de crear.
+    const { updateOrderChecklist } = await import('@/app/actions/orders');
+    
+    // Convertimos al formato esperado
+    const itemsData = order.items.map(item => ({
+      id: item.id,
+      newQuantity: item.quantity,
+      adjustmentReason: item.adjustmentReason
+    }));
+
+    const result = await updateOrderChecklist(order.id, itemsData, (order as any).adjustmentAcknowledged || false);
+    
+    if (result.success && result.order) {
+      setOrders(prev => prev.map(o => o.id === result.order.id ? { ...o, ...result.order } : o));
+    } else {
+      console.error("Failed to update order checklist:", result.error);
+    }
   };
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
@@ -211,24 +221,19 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     } catch(e) { console.error(e) }
   };
   
-  const checkoutSeller = (customerId: string, cartItems: CartItem[]) => {
-    if (!currentSeller) return;
+  const checkoutSeller = async (customerId: string, cartItems: CartItem[]) => {
+    if (!currentSeller) return { success: false, error: 'No seller logged in' };
     
-    const newOrder: Order = {
-      id: `ord-${Date.now()}`,
-      number: `PED-${orders.length + 1001}`,
+    const orderData = {
       customerId,
-      sellerId: currentSeller.id,
-      createdAt: new Date().toISOString(),
-      status: 'Reservado',
-      items: cartItems.map((item, index) => ({
-        id: `oi-${Date.now()}-${index}`,
+      items: cartItems.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
       })),
     };
     
-    addOrder(newOrder);
+    const result = await addOrder(orderData);
+    return result;
   };
 
   const resetDemoData = () => {

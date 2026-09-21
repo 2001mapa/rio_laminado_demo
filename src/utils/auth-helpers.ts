@@ -34,7 +34,7 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
   }
 }
 
-export async function requireRole(allowedRoles: Role[]): Promise<User> {
+export async function requireRole(allowedRoles: Role[]): Promise<{ user: User, role: Role }> {
   const { user, role } = await getSessionUser();
   
   if (!user) {
@@ -51,5 +51,5 @@ export async function requireRole(allowedRoles: Role[]): Promise<User> {
   }
   
   console.log(`[requireRole] Success: User verified with role "${role}"`);
-  return user;
+  return { user, role };
 }
