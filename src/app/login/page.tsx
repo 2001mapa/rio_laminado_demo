@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [diagnosticPause, setDiagnosticPause] = useState<any>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -65,18 +64,10 @@ export default function LoginPage() {
       const role = data.user?.user_metadata?.role || 'admin';
       const targetPath = role === 'admin' ? '/admin' : role === 'vendedor' ? '/vendedor' : role === 'cliente' ? '/cliente' : '/';
       
-      const diagData = {
-        T0_hasSession: !!data.session,
-        T1_hasSession: !!sessionData.session,
-        T2_sbCookies: cookieNames2,
-        targetPath
-      };
-      
-      console.log('[Login] T3 (Paused):', diagData);
-      
-      // Stop automatic navigation to allow user to read the screen
-      setDiagnosticPause(diagData);
-      setLoading(false);
+      // Breve pausa para asegurar escritura en disco antes de la redirección dura
+      setTimeout(() => {
+        window.location.assign(targetPath);
+      }, 300);
       
     } catch (err: any) {
       console.error(err);
@@ -84,25 +75,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
-  if (diagnosticPause) {
-    return (
-      <div className="min-h-screen bg-rio-background flex items-center justify-center p-4">
-        <div className="bg-rio-surface p-8 rounded-2xl w-full max-w-md shadow-lg text-center">
-          <h2 className="text-xl font-bold text-rio-success mb-4">Login Exitoso (Pausa de Diagnóstico)</h2>
-          <pre className="text-left text-xs bg-gray-100 p-4 rounded mb-6 overflow-auto">
-            {JSON.stringify(diagnosticPause, null, 2)}
-          </pre>
-          <button 
-            onClick={() => window.location.assign(diagnosticPause.targetPath)}
-            className="w-full bg-rio-ink text-white py-3 rounded-xl font-semibold"
-          >
-            Continuar al Panel
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-rio-background flex items-center justify-center p-4">
