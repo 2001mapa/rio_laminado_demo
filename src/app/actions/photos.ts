@@ -1,12 +1,14 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { createClient } from '@/utils/supabase/server'
+import { requireRole } from '@/utils/auth-helpers'
 
 export async function uploadProductPhoto(formData: FormData) {
   try {
+    // 1. Validar autorización de seguridad
+    await requireRole(['admin']);
+
     const file = formData.get('file') as File;
     const sku = formData.get('sku') as string;
     const type = formData.get('type') as '1' | '2'; // 1 = main, 2 = hover
@@ -15,7 +17,7 @@ export async function uploadProductPhoto(formData: FormData) {
       return { success: false, message: 'Faltan datos (archivo, sku o tipo)' };
     }
 
-    // Check if product exists
+    // 2. Verificar que el producto existe en Prisma
     const product = await prisma.product.findUnique({
       where: { sku: sku.toUpperCase() }
     });
@@ -24,43 +26,36 @@ export async function uploadProductPhoto(formData: FormData) {
       return { success: false, message: `Producto ${sku} no encontrado en la base de datos.` };
     }
 
-    // --- NUEVA LÓGICA PARA SUPABASE STORAGE ---
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // 3. Obtener cliente de Supabase (con cookies/sesión del usuario actual)
+    const supabase = await createClient();
+    const filename = `${sku.toUpperCase()}_${type}.webp`;
 
-    if (!supabaseUrl || !supabaseKey) {
-      return { success: false, message: 'Error: Faltan credenciales de Supabase en el archivo .env' };
+    // 4. Subir archivo usando el SDK oficial (envía el JWT del admin automáticamente)
+    const { data, error } = await supabase
+      .storage
+      .from('productos')
+      .upload(filename, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type || 'image/webp'
+      });
+
+    if (error) {
+      console.error(`Error de Supabase al subir ${filename}:`, error);
+      if (error.message.includes('Bucket not found')) {
+        return { success: false, message: 'El bucket "productos" no existe en Supabase.' };
+      }
+      if (error.message.includes('row-level security')) {
+        return { success: false, message: 'Permiso denegado: Revisa las políticas RLS del bucket "productos".' };
+      }
+      return { success: false, message: `Error Storage: ${error.message}` };
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // 5. Obtener URL Pública
+    const { data: publicUrlData } = supabase.storage.from('productos').getPublicUrl(filename);
+    const publicUrl = publicUrlData.publicUrl;
 
-    const filename = `${sku}_${type}.webp`;
-    
-    // Subir a Supabase Storage (Bucket llamado "productos")
-    const uploadUrl = `${supabaseUrl}/storage/v1/object/productos/${filename}`;
-    
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'apikey': supabaseKey,
-        'Content-Type': file.type || 'image/webp',
-        'x-upsert': 'true' // Sobrescribir si ya existe una foto vieja
-      },
-      body: buffer
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Error de Supabase:', errorData);
-      return { success: false, message: 'Error al subir la imagen. Revisa que el Bucket "productos" exista y sea público.' };
-    }
-
-    // La URL pública para acceder a la foto en cualquier parte del mundo
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/productos/${filename}`;
-
-    // Update database
+    // 6. Actualizar base de datos
     if (type === '1') {
       await prisma.product.update({
         where: { sku: sku.toUpperCase() },
@@ -73,9 +68,9 @@ export async function uploadProductPhoto(formData: FormData) {
       });
     }
 
-    return { success: true, message: `Foto de ${sku} guardada.` };
-  } catch (error) {
-    console.error('Error uploading photo:', error);
-    return { success: false, message: 'Error interno al guardar la foto.' };
+    return { success: true, message: `Foto de ${sku} guardada exitosamente.` };
+  } catch (error: any) {
+    console.error('Error interno en uploadProductPhoto:', error);
+    return { success: false, message: error.message || 'Error interno al guardar la foto.' };
   }
 }

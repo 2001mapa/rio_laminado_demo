@@ -67,12 +67,12 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
         if (response.success) {
           setProgress(p => ({ ...p, success: p.success + 1 }));
         } else {
-          console.error(response.message);
+          console.error(`Error uploading ${file.name}:`, response.message);
           setProgress(p => ({ ...p, failed: p.failed + 1 }));
         }
 
-      } catch (err) {
-        console.error('Error procesando:', file.name, err);
+      } catch (err: any) {
+        console.error(`Exception uploading ${file.name}:`, err.message);
         setProgress(p => ({ ...p, failed: p.failed + 1 }));
       }
     }
