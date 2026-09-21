@@ -65,17 +65,17 @@ export default function AdminLayout({
           </button>
 
           {/* Mobile elements (only visible on mobile) */}
-          <div className="flex items-center space-x-3 md:hidden">
-            <div className="bg-white/10 text-white/60 border border-white/20 text-[9px] uppercase font-bold px-2 py-0.5 rounded-sm tracking-wider">
+          <div className="flex items-center space-x-2 md:hidden">
+            <div className="text-[10px] font-bold tracking-wider uppercase text-rio-gold/80 px-2 py-0.5 rounded-full border border-rio-gold/30 bg-rio-gold/10">
               Demo
             </div>
-            <Link 
+            <a 
               href="/api/auth/logout"
               className="p-2 -mr-2 text-white/40 hover:text-white transition-colors flex items-center"
               title="Salir de la Demo"
             >
               <LogOut className="w-5 h-5" />
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export default function AdminLayout({
         </nav>
 
         <div className={classNames("p-4 hidden md:block border-t border-white/10", isCollapsed ? "px-2 flex justify-center" : "")}>
-          <Link
+          <a
             href="/api/auth/logout"
             title={isCollapsed ? "Salir de la Demo" : undefined}
             className={classNames(
@@ -119,7 +119,7 @@ export default function AdminLayout({
             <span className={classNames("whitespace-nowrap transition-all duration-300", isCollapsed ? "hidden" : "block")}>
               Salir
             </span>
-          </Link>
+          </a>
         </div>
       </aside>
 
