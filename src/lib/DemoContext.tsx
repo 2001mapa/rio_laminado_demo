@@ -52,6 +52,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [currentSeller, setCurrentSeller] = useState<Seller | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [contextDebug, setContextDebug] = useState<string>("Init");
 
   const refreshData = async () => {
     try {
