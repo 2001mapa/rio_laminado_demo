@@ -10,20 +10,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Purge any ghost sessions from localStorage that might cause split-brain state
-  useEffect(() => {
-    localStorage.removeItem('rio_current_seller');
-    localStorage.removeItem('rio_current_customer');
-    
-    // Also clear Supabase's default localStorage keys just in case
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-        localStorage.removeItem(key);
-      }
-    }
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -42,25 +28,22 @@ export default function LoginPage() {
     const email = rawUser.includes('@') ? rawUser : `${rawUser}@rio.local`;
     
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const supabase = createClient();
       
-      const result = await res.json();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!res.ok || !result.success) {
-        setError(result.error || 'Usuario o contraseña incorrectos');
+      if (error) {
+        setError('Usuario o contraseña incorrectos');
         setLoading(false);
         return;
       }
 
-      const role = result.role || 'admin';
+      const role = data.user?.user_metadata?.role || 'admin';
       
-      router.refresh(); // Crucial to update Next.js server cache
+      router.refresh(); 
       
       if (role === 'admin') router.push('/admin');
       else if (role === 'vendedor') router.push('/vendedor');

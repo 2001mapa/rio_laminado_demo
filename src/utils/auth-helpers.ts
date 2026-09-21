@@ -24,6 +24,9 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
       return { user: null, role: null };
     }
 
+    // TODO: Migrar validación de roles a app_metadata o a una tabla de roles protegida.
+    // Actualmente se usa user_metadata.role que puede ser modificado por el usuario
+    // si no hay políticas estrictas.
     const role = (user.user_metadata?.role as Role) || null;
     return { user, role };
   } catch (e: any) {
