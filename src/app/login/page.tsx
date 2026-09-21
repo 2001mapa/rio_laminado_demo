@@ -42,22 +42,35 @@ export default function LoginPage() {
       }
 
       // Safe Instrumentation Logging
-      const cookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
-      console.log('[Login] Success.', {
+      const cookieNames1 = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
+      console.log('[Login] T0 (Right after signIn):', {
         hasSession: !!data.session,
         hasUser: !!data.user,
         expiresAt: data.session?.expires_at,
-        sbCookies: cookieNames
+        sbCookies: cookieNames1
+      });
+
+      // Fetch session again to see if SDK retained it
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('[Login] T1 (Re-fetching session):', {
+        hasSession: !!sessionData.session
+      });
+
+      // Wait 1 second to rule out race conditions/flush issues
+      await new Promise(r => setTimeout(r, 1000));
+      
+      const cookieNames2 = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
+      console.log('[Login] T2 (After 1s wait):', {
+        sbCookies: cookieNames2
       });
 
       const role = data.user?.user_metadata?.role || 'admin';
       
-      router.refresh(); 
+      // Use window.location.assign for full navigation to avoid Next.js App Router soft-nav race conditions with cookies
+      const targetPath = role === 'admin' ? '/admin' : role === 'vendedor' ? '/vendedor' : role === 'cliente' ? '/cliente' : '/';
       
-      if (role === 'admin') router.push('/admin');
-      else if (role === 'vendedor') router.push('/vendedor');
-      else if (role === 'cliente') router.push('/cliente');
-      else router.push('/');
+      console.log('[Login] T3 (Navigating to):', targetPath);
+      window.location.assign(targetPath);
       
     } catch (err: any) {
       console.error(err);
