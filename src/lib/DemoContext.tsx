@@ -7,7 +7,8 @@ import { createClient } from '@/utils/supabase/client';
 import { getAppData } from '@/app/actions/queries';
 import { createCustomer as createCustomerAction, updateCustomerStatusAction } from '@/app/actions/clients';
 import { createSeller as createSellerAction } from '@/app/actions/sellers';
-import { createOrder as createOrderAction, updateOrderStatus as updateOrderStatusAction } from '@/app/actions/orders';
+import { createOrder as createOrderAction, transitionOrder as transitionOrderAction, acknowledgeOrderAdjustment as acknowledgeAdjustmentAction } from '@/app/actions/orders';
+import { OrderTransitionAction } from '@/lib/order-status';
 
 export type CartItem = {
   product: Product;
@@ -30,7 +31,8 @@ type DemoContextType = {
   clearCart: () => void;
   addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number }[] }) => Promise<any>;
   updateOrder: (order: Order) => void;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  transitionOrder: (orderId: string, action: OrderTransitionAction) => Promise<any>;
+  acknowledgeAdjustment: (orderId: string) => Promise<any>;
   updateCustomer: (customer: Customer) => void;
   addCustomer: (customer: Customer) => void;
   addSeller: (seller: Seller) => void;
@@ -221,11 +223,32 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+  const transitionOrder = async (orderId: string, action: OrderTransitionAction) => {
     try {
-      await updateOrderStatusAction(orderId, status);
-    } catch(e) { console.error(e) }
+      const result = await transitionOrderAction(orderId, action);
+      if (result.success && result.order) {
+        const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
+        setOrders(prev => prev.map(o => o.id === orderId ? (mappedOrder as unknown as Order) : o));
+      }
+      return result;
+    } catch(e: any) {
+      console.error(e);
+      return { success: false, error: e.message };
+    }
+  };
+
+  const acknowledgeAdjustment = async (orderId: string) => {
+    try {
+      const result = await acknowledgeAdjustmentAction(orderId);
+      if (result.success && result.order) {
+        const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
+        setOrders(prev => prev.map(o => o.id === orderId ? (mappedOrder as unknown as Order) : o));
+      }
+      return result;
+    } catch(e: any) {
+      console.error(e);
+      return { success: false, error: e.message };
+    }
   };
   
   const checkoutSeller = async (customerId: string, cartItems: CartItem[]) => {
@@ -320,7 +343,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       clearCart,
       addOrder,
       updateOrder,
-      updateOrderStatus,
+      transitionOrder,
+      acknowledgeAdjustment,
       updateCustomer,
       addCustomer,
       addSeller,

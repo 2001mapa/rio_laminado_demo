@@ -61,6 +61,7 @@ model Order {
   createdAt   DateTime    @default(now())
   adjustmentAcknowledged Boolean @default(false)
   items       OrderItem[]
+  statusHistory OrderStatusHistory[]
 }
 
 model OrderItem {
@@ -73,4 +74,18 @@ model OrderItem {
   priceAtTime      Float
   originalQuantity Int?
   adjustmentReason String?
+}
+
+
+model OrderStatusHistory {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  previousStatus  String
+  nextStatus      String
+  action          String
+  actorAuthUserId String?
+  actorRole       String?
+  reason          String?
+  createdAt       DateTime @default(now())
 }

@@ -1,3 +1,4 @@
+import { OrderTransitionAction, getNextState } from '@/lib/order-status';
 'use server'
 
 import { prisma } from '@/lib/prisma'
@@ -120,25 +121,10 @@ export async function createOrder(data: {
   }
 }
 
-export async function updateOrderStatus(orderId: string, status: string) {
+
+export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string) {
   const { user, role } = await requireRole(['admin', 'vendedor', 'cliente']);
   
-  // Definición de estados válidos
-  const validStates = [
-    'Reservado',
-    'Confirmado',
-    'En preparación',
-    'Pendiente de verificación',
-    'Verificado',
-    'Empacado',
-    'Despachado',
-    'Cancelado'
-  ];
-
-  if (!validStates.includes(status)) {
-    return { success: false, error: 'Estado inválido' };
-  }
-
   try {
     const order = await prisma.$transaction(async (tx) => {
       const existingOrder = await tx.order.findUnique({
@@ -148,29 +134,17 @@ export async function updateOrderStatus(orderId: string, status: string) {
       
       if (!existingOrder) throw new Error('Pedido no encontrado');
 
-      // Validaciones de permisos por rol
       if (role === 'cliente') {
-        if (existingOrder.customer.authUserId !== user.id) {
-          throw new Error('No autorizado para modificar este pedido');
-        }
-        if (status !== 'Cancelado') {
-          throw new Error('El cliente solo puede cancelar el pedido');
-        }
-        if (existingOrder.status !== 'Reservado') {
-          throw new Error('Solo puedes cancelar pedidos en estado "Reservado"');
-        }
+        if (existingOrder.customer.authUserId !== user.id) throw new Error('No autorizado');
+        if (action !== 'CANCEL') throw new Error('El cliente solo puede cancelar');
+        if (existingOrder.status !== 'Reservado') throw new Error('Solo puedes cancelar pedidos en estado Reservado');
       } else if (role === 'vendedor') {
-        // Asumimos que los vendedores no pueden pasar a despachado (solo si es política de negocio)
-        // Pero si pueden, validamos que no estén cambiando pedidos de otros clientes si así se desea
+        throw new Error('Vendedor no autorizado para cambiar estados');
       }
       
-      // Si se cancela, se debe liberar el stock reservado (y asegurarse que no estaba ya cancelado ni despachado)
-      if (status === 'Cancelado' && existingOrder.status !== 'Cancelado') {
-        // No se puede cancelar si ya fue despachado
-        if (existingOrder.status === 'Despachado' || existingOrder.status === 'Entregado') {
-           throw new Error('No se puede cancelar un pedido que ya fue despachado');
-        }
+      const nextStatus = getNextState(existingOrder.status, action);
 
+      if (action === 'CANCEL' && existingOrder.status !== 'Cancelado') {
         for (const item of existingOrder.items) {
           await tx.product.update({
             where: { id: item.productId },
@@ -179,16 +153,8 @@ export async function updateOrderStatus(orderId: string, status: string) {
         }
       }
       
-      // Si se pasa a Entregado/Despachado, el stock reservado se convierte en salida definitiva
-      // (Baja physicalStock y baja reservedStock al mismo tiempo)
-      if (status === 'Despachado' && existingOrder.status !== 'Despachado') {
-        // Regla: si estaba cancelado, no se puede despachar directamente, primero volver a Reservado
-        if (existingOrder.status === 'Cancelado') {
-          throw new Error('No se puede despachar un pedido cancelado sin reservarlo nuevamente');
-        }
+      if (action === 'DISPATCH' && existingOrder.status !== 'Despachado') {
         for (const item of existingOrder.items) {
-          // Si el pedido fue ajustado (originalQuantity existe), debitar solo la quantity actual
-          // Nota: La quantity actual ya debería ser la final en el orderItem
           await tx.product.update({
             where: { id: item.productId },
             data: { 
@@ -198,19 +164,49 @@ export async function updateOrderStatus(orderId: string, status: string) {
           });
         }
       }
+
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId,
+          previousStatus: existingOrder.status,
+          nextStatus,
+          action,
+          actorAuthUserId: user.id,
+          actorRole: role,
+          reason
+        }
+      });
       
       return await tx.order.update({
         where: { id: orderId },
-        data: { status }
+        data: { status: nextStatus }
       });
-    }, {
-      maxWait: 5000,
-      timeout: 10000
-    });
+    }, { maxWait: 5000, timeout: 10000 });
     
     return { success: true, order };
   } catch (error: any) {
-    console.error('Error updating order status:', error);
+    console.error('Error transitioning order:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function acknowledgeOrderAdjustment(orderId: string) {
+  const { user, role } = await requireRole(['cliente']);
+  try {
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { customer: true }
+    });
+    if (!existingOrder) throw new Error('Pedido no encontrado');
+    if (existingOrder.customer.authUserId !== user.id) throw new Error('No autorizado');
+    
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { adjustmentAcknowledged: true }
+    });
+    return { success: true, order };
+  } catch (error: any) {
+    console.error('Error acknowledging adjustment:', error);
     return { success: false, error: error.message };
   }
 }
@@ -231,9 +227,8 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
         if (!existingItem) continue;
 
         if (update.newQuantity !== existingItem.quantity) {
-          const diff = existingItem.quantity - update.newQuantity; // e.g., 5 - 3 = 2 removed
+          const diff = existingItem.quantity - update.newQuantity;
 
-          // Update product reservedStock
           await tx.product.update({
             where: { id: existingItem.productId },
             data: { reservedStock: { decrement: diff } }
@@ -250,13 +245,12 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
         }
       }
 
-      // Recalculate total
       const updatedOrder = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: true, customer: true }
       });
 
-      if (!updatedOrder) throw new Error('Pedido no encontrado tras actualizaci�n');
+      if (!updatedOrder) throw new Error('Pedido no encontrado tras actualización');
 
       const discount = updatedOrder.customer?.showDiscount ? updatedOrder.customer.discount / 100 : 0;
       const newSubtotal = updatedOrder.items.reduce((acc, item) => acc + (item.priceAtTime * item.quantity), 0);

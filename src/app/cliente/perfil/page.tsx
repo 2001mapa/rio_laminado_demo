@@ -1,6 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
+import { PUBLIC_STATES } from '@/lib/order-status';
 import { Package, MapPin, Phone, Mail, ChevronRight, LogOut, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -158,8 +159,8 @@ export default function PerfilPage() {
                       order.status === 'En preparación' ? 'bg-rio-ink text-white border-transparent' :
                       'bg-rio-warning/10 text-rio-warning border-rio-warning/20'
                     }`}>
-                      {order.status}
-                    </span>
+                      {PUBLIC_STATES[order.status as keyof typeof PUBLIC_STATES] || order.status}
+                      </span>
                     <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-rio-muted group-hover:text-rio-ink transition-colors" strokeWidth={1.5} />
                   </div>
                 </Link>

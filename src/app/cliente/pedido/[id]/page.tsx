@@ -2,14 +2,14 @@
 
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
-import { ArrowLeft, Edit2, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Info } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { use, useState } from 'react';
-import Link from 'next/link';
+import { use } from 'react';
+import { PUBLIC_STATES, PUBLIC_MESSAGES, PUBLIC_MILESTONES, getMilestoneIndex } from '@/lib/order-status';
 
 export default function PedidoClientePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { orders, products, updateOrderStatus, updateOrder } = useDemo();
+  const { orders, products, transitionOrder, acknowledgeAdjustment } = useDemo();
   const router = useRouter();
 
   const order = orders.find(o => o.id === resolvedParams.id);
@@ -29,9 +29,16 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
 
   const handleCancel = () => {
     if (confirm('¿Seguro que deseas cancelar este pedido? Las unidades reservadas se liberarán.')) {
-      updateOrderStatus(order.id, 'Cancelado');
+      transitionOrder(order.id, 'CANCEL');
     }
   };
+
+  const handleAcknowledge = () => {
+    acknowledgeAdjustment(order.id);
+  };
+
+  const publicStateStr = PUBLIC_STATES[order.status as keyof typeof PUBLIC_STATES];
+  const publicMessageStr = PUBLIC_MESSAGES[order.status as keyof typeof PUBLIC_MESSAGES];
 
   return (
     <div className="p-4 pb-20">
@@ -42,45 +49,65 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
         <h1 className="text-xl font-serif font-bold text-rio-ink">Reserva {order.number}</h1>
       </div>
 
+      <div className="bg-rio-surface p-6 rounded-2xl shadow-sm border border-rio-border mb-6">
+        <h3 className="text-sm font-bold text-rio-ink uppercase tracking-wider mb-4">Estado del Pedido</h3>
+        
+        {order.status === 'Cancelado' ? (
+          <div className="bg-rio-danger/10 border border-rio-danger/20 p-4 rounded-xl text-center mb-6">
+            <p className="text-lg font-bold text-rio-danger mb-2">{publicStateStr}</p>
+            <p className="text-sm text-rio-danger font-medium">{publicMessageStr}</p>
+          </div>
+        ) : (
+          <div className="mb-2">
+            <div className="bg-rio-surface-muted/50 p-4 rounded-xl border border-rio-border text-center mb-6">
+              <p className="text-xl font-bold text-rio-ink mb-1">{publicStateStr}</p>
+              <p className="text-sm font-medium text-rio-muted max-w-sm mx-auto">{publicMessageStr}</p>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="relative mt-8 mb-4 px-4">
+              <div className="absolute top-1/2 left-8 right-8 h-1 bg-rio-border -translate-y-1/2 z-0 rounded-full"></div>
+              <div 
+                className="absolute top-1/2 left-8 h-1 bg-rio-ink -translate-y-1/2 z-0 rounded-full transition-all duration-500 ease-in-out"
+                style={{ width: `${(getMilestoneIndex(publicStateStr) / (PUBLIC_MILESTONES.length - 1)) * 100}%` }}
+              ></div>
+              
+              <div className="relative z-10 flex justify-between">
+                {PUBLIC_MILESTONES.map((milestone, idx) => {
+                  const currentIndex = getMilestoneIndex(publicStateStr);
+                  const isCompleted = idx <= currentIndex;
+                  const isCurrent = idx === currentIndex;
+                  
+                  return (
+                    <div key={milestone} className="flex flex-col items-center">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 mb-2 bg-white ${
+                        isCompleted ? 'border-rio-ink bg-rio-ink text-white' : 'border-rio-border text-transparent'
+                      }`}>
+                        {isCompleted && <Check className="w-3 h-3" />}
+                      </div>
+                      <span className={`text-[10px] uppercase font-bold text-center max-w-[70px] ${
+                        isCurrent ? 'text-rio-ink' : isCompleted ? 'text-rio-muted' : 'text-rio-border'
+                      }`}>
+                        {milestone}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="bg-rio-surface p-5 rounded-2xl border border-rio-border shadow-sm mb-6">
         <div className="flex justify-between items-center mb-5">
           <div>
-            <p className="text-[11px] font-bold uppercase text-rio-muted tracking-wider">Estado</p>
-            <div className={`mt-1 inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase border ${
-              order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :
-              order.status === 'Cancelado' ? 'bg-rio-danger/10 text-rio-danger border-rio-danger/20' :
-              order.status === 'Verificado' || order.status === 'Despachado' || order.status === 'Empacado' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' :
-              order.status === 'En preparación' ? 'bg-rio-ink text-white border-transparent' :
-              'bg-rio-warning/10 text-rio-warning border-rio-warning/20'
-            }`}>
-              {order.status}
-            </div>
-          </div>
-          <div className="text-right">
             <p className="text-[11px] font-bold uppercase text-rio-muted tracking-wider">Fecha</p>
             <p className="text-sm font-semibold text-rio-ink mt-1">
               {new Date(order.createdAt).toLocaleDateString('es-CO')}
             </p>
           </div>
         </div>
-
-        {!isEditable && order.status !== 'Cancelado' && (
-          <div className="mt-4 bg-rio-background border border-rio-border rounded-xl p-4 flex items-start">
-            <Info className="w-4 h-4 text-rio-gold-dark shrink-0 mt-0.5 mr-2.5" />
-            <p className="text-[12px] text-rio-ink font-medium leading-relaxed">
-              Este pedido ya está en proceso ({order.status}). Si necesitas realizar cambios, por favor comunícate directamente con tu asesor de RIO.
-            </p>
-          </div>
-        )}
-        
-        {order.status === 'Reservado' && (
-          <div className="mt-4 bg-rio-success/5 border border-rio-success/20 rounded-xl p-4 flex items-start">
-            <CheckCircle2 className="w-4 h-4 text-rio-success shrink-0 mt-0.5 mr-2.5" />
-            <p className="text-[12px] text-rio-success font-medium leading-relaxed">
-              Tu pedido fue recibido y las unidades quedaron reservadas.
-            </p>
-          </div>
-        )}
 
         {!order.adjustmentAcknowledged && order.items.some(i => !!i.adjustmentReason) && (
           <div className="mt-4 bg-rio-warning/10 border border-rio-warning/30 rounded-xl p-4">
@@ -91,7 +118,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
               </p>
             </div>
             <button
-              onClick={() => updateOrder({ ...order, adjustmentAcknowledged: true })}
+              onClick={handleAcknowledge}
               className="w-full bg-white/50 hover:bg-white text-rio-warning font-bold text-xs py-2 rounded-lg transition-colors border border-rio-warning/30 shadow-sm"
             >
               Entendido, confirmar la actualización
@@ -101,14 +128,8 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="space-y-4 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-serif font-bold text-rio-ink">Referencias ({order.items.length})</h2>
-            {isEditable && (
-              <button className="text-xs font-bold text-rio-gold-dark flex items-center hover:text-rio-gold transition-colors" onClick={() => alert('Para editar, por favor cancela el pedido y crea uno nuevo o contacta a tu asesor.')}>
-                <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                Editar
-              </button>
-            )}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-serif font-bold text-rio-ink">Referencias ({order.items.length})</h2>
         </div>
         
         {order.items.map(item => {

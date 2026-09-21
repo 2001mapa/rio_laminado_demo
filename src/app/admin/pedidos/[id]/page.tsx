@@ -1,6 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
+import { NEXT_ALLOWED_ACTION } from '@/lib/order-status';
 import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X } from 'lucide-react';
 import Link from 'next/link';
 import { use, useState } from 'react';
@@ -9,7 +10,7 @@ import QRCode from 'react-qr-code';
 
 export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { orders, customers, products, updateOrderStatus, updateOrder } = useDemo();
+  const { orders, customers, products, transitionOrder, updateOrder } = useDemo();
   const router = useRouter();
 
   const [adjustingItem, setAdjustingItem] = useState<string | null>(null);
@@ -238,46 +239,46 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               
               <div className={`mb-6 p-4 rounded-xl border ${
                 order.status === 'Reservado' ? 'bg-rio-gold-light/20 border-rio-gold-light/50' :
-                order.status === 'Verificado' || order.status === 'Despachado' ? 'bg-rio-success/10 border-rio-success/20' :
+                ['Verificado', 'Empacado', 'Despachado'].includes(order.status) ? 'bg-rio-success/10 border-rio-success/20' :
                 'bg-rio-surface-muted border-rio-border'
               }`}>
                 <p className="text-sm font-bold text-rio-ink mb-1">Estado Actual</p>
                 <p className={`text-lg font-serif font-bold ${
                   order.status === 'Reservado' ? 'text-rio-gold-dark' :
-                  order.status === 'Verificado' || order.status === 'Despachado' ? 'text-rio-success' :
+                  ['Verificado', 'Empacado', 'Despachado'].includes(order.status) ? 'text-rio-success' :
                   'text-rio-ink'
                 }`}>{order.status}</p>
               </div>
 
               <div className="space-y-3">
-                {order.status === 'Reservado' && (
-                  <button 
-                    onClick={() => updateOrderStatus(order.id, 'Confirmado')}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
-                  >
-                    Confirmar Pedido
-                  </button>
-                )}
-                
-                {order.status === 'Confirmado' && (
-                  <button 
-                    onClick={() => updateOrderStatus(order.id, 'En preparación')}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
-                  >
-                    Iniciar Preparación en Bodega
-                  </button>
-                )}
+                {(() => {
+                  const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
+                  if (!next) return null;
+                  
+                  const isVerification = next.action === 'COMPLETE_VERIFICATION';
+                  const disableNext = isVerification && hasIssues;
 
-                {order.status === 'En preparación' && (
-                  <button 
-                    onClick={() => updateOrderStatus(order.id, 'Pendiente de verificación')}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
-                  >
-                    Terminar Empaque
-                  </button>
-                )}
+                  return (
+                    <button 
+                      onClick={() => {
+                        if (disableNext) {
+                           alert('No se puede completar la verificación porque hay incidencias sin resolver.');
+                           return;
+                        }
+                        transitionOrder(order.id, next.action);
+                      }}
+                      disabled={disableNext}
+                      className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white transition-colors ${
+                        disableNext ? 'bg-rio-border cursor-not-allowed' : 'bg-rio-ink hover:bg-rio-ink/90'
+                      }`}
+                    >
+                      {isVerification && <PackageCheck className="w-4 h-4 mr-2" />}
+                      {next.label}
+                    </button>
+                  );
+                })()}
 
-                {(order.status === 'Pendiente de verificación' || order.status === 'En preparación') && (
+                {(order.status === 'En preparación' || order.status === 'Pendiente de verificación') && (
                   <Link 
                     href={`/admin/pedidos/${order.id}/verificar`}
                     className="w-full flex items-center justify-center px-4 py-3 border border-rio-border text-sm font-bold rounded-xl text-rio-ink bg-rio-background hover:bg-rio-surface-muted transition-colors"
@@ -286,29 +287,17 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     Ir al Checklist Digital
                   </Link>
                 )}
-
-                {order.status === 'Pendiente de verificación' && (
-                  <button 
-                    disabled={hasIssues}
-                    onClick={() => {
-                      if (hasIssues) alert('No se puede verificar porque hay incidencias reportadas en el checklist.');
-                      else updateOrderStatus(order.id, 'Verificado');
-                    }}
-                    className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white transition-colors ${
-                      hasIssues ? 'bg-rio-border cursor-not-allowed' : 'bg-rio-success hover:bg-rio-success/90'
-                    }`}
-                  >
-                    <PackageCheck className="w-4 h-4 mr-2" />
-                    Marcar como Verificado
-                  </button>
-                )}
                 
-                {order.status === 'Verificado' && (
+                {order.status !== 'Cancelado' && order.status !== 'Despachado' && (
                   <button 
-                    onClick={() => updateOrderStatus(order.id, 'Despachado')}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
+                    onClick={() => {
+                      if(confirm('¿Estás seguro de cancelar este pedido? Esta acción es irreversible.')) {
+                        transitionOrder(order.id, 'CANCEL');
+                      }
+                    }}
+                    className="w-full flex items-center justify-center px-4 py-3 border border-rio-danger text-sm font-bold rounded-xl text-rio-danger bg-transparent hover:bg-rio-danger/10 transition-colors"
                   >
-                    Marcar como Despachado
+                    Cancelar Pedido
                   </button>
                 )}
               </div>
