@@ -256,7 +256,7 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
         include: { items: true, customer: true }
       });
 
-      if (!updatedOrder) throw new Error('Pedido no encontrado tras actualización');
+      if (!updatedOrder) throw new Error('Pedido no encontrado tras actualizaciï¿½n');
 
       const discount = updatedOrder.customer?.showDiscount ? updatedOrder.customer.discount / 100 : 0;
       const newSubtotal = updatedOrder.items.reduce((acc, item) => acc + (item.priceAtTime * item.quantity), 0);

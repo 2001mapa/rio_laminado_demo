@@ -188,7 +188,7 @@ export default function NuevaVentaPage() {
       await scannerRef.current.stop();
     }
     
-    const result = await checkoutSeller(selectedCustomer.id, cartItems); if(result && result.success) { addToast('Venta registrada con éxito!'); router.push('/vendedor'); } else { alert('Error: ' + (result?.error || '')); }
+    const result = await checkoutSeller(selectedCustomer.id, cartItems); if(result && result.success) { addToast('Venta registrada con ï¿½xito!'); router.push('/vendedor'); } else { alert('Error: ' + (result?.error || '')); }
   };
 
   const totalAmount = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);

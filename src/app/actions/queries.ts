@@ -15,9 +15,9 @@ export async function getAppData() {
       where: role !== 'admin' ? { isActive: true } : undefined
     });
 
-    let customers = [];
-    let sellers = [];
-    let orders = [];
+    let customers: any[] = [];
+    let sellers: any[] = [];
+    let orders: any[] = [];
 
     if (role === 'admin') {
       customers = await prisma.customer.findMany();
