@@ -56,11 +56,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await getAppData();
       if (result.success && result.data) {
-        // Transform DB data to match frontend types if needed
         setProducts(result.data.products as any[]);
         setCustomers(result.data.customers as any[]);
         setSellers(result.data.sellers as any[]);
-        setOrders(result.data.orders as any[]);
+        
+        // Map Prisma's orderNumber to frontend's expected number
+        const mappedOrders = (result.data.orders as any[]).map(o => ({
+          ...o,
+          number: o.orderNumber || o.number
+        }));
+        setOrders(mappedOrders);
       }
     } catch (err) {
       console.error("Error cargando base de datos:", err);
@@ -181,8 +186,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const res = await createOrderAction(orderData);
       
       if (res.success && res.order) {
-        setOrders(prev => [res.order as any, ...prev]);
-        return res;
+        const mappedOrder = { ...res.order, number: res.order.orderNumber || (res.order as any).number };
+        setOrders(prev => [mappedOrder as any, ...prev]);
+        return { success: true, order: mappedOrder };
       } else {
         console.error("Error creating order:", res.error);
         return res;
@@ -208,7 +214,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     const result = await updateOrderChecklist(order.id, itemsData, (order as any).adjustmentAcknowledged || false);
     
     if (result.success && result.order) {
-      setOrders(prev => prev.map(o => o.id === result.order.id ? (result.order as unknown as Order) : o));
+      const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
+      setOrders(prev => prev.map(o => o.id === result.order.id ? (mappedOrder as unknown as Order) : o));
     } else {
       console.error("Failed to update order checklist:", result.error);
     }
