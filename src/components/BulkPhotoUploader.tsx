@@ -8,8 +8,8 @@ import { compressImage } from '@/lib/imageCompression';
 export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState<{ total: number; current: number; success: number; failed: number }>({
-    total: 0, current: 0, success: 0, failed: 0
+  const [progress, setProgress] = useState<{ total: number; current: number; success: number; failed: number; errors: {name: string, message: string}[] }>({
+    total: 0, current: 0, success: 0, failed: 0, errors: []
   });
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -19,6 +19,9 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
       const selectedFiles = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
       setFiles(prev => [...prev, ...selectedFiles]);
     }
+    
+    // Clear input so same files can be selected again
+    e.target.value = '';
   };
 
   const removeFile = (index: number) => {
@@ -29,7 +32,7 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
     if (files.length === 0) return;
     
     setIsUploading(true);
-    setProgress({ total: files.length, current: 0, success: 0, failed: 0 });
+    setProgress({ total: files.length, current: 0, success: 0, failed: 0, errors: [] });
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -68,12 +71,12 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
           setProgress(p => ({ ...p, success: p.success + 1 }));
         } else {
           console.error(`Error uploading ${file.name}:`, response.message);
-          setProgress(p => ({ ...p, failed: p.failed + 1 }));
+          setProgress(p => ({ ...p, failed: p.failed + 1, errors: [...p.errors, { name: file.name, message: response.message }] }));
         }
 
       } catch (err: any) {
         console.error(`Exception uploading ${file.name}:`, err.message);
-        setProgress(p => ({ ...p, failed: p.failed + 1 }));
+        setProgress(p => ({ ...p, failed: p.failed + 1, errors: [...p.errors, { name: file.name, message: err.message }] }));
       }
     }
 
@@ -83,7 +86,7 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
 
   const reset = () => {
     setFiles([]);
-    setProgress({ total: 0, current: 0, success: 0, failed: 0 });
+    setProgress({ total: 0, current: 0, success: 0, failed: 0, errors: [] });
     setIsUploading(false);
   };
 
@@ -192,13 +195,26 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
               )}
 
               {progress.total > 0 && !isUploading && (
-                <div className="py-6 flex flex-col items-center text-center space-y-3">
+                <div className="py-6 flex flex-col items-center text-center space-y-4">
                   <CheckCircle className="w-12 h-12 text-rio-success" />
                   <h4 className="font-bold text-rio-ink text-lg">¡Proceso Terminado!</h4>
                   <p className="text-sm text-rio-muted">
                     Se subieron <strong className="text-rio-success">{progress.success}</strong> fotos correctamente.<br/>
                     <strong className="text-rio-danger">{progress.failed}</strong> fotos fallaron.
                   </p>
+                  
+                  {progress.errors.length > 0 && (
+                    <div className="w-full text-left bg-red-50 border border-red-100 rounded-lg p-3 max-h-40 overflow-y-auto mt-4">
+                      <p className="text-xs font-bold text-red-600 mb-2">Detalle de errores:</p>
+                      <ul className="text-xs text-red-700 space-y-1 font-mono">
+                        {progress.errors.map((err, idx) => (
+                          <li key={idx} className="border-b border-red-100/50 pb-1">
+                            <strong>{err.name}:</strong> {err.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
