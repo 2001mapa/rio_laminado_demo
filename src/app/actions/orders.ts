@@ -1,5 +1,5 @@
-import { OrderTransitionAction, getNextState } from '@/lib/order-status';
 'use server'
+import { OrderTransitionAction, getNextState } from '@/lib/order-status';
 
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
