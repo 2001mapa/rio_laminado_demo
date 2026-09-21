@@ -38,14 +38,18 @@ export async function requireRole(allowedRoles: Role[]): Promise<User> {
   const { user, role } = await getSessionUser();
   
   if (!user) {
+    console.log(`[requireRole] Rejection: No Supabase session found (user=null)`);
     throw new Error('No autorizado: Sesión de Supabase no encontrada (user=null)');
   }
   if (!role) {
+    console.log(`[requireRole] Rejection: Role not found for user. Metadata:`, user.user_metadata);
     throw new Error('No autorizado: Rol no encontrado');
   }
   if (!allowedRoles.includes(role)) {
+    console.log(`[requireRole] Rejection: Role "${role}" not in allowed list [${allowedRoles.join(', ')}]`);
     throw new Error(`No autorizado: Rol "${role}" no permitido`);
   }
   
+  console.log(`[requireRole] Success: User verified with role "${role}"`);
   return user;
 }
