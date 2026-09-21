@@ -38,7 +38,6 @@ type DemoContextType = {
   resetDemoData: () => void;
   refreshData: () => Promise<void>;
   isLoaded: boolean;
-  contextDebug: string;
 };
 
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
@@ -52,7 +51,6 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [currentSeller, setCurrentSeller] = useState<Seller | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [contextDebug, setContextDebug] = useState<string>("Init");
 
   const refreshData = async () => {
     try {
@@ -78,28 +76,25 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     fetchRealData();
   }, []);
 
-  // 2. Load Supabase Auth Session ONCE data is loaded
   useEffect(() => {
     if (!isLoaded) return;
+
+    const supabase = createClient();
     
     async function processSession(session: any) {
-      let trace = `ProcessSession start. HasUser: ${!!session?.user}. `;
       if (session?.user) {
         const role = session.user.user_metadata?.role || 'admin';
         const metaUsername = session.user.user_metadata?.username?.toLowerCase().trim();
         const emailPrefix = session.user.email?.split('@')[0]?.toLowerCase().trim();
         const username = metaUsername || emailPrefix;
         
-        trace += `Role: ${role}. `;
         if (role === 'cliente') {
           const matched = customers.find(c => 
             c.authUserId === session.user.id || 
             c.username?.toLowerCase().trim() === username ||
             (metaUsername && c.username?.toLowerCase().trim() === metaUsername)
           );
-          trace += `Customers: ${customers.length}. Matched: ${!!matched}. `;
           if (matched) {
-            trace += `MatchedName: ${matched.name}. `;
             setCurrentCustomer(matched);
           }
           else setCurrentCustomer(null);
@@ -113,71 +108,30 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           else setCurrentSeller(null);
         }
       } else {
-        trace += `No session. Fallback to localStorage. `;
-        try {
-          const storedCurrentCustomer = localStorage.getItem('rio_current_customer');
-          if (storedCurrentCustomer && storedCurrentCustomer !== "undefined" && storedCurrentCustomer !== "null") {
-            try {
-              const parsed = JSON.parse(storedCurrentCustomer);
-              if (parsed && parsed.id) {
-                const matched = customers.find(c => c.id === parsed.id) || parsed;
-                setCurrentCustomer(matched);
-              } else {
-                setCurrentCustomer(null);
-              }
-            } catch (e) {
-              setCurrentCustomer(null);
-            }
-          } else {
-            setCurrentCustomer(null);
-          }
-
-          const storedCurrentSeller = localStorage.getItem('rio_current_seller');
-          if (storedCurrentSeller && storedCurrentSeller !== "undefined" && storedCurrentSeller !== "null") {
-            try {
-              const parsed = JSON.parse(storedCurrentSeller);
-              if (parsed && parsed.id) {
-                const matched = sellers.find(s => s.id === parsed.id) || parsed;
-                setCurrentSeller(matched);
-              } else {
-                setCurrentSeller(null);
-              }
-            } catch (e) {
-              setCurrentSeller(null);
-            }
-          } else {
-            setCurrentSeller(null);
-          }
-        } catch (e) {
-          console.error("Failed to parse local storage user", e);
-        }
-      }
-      
-      try {
-        const storedCart = localStorage.getItem('rio_cart');
-        if (storedCart && storedCart !== "undefined") setCart(JSON.parse(storedCart));
-      } catch (e) {
-        console.error("Failed to parse cart", e);
-      }
-      setContextDebug(trace);
-    }
-
-    async function loadServerSession() {
-      setContextDebug("Loading server session...");
-      try {
-        const { getCurrentSession } = await import('@/app/actions/auth');
-        const session = await getCurrentSession();
-        processSession(session);
-      } catch (error: any) {
-        setContextDebug(`Error loadServerSession: ${error.message}`);
-        processSession(null);
+        setCurrentCustomer(null);
+        setCurrentSeller(null);
       }
     }
 
-    loadServerSession();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      processSession(session);
+    });
+
+    try {
+      const storedCart = localStorage.getItem('rio_cart');
+      if (storedCart && storedCart !== "undefined") setCart(JSON.parse(storedCart));
+    } catch (e) {
+      console.error("Failed to parse cart", e);
+    }
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      processSession(session);
+    });
 
     return () => {
-      // Nada que limpiar
+      subscription.unsubscribe();
     };
   }, [isLoaded, customers, sellers]);
 
@@ -352,7 +306,6 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       resetDemoData,
       refreshData,
       isLoaded,
-      contextDebug,
     }}>
       {children}
     </DemoContext.Provider>

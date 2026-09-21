@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
-  const { currentCustomer, orders, resetDemoData, isLoaded, customers, contextDebug } = useDemo();
+  const { currentCustomer, orders, resetDemoData, isLoaded, customers } = useDemo();
   const [debugSession, setDebugSession] = useState<any>(null);
 
   useEffect(() => {
@@ -35,7 +35,6 @@ export default function PerfilPage() {
 
   if (!currentCustomer) {
     const debugInfo = {
-      contextDebug,
       customersCount: customers.length,
       availableUsernames: customers.map(c => `${c.username} (authId: ${c.authUserId})`),
       isLoaded,

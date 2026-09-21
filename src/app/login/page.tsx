@@ -41,6 +41,15 @@ export default function LoginPage() {
         return;
       }
 
+      // Safe Instrumentation Logging
+      const cookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
+      console.log('[Login] Success.', {
+        hasSession: !!data.session,
+        hasUser: !!data.user,
+        expiresAt: data.session?.expires_at,
+        sbCookies: cookieNames
+      });
+
       const role = data.user?.user_metadata?.role || 'admin';
       
       router.refresh(); 

@@ -27,7 +27,17 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  const cookieNamesBefore = request.cookies.getAll().filter(c => c.name.startsWith('sb-')).map(c => c.name);
+  console.log(`[Middleware] Before getUser | Path: ${request.nextUrl.pathname} | Cookies: ${cookieNamesBefore.join(', ')}`);
+
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error) {
+    console.error(`[Middleware] Supabase Auth Error: ${error.name} - ${error.message} - ${error.status}`);
+  }
+  
+  const cookieNamesAfter = supabaseResponse.cookies.getAll().filter(c => c.name.startsWith('sb-')).map(c => c.name);
+  console.log(`[Middleware] After getUser | User: ${!!user} | Response Cookies: ${cookieNamesAfter.join(', ')}`);
 
   return supabaseResponse
 }

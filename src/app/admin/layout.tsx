@@ -18,10 +18,18 @@ export default function AdminLayout({
   const [isAuthorized, setIsAuthorized] = useState(false);
   
   useEffect(() => {
-    // DIAGNOSTIC PATCH: Deshabilitamos el chequeo del cliente (createBrowserClient)
-    // para probar si es el SDK del cliente el que está asesinando la cookie por temas de reloj/chunks.
-    // Como la seguridad real está en el backend, esto es seguro para el test.
-    setIsAuthorized(true);
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (!session || session.user.user_metadata?.role !== 'admin') {
+        console.log('[Layout Admin] No session or wrong role', { hasSession: !!session, error: error?.message });
+        router.push('/login');
+      } else {
+        setIsAuthorized(true);
+      }
+    };
+    checkAuth();
   }, [router]);
 
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;

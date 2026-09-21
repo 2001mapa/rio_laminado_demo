@@ -20,8 +20,17 @@ export default function ClienteLayout({
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // DIAGNOSTIC PATCH: Deshabilitado por clock skew. La seguridad estricta ocurre en el Middleware y Server Actions.
-    setIsAuthorized(true);
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (!session || session.user.user_metadata?.role !== 'cliente') {
+        console.log('[Layout Cliente] No session or wrong role', { hasSession: !!session, error: error?.message });
+        router.push('/login');
+      } else {
+        setIsAuthorized(true);
+      }
+    };
+    checkAuth();
   }, [router]);
 
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
