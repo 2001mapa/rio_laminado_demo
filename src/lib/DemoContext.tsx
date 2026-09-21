@@ -149,16 +149,25 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: Product, quantity: number) => {
     setCart(prev => {
+      const stockDisponible = product.physicalStock - product.reservedStock;
       const existing = prev.find(item => item.product.id === product.id);
+      
       if (existing) {
-        return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
+        const newQuantity = Math.min(stockDisponible, existing.quantity + quantity);
+        return prev.map(item => item.product.id === product.id ? { ...item, quantity: newQuantity } : item);
       }
-      return [...prev, { product, quantity }];
+      return [...prev, { product, quantity: Math.min(stockDisponible, quantity) }];
     });
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
-    setCart(prev => prev.map(item => item.product.id === productId ? { ...item, quantity } : item));
+    setCart(prev => prev.map(item => {
+      if (item.product.id === productId) {
+        const stockDisponible = item.product.physicalStock - item.product.reservedStock;
+        return { ...item, quantity: Math.min(stockDisponible, quantity) };
+      }
+      return item;
+    }));
   };
 
   const removeFromCart = (productId: string) => {

@@ -103,8 +103,9 @@ export default function CarritoPage() {
                     <span className="text-sm font-semibold w-8 text-center text-rio-ink">{item.quantity}</span>
                     <button 
                       onClick={() => {
-                        if (item.quantity >= 50) {
-                          alert('Límite de inventario simulado alcanzado.');
+                        const stockDisponible = item.product.physicalStock - item.product.reservedStock;
+                        if (item.quantity >= stockDisponible) {
+                          alert(`Solo hay ${stockDisponible} unidades disponibles.`);
                           return;
                         }
                         updateCartQuantity(item.product.id, item.quantity + 1);
