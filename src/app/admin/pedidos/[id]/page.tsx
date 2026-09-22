@@ -2,7 +2,7 @@
 
 import { useDemo } from '@/lib/DemoContext';
 import { NEXT_ALLOWED_ACTION } from '@/lib/order-status';
-import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [adjustQuantity, setAdjustQuantity] = useState<number>(0);
   const [adjustReason, setAdjustReason] = useState<string>('');
   const [printingSingle, setPrintingSingle] = useState<string | null>(null);
+  const [showPrintSettings, setShowPrintSettings] = useState(false);
 
   const order = orders.find(o => o.id === resolvedParams.id);
 
@@ -75,7 +76,71 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
             </button>
             <h1 className="text-2xl font-serif font-bold text-rio-ink">Pedido {order.number}</h1>
           </div>
-          <div className="flex space-x-3 w-full md:w-auto">
+          <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
+            
+            <div className="relative flex-1 md:flex-none">
+              <button
+                onClick={() => setShowPrintSettings(!showPrintSettings)}
+                className="w-full md:w-auto flex justify-center items-center px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors"
+                aria-expanded={showPrintSettings}
+              >
+                <Settings className="w-4 h-4 mr-2 text-rio-muted" />
+                Ajustar impresión
+                <ChevronDown className="w-3 h-3 ml-2 text-rio-muted" />
+              </button>
+              
+              {showPrintSettings && (
+                <div className="absolute right-0 top-full mt-2 w-[320px] bg-white border border-rio-border shadow-xl rounded-2xl p-4 z-50">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-bold text-rio-ink">Calibración de impresión</h3>
+                    <button onClick={() => setShowPrintSettings(false)} className="text-rio-muted hover:text-rio-ink">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Horiz (mm)</h4>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setOffsetX(x => Number((x - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">-</button>
+                          <span className="font-mono text-sm font-bold w-10 text-center">{offsetX}</span>
+                          <button onClick={() => setOffsetX(x => Number((x + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">+</button>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Vert (mm)</h4>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setOffsetY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">-</button>
+                          <span className="font-mono text-sm font-bold w-10 text-center">{offsetY}</span>
+                          <button onClick={() => setOffsetY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">+</button>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Espacio Cols</h4>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setGapX(x => Number((x - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">-</button>
+                          <span className="font-mono text-sm font-bold w-10 text-center">{gapX}</span>
+                          <button onClick={() => setGapX(x => Number((x + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">+</button>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Espacio Filas</h4>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setGapY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">-</button>
+                          <span className="font-mono text-sm font-bold w-10 text-center">{gapY}</span>
+                          <button onClick={() => setGapY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-rio-surface border border-rio-border rounded-lg font-bold hover:bg-rio-surface-muted">+</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-rio-muted bg-rio-surface-muted p-2 rounded-lg leading-relaxed mt-2">
+                      <strong>Tip:</strong> Si cada fila se imprime más arriba que la anterior, aumenta el espacio entre filas (+). En opciones de impresión usa <strong>Escala: Personalizado 100%</strong> y márgenes <strong>NINGUNO</strong>.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => window.print()}
               className="flex-1 md:flex-none flex justify-center items-center px-4 py-2 border border-rio-gold-light bg-rio-gold-light/10 shadow-sm text-sm font-bold rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/20 transition-colors"
@@ -83,6 +148,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Etiquetas
             </button>
+
             <Link 
               href={`/admin/pedidos/${order.id}/imprimir`}
               className="flex-1 md:flex-none flex justify-center items-center px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors"
@@ -90,45 +156,6 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               <ClipboardCheck className="w-4 h-4 mr-2 text-rio-muted" />
               Hoja de Bodega
             </Link>
-          </div>
-        </div>
-
-        {/* Calibracion UI */}
-        <div className="bg-rio-surface-muted border border-rio-border rounded-xl p-4 flex flex-wrap gap-6 items-center">
-          <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Horizontal (mm)</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setOffsetX(x => Number((x - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-12 text-center">{offsetX}</span>
-              <button onClick={() => setOffsetX(x => Number((x + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Vertical (mm)</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setOffsetY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-12 text-center">{offsetY}</span>
-              <button onClick={() => setOffsetY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Distancia entre columnas</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setGapX(x => Number((x - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-12 text-center">{gapX}</span>
-              <button onClick={() => setGapX(x => Number((x + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Distancia entre filas</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setGapY(y => Number((y - 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
-              <span className="font-mono text-sm font-bold w-12 text-center">{gapY}</span>
-              <button onClick={() => setGapY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
-            </div>
-          </div>
-          <div className="text-[10px] text-rio-muted max-w-sm leading-relaxed">
-            <strong>Tip:</strong> Si ves que cada fila se imprime un poquito más arriba que la anterior, aumenta la distancia entre filas (+). Y OJO: En las opciones de impresión pon <strong>Escala: Personalizado 100%</strong> y márgenes en NINGUNO.
           </div>
         </div>
 

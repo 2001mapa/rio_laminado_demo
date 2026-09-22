@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store } from 'lucide-react';
+import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
+import { getAdminLatestOrderIds } from '@/app/actions/queries';
+import { useDemo } from '@/lib/DemoContext';
 
 export default function AdminLayout({
   children,
@@ -14,16 +16,22 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { orders, refreshData } = useDemo();
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [knownOrderIds, setKnownOrderIds] = useState<Set<string> | null>(null);
+  const [newOrderAlerts, setNewOrderAlerts] = useState<{id: string, number: string}[]>([]);
+
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (!session || session.user.user_metadata?.role !== 'admin') {
-        console.log('[Layout Admin] No session or wrong role', { hasSession: !!session, error: error?.message });
+        console.log('[Layout Admin] No session or wrong role');
         router.push('/login');
       } else {
         setIsAuthorized(true);
@@ -32,11 +40,87 @@ export default function AdminLayout({
     checkAuth();
   }, [router]);
 
+  useEffect(() => {
+    const val = localStorage.getItem('admin-sound-enabled');
+    if (val === 'true') setSoundEnabled(true);
+  }, []);
+
+  const toggleSound = () => {
+    const newVal = !soundEnabled;
+    setSoundEnabled(newVal);
+    localStorage.setItem('admin-sound-enabled', newVal.toString());
+  };
+
+  const playNotificationSound = () => {
+    if (!soundEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); // A6
+      
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+      
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+      console.warn('Audio play blocked or not supported');
+    }
+  };
+
+  useEffect(() => {
+    if (orders.length > 0 && knownOrderIds === null) {
+      setKnownOrderIds(new Set(orders.map(o => o.id)));
+    }
+  }, [orders, knownOrderIds]);
+
+  useEffect(() => {
+    if (knownOrderIds === null || !isAuthorized) return;
+    
+    let isPolling = false;
+    const intervalId = setInterval(async () => {
+      if (document.hidden || isPolling) return;
+      isPolling = true;
+      try {
+        const res = await getAdminLatestOrderIds();
+        if (res.success && res.orders) {
+          const fetchedOrders = res.orders as unknown as {id: string, number: string}[];
+          const incomingNewOrders = fetchedOrders.filter(o => !knownOrderIds.has(o.id));
+          
+          if (incomingNewOrders.length > 0) {
+             const newKnown = new Set(knownOrderIds);
+             incomingNewOrders.forEach(o => newKnown.add(o.id));
+             setKnownOrderIds(newKnown);
+             
+             await refreshData();
+             
+             setNewOrderAlerts(prev => [...prev, ...incomingNewOrders]);
+             playNotificationSound();
+          }
+        }
+      } catch (e) {
+        console.error("Error polling admin orders");
+      } finally {
+        isPolling = false;
+      }
+    }, 15000);
+    
+    return () => clearInterval(intervalId);
+  }, [knownOrderIds, isAuthorized, soundEnabled, refreshData]);
+
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
   
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Pedidos', href: '/admin/pedidos', icon: Inbox },
+    { name: 'Pedidos', href: '/admin/pedidos', icon: Inbox, badge: newOrderAlerts.length },
     { name: 'Inventario', href: '/admin/inventario', icon: PackageSearch },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },
     { name: 'Vendedores', href: '/admin/vendedores', icon: Store },
@@ -44,6 +128,36 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative print:min-h-0 print:h-auto print:overflow-visible print:pb-0 print:bg-white">
+      
+      {newOrderAlerts.length > 0 && (
+        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-[100] flex flex-col gap-3 pointer-events-none">
+          {newOrderAlerts.map(alert => (
+            <div key={alert.id} className="bg-white border border-rio-success shadow-2xl rounded-2xl p-4 w-72 flex items-start justify-between pointer-events-auto animate-slide-up relative overflow-hidden">
+              <div className="absolute top-0 left-0 bottom-0 w-1 bg-rio-success"></div>
+              <div>
+                <h3 className="text-sm font-bold text-rio-ink mb-1">¡Nuevo Pedido!</h3>
+                <p className="text-xs text-rio-muted mb-3">Se ha recibido el pedido <strong>{alert.number}</strong></p>
+                <div className="flex gap-2">
+                  <Link 
+                    href={`/admin/pedidos/${alert.id}`}
+                    onClick={() => setNewOrderAlerts(prev => prev.filter(a => a.id !== alert.id))}
+                    className="bg-rio-success/10 hover:bg-rio-success/20 text-rio-success text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Ver Pedido
+                  </Link>
+                  <button 
+                    onClick={() => setNewOrderAlerts(prev => prev.filter(a => a.id !== alert.id))}
+                    className="text-rio-muted hover:text-rio-ink text-[11px] font-bold px-2 py-1.5 transition-colors"
+                  >
+                    Descartar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Sidebar Desktop / Topbar Mobile */}
       <aside className={classNames(
         "w-full bg-rio-ink text-white flex flex-col md:h-screen shrink-0 border-r border-black print:hidden transition-all duration-300",
@@ -55,7 +169,6 @@ export default function AdminLayout({
             <p className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5 font-bold whitespace-nowrap">Bodega B2B</p>
           </div>
           
-          {/* Collapse Toggle Desktop */}
           <button 
              onClick={() => setIsCollapsed(!isCollapsed)}
              className={classNames("hidden md:flex p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/40 hover:text-white shrink-0", isCollapsed ? "" : "ml-auto")}
@@ -64,15 +177,17 @@ export default function AdminLayout({
              {isCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
 
-          {/* Mobile elements (only visible on mobile) */}
           <div className="flex items-center space-x-2 md:hidden">
-            <div className="text-[10px] font-bold tracking-wider uppercase text-rio-gold/80 px-2 py-0.5 rounded-full border border-rio-gold/30 bg-rio-gold/10">
-              Demo
-            </div>
+            <button 
+              onClick={toggleSound}
+              className="p-2 text-white/40 hover:text-white transition-colors"
+              title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+            >
+              {soundEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+            </button>
             <a 
               href="/api/auth/logout"
               className="p-2 -mr-2 text-white/40 hover:text-white transition-colors flex items-center"
-              title="Salir de la Demo"
             >
               <LogOut className="w-5 h-5" />
             </a>
@@ -89,12 +204,20 @@ export default function AdminLayout({
                     href={item.href}
                     title={isCollapsed ? item.name : undefined}
                     className={classNames(
-                      "flex items-center py-2.5 text-[13px] font-semibold rounded-lg transition-all overflow-hidden",
+                      "flex items-center py-2.5 text-[13px] font-semibold rounded-lg transition-all overflow-hidden relative",
                       isCollapsed ? "justify-center px-0" : "px-3",
                       isActive ? "bg-white/15 text-white" : "text-white/50 hover:text-white hover:bg-white/8"
                     )}
                   >
-                    <item.icon className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={isActive ? 2.5 : 1.5} />
+                    <div className="relative">
+                      <item.icon className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={isActive ? 2.5 : 1.5} />
+                      {item.badge ? (
+                        <span className="absolute -top-1 -right-1 bg-rio-success text-white text-[9px] font-black min-w-[14px] h-[14px] flex items-center justify-center rounded-full border border-rio-ink leading-none">
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </div>
+                    
                     <span className={classNames("whitespace-nowrap transition-all duration-300", isCollapsed ? "hidden" : "block")}>
                       {item.name}
                     </span>
@@ -106,12 +229,30 @@ export default function AdminLayout({
           </ul>
         </nav>
 
-        <div className={classNames("p-4 hidden md:block border-t border-white/10", isCollapsed ? "px-2 flex justify-center" : "")}>
+        <div className={classNames("p-4 hidden md:block border-t border-white/10 space-y-2", isCollapsed ? "px-2" : "")}>
+          <button
+            onClick={toggleSound}
+            className={classNames(
+              "w-full flex items-center py-2 text-[13px] font-semibold text-white/40 hover:text-white hover:bg-white/8 rounded-lg transition-all",
+              isCollapsed ? "justify-center px-0" : "px-3"
+            )}
+            title={isCollapsed ? (soundEnabled ? "Desactivar sonido" : "Activar sonido") : undefined}
+          >
+            {soundEnabled ? (
+              <Bell className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={1.5} />
+            ) : (
+              <BellOff className={classNames("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4 mr-3")} strokeWidth={1.5} />
+            )}
+            <span className={classNames("whitespace-nowrap transition-all duration-300", isCollapsed ? "hidden" : "block")}>
+              {soundEnabled ? 'Sonido activado' : 'Sonido desactivado'}
+            </span>
+          </button>
+          
           <a
             href="/api/auth/logout"
-            title={isCollapsed ? "Salir de la Demo" : undefined}
+            title={isCollapsed ? "Salir" : undefined}
             className={classNames(
-              "flex items-center py-2 text-[13px] font-semibold text-white/40 hover:text-white hover:bg-white/8 rounded-lg transition-all",
+              "w-full flex items-center py-2 text-[13px] font-semibold text-white/40 hover:text-white hover:bg-white/8 rounded-lg transition-all",
               isCollapsed ? "justify-center px-0" : "px-3"
             )}
           >
@@ -142,7 +283,14 @@ export default function AdminLayout({
                   isActive ? "text-rio-gold" : "text-rio-muted hover:text-rio-ink"
                 )}
               >
-                <item.icon className={classNames("w-5 h-5", isActive && "text-rio-gold")} strokeWidth={isActive ? 2.5 : 1.5} />
+                <div className="relative">
+                  <item.icon className={classNames("w-5 h-5", isActive && "text-rio-gold")} strokeWidth={isActive ? 2.5 : 1.5} />
+                  {item.badge ? (
+                    <span className="absolute -top-1 -right-1 bg-rio-success text-white text-[9px] font-black min-w-[14px] h-[14px] flex items-center justify-center rounded-full border border-rio-surface leading-none">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </div>
                 <span className={classNames("text-[10px]", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
               </Link>
             );

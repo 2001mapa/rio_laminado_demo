@@ -65,3 +65,20 @@ export async function getAppData() {
     return { success: false, error: error.message }
   }
 }
+
+
+export async function getAdminLatestOrderIds() {
+  noStore();
+  try {
+    const { role } = await requireRole(['admin']);
+    if (role !== 'admin') return { success: false };
+    const orders = await prisma.order.findMany({
+      select: { id: true, orderNumber: true },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+    return { success: true, orders: orders.map(o => ({ id: o.id, number: o.orderNumber })) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
