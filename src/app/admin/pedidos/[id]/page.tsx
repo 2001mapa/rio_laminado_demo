@@ -19,11 +19,15 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [printingSingle, setPrintingSingle] = useState<string | null>(null);
   const [showPrintSettings, setShowPrintSettings] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [carrier, setCarrier] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
 
-  const handleTransition = async (action: any) => {
+  const handleTransition = async (action: any, trackingInfo?: {carrier: string, trackingNumber: string}) => {
     try {
       setIsTransitioning(true);
-      const res = await transitionOrder(order!.id, action);
+      const res = await transitionOrder(order!.id, action, trackingInfo);
       if (!res?.success) throw new Error(res?.error || 'Error al cambiar el estado');
       window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Estado actualizado correctamente' } }));
     } catch (e: any) {
@@ -308,6 +312,10 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                                alert('No se puede completar la verificación porque hay incidencias sin resolver.');
                                return;
                             }
+                            if (next.action === 'DISPATCH') {
+                               setShowDispatchModal(true);
+                               return;
+                            }
                             handleTransition(next.action);
                           }}
                           disabled={isTransitioning}
@@ -403,6 +411,50 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 className="w-full bg-rio-ink text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-rio-ink/90 active:scale-95 transition-all mt-2"
               >
                 Guardar Ajuste
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Despacho (Tracking) */}
+      {showDispatchModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-rio-ink text-lg">Datos de Despacho</h3>
+              <button onClick={() => setShowDispatchModal(false)} className="text-rio-muted hover:text-rio-ink"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Transportadora</label>
+                <input 
+                  type="text"
+                  placeholder="Ej. Coordinadora, Servientrega"
+                  value={carrier}
+                  onChange={(e) => setCarrier(e.target.value)}
+                  className="w-full border border-rio-border rounded-xl p-3 text-sm bg-rio-background text-rio-ink focus:border-rio-ink outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Número de Guía</label>
+                <input 
+                  type="text"
+                  placeholder="Ej. 123456789"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  className="w-full border border-rio-border rounded-xl p-3 text-sm bg-rio-background text-rio-ink focus:border-rio-ink outline-none"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  setShowDispatchModal(false);
+                  handleTransition('DISPATCH', { carrier, trackingNumber });
+                }}
+                disabled={!carrier.trim() || !trackingNumber.trim() || isTransitioning}
+                className="w-full bg-rio-ink text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-rio-ink/90 active:scale-95 transition-all mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTransitioning ? 'Procesando...' : 'Confirmar Despacho'}
               </button>
             </div>
           </div>

@@ -64,4 +64,6 @@ export type Order = {
   status: OrderStatus;
   items: OrderItem[];
   adjustmentAcknowledged?: boolean;
+  carrier?: string | null;
+  trackingNumber?: string | null;
 };

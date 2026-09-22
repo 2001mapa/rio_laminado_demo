@@ -122,7 +122,7 @@ export async function createOrder(data: {
 }
 
 
-export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string) {
+export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string, trackingInfo?: {carrier: string, trackingNumber: string}) {
   const { user, role } = await requireRole(['admin', 'vendedor', 'cliente']);
   
   try {
@@ -177,9 +177,15 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
         }
       });
       
+      const updateData: any = { status: nextStatus };
+      if (action === 'DISPATCH' && trackingInfo) {
+        updateData.carrier = trackingInfo.carrier;
+        updateData.trackingNumber = trackingInfo.trackingNumber;
+      }
+
       return await tx.order.update({
         where: { id: orderId },
-        data: { status: nextStatus }
+        data: updateData
       });
     }, { maxWait: 5000, timeout: 10000 });
     

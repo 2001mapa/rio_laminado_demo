@@ -62,6 +62,24 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
             <div className="bg-rio-surface-muted/50 p-6 rounded-xl border border-rio-border text-center mb-8">
               <p className="text-xl font-bold text-rio-ink mb-2">{publicStateStr}</p>
               <p className="text-sm font-medium text-rio-muted max-w-sm mx-auto leading-relaxed">{publicMessageStr}</p>
+              
+              {(order as any).carrier && (order as any).trackingNumber && (
+                <div className="mt-6 pt-6 border-t border-rio-border/50 flex flex-col items-center justify-center">
+                  <div className="bg-white p-4 rounded-xl border border-rio-border w-full max-w-sm shadow-sm">
+                    <p className="text-[10px] font-bold text-rio-muted uppercase tracking-wider mb-1">Información de Envío</p>
+                    <div className="flex justify-between items-center mt-3">
+                      <div>
+                        <p className="text-xs text-rio-muted">Transportadora</p>
+                        <p className="text-sm font-bold text-rio-ink">{(order as any).carrier}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-rio-muted">Número de Guía</p>
+                        <p className="text-sm font-bold text-rio-ink font-mono">{(order as any).trackingNumber}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Progress Bar - Responsive */}

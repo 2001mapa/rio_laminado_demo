@@ -31,7 +31,7 @@ type DemoContextType = {
   clearCart: () => void;
   addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number }[] }) => Promise<any>;
   updateOrder: (order: Order) => void;
-  transitionOrder: (orderId: string, action: OrderTransitionAction) => Promise<any>;
+  transitionOrder: (orderId: string, action: OrderTransitionAction, trackingInfo?: {carrier: string, trackingNumber: string}) => Promise<any>;
   acknowledgeAdjustment: (orderId: string) => Promise<any>;
   updateCustomer: (customer: Customer) => void;
   addCustomer: (customer: Customer) => void;
@@ -229,9 +229,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const transitionOrder = async (orderId: string, action: OrderTransitionAction) => {
+  const transitionOrder = async (orderId: string, action: OrderTransitionAction, trackingInfo?: {carrier: string, trackingNumber: string}) => {
     try {
-      const result = await transitionOrderAction(orderId, action);
+      const result = await transitionOrderAction(orderId, action, undefined, trackingInfo);
       if (result.success && result.order) {
         const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...mappedOrder } as unknown as Order : o));

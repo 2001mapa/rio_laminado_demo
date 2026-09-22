@@ -58,6 +58,8 @@ model Order {
   seller      Seller?     @relation(fields: [sellerId], references: [id])
   status      String      @default("Reservado")
   totalAmount Float
+  carrier     String?
+  trackingNumber String?
   createdAt   DateTime    @default(now())
   adjustmentAcknowledged Boolean @default(false)
   items       OrderItem[]
