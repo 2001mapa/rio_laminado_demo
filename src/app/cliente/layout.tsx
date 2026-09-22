@@ -45,10 +45,29 @@ export default function ClienteLayout({
   useEffect(() => {
     if (isLoaded && currentCustomer && knownStatuses === null) {
       const initialOrd: Record<string, string> = {};
+      const notifiedCache = JSON.parse(localStorage.getItem('rio_notified_orders') || '{}');
+      const newAlerts: typeof statusAlerts = [];
+
       orders.filter(o => o.customerId === currentCustomer.id).forEach(o => {
-         initialOrd[o.id] = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
+         const pubStatus = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
+         initialOrd[o.id] = pubStatus;
+
+         if (pubStatus === 'Pedido enviado' && notifiedCache[o.id] !== 'Pedido enviado') {
+            newAlerts.push({
+               id: o.id,
+               number: o.number || '',
+               newPublicStatus: pubStatus,
+               message: `Tu pedido ${o.number} fue enviado`
+            });
+            notifiedCache[o.id] = pubStatus;
+         }
       });
       setKnownStatuses(initialOrd);
+
+      if (newAlerts.length > 0) {
+         setStatusAlerts(prev => [...prev, ...newAlerts]);
+         localStorage.setItem('rio_notified_orders', JSON.stringify(notifiedCache));
+      }
 
       setKnownProductIds(new Set(products.map(p => p.id)));
       const initialStocks: Record<string, {p: number, r: number}> = {};
@@ -145,6 +164,15 @@ export default function ClienteLayout({
           await refreshData();
           if (newAlerts.length > 0) {
              setStatusAlerts(prev => [...prev, ...newAlerts]);
+             
+             // Update localStorage so they don't get re-notified if they reload
+             const notifiedCache = JSON.parse(localStorage.getItem('rio_notified_orders') || '{}');
+             newAlerts.forEach(a => {
+                if (!a.isProductAlert) {
+                   notifiedCache[a.id] = a.newPublicStatus;
+                }
+             });
+             localStorage.setItem('rio_notified_orders', JSON.stringify(notifiedCache));
           }
         }
       } catch (e) {
