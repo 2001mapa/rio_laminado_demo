@@ -83,8 +83,8 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                     
                     return (
                       <div key={milestone} className="flex flex-col items-center w-28">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-[3px] mb-4 bg-white ${
-                          isCompleted ? 'border-rio-ink bg-rio-ink text-white' : 'border-rio-border text-transparent'
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-[3px] mb-4 ${
+                          isCompleted ? 'border-rio-ink bg-rio-ink text-white' : 'border-rio-border bg-white text-transparent'
                         }`}>
                           {isCompleted && <Check className="w-4 h-4" strokeWidth={3} />}
                         </div>
@@ -114,8 +114,8 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                            idx < currentIndex ? 'bg-rio-ink' : 'bg-rio-border'
                         }`}></div>
                       )}
-                      <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-[3px] shrink-0 bg-white ${
-                        isCompleted ? 'border-rio-ink bg-rio-ink text-white' : 'border-rio-border text-transparent'
+                      <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-[3px] shrink-0 ${
+                        isCompleted ? 'border-rio-ink bg-rio-ink text-white' : 'border-rio-border bg-white text-transparent'
                       }`}>
                         {isCompleted && <Check className="w-4 h-4" strokeWidth={3} />}
                       </div>
