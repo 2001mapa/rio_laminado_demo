@@ -210,7 +210,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     const itemsData = order.items.map(item => ({
       id: item.id,
       newQuantity: item.quantity,
-      adjustmentReason: item.adjustmentReason
+      adjustmentReason: item.adjustmentReason,
+      verified: item.verified || false,
+      issue: item.issue || null
     }));
 
     const result = await updateOrderChecklist(order.id, itemsData, (order as any).adjustmentAcknowledged || false);

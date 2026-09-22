@@ -74,6 +74,8 @@ model OrderItem {
   priceAtTime      Float
   originalQuantity Int?
   adjustmentReason String?
+  verified         Boolean  @default(false)
+  issue            String?
 }
 
 

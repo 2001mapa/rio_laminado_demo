@@ -210,7 +210,7 @@ export async function acknowledgeOrderAdjustment(orderId: string) {
     return { success: false, error: error.message };
   }
 }
-export async function updateOrderChecklist(orderId: string, items: { id: string, newQuantity: number, adjustmentReason?: string }[], adjustmentAcknowledged: boolean = false) {
+export async function updateOrderChecklist(orderId: string, items: { id: string, newQuantity: number, adjustmentReason?: string, verified?: boolean, issue?: string | null }[], adjustmentAcknowledged: boolean = false) {
   await requireRole(['admin']);
   
   try {
@@ -226,20 +226,29 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
         const existingItem = existingOrder.items.find(i => i.id === update.id);
         if (!existingItem) continue;
 
-        if (update.newQuantity !== existingItem.quantity) {
+        const needsQuantityUpdate = update.newQuantity !== existingItem.quantity;
+        const needsVerificationUpdate = update.verified !== existingItem.verified || update.issue !== existingItem.issue;
+
+        if (needsQuantityUpdate) {
           const diff = existingItem.quantity - update.newQuantity;
 
           await tx.product.update({
             where: { id: existingItem.productId },
             data: { reservedStock: { decrement: diff } }
           });
+        }
 
+        if (needsQuantityUpdate || needsVerificationUpdate) {
           await tx.orderItem.update({
             where: { id: update.id },
             data: {
-              originalQuantity: existingItem.originalQuantity || existingItem.quantity,
-              quantity: update.newQuantity,
-              adjustmentReason: update.adjustmentReason || null
+              ...(needsQuantityUpdate ? {
+                originalQuantity: existingItem.originalQuantity || existingItem.quantity,
+                quantity: update.newQuantity,
+                adjustmentReason: update.adjustmentReason || null
+              } : {}),
+              verified: update.verified ?? existingItem.verified,
+              issue: update.issue ?? existingItem.issue
             }
           });
         }
