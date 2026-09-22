@@ -217,7 +217,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     
     if (result.success && result.order) {
       const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
-      setOrders(prev => prev.map(o => o.id === result.order.id ? (mappedOrder as unknown as Order) : o));
+      setOrders(prev => prev.map(o => o.id === result.order.id ? { ...o, ...mappedOrder } as unknown as Order : o));
     } else {
       console.error("Failed to update order checklist:", result.error);
     }
@@ -228,7 +228,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const result = await transitionOrderAction(orderId, action);
       if (result.success && result.order) {
         const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
-        setOrders(prev => prev.map(o => o.id === orderId ? (mappedOrder as unknown as Order) : o));
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...mappedOrder } as unknown as Order : o));
       }
       return result;
     } catch(e: any) {
@@ -242,7 +242,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const result = await acknowledgeAdjustmentAction(orderId);
       if (result.success && result.order) {
         const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
-        setOrders(prev => prev.map(o => o.id === orderId ? (mappedOrder as unknown as Order) : o));
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...mappedOrder } as unknown as Order : o));
       }
       return result;
     } catch(e: any) {
