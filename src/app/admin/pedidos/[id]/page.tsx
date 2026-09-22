@@ -290,45 +290,55 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 }`}>{order.status}</p>
               </div>
 
-              <div className="space-y-3">
+                  <div className="space-y-3">
+                    {(() => {
+                      const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
+                      if (!next) return null;
+                      
+                      const isChecklistComplete = order.items.length > 0 && order.items.every(i => i.verified || i.adjustmentReason);
+                      const isVerification = next.action === 'COMPLETE_VERIFICATION';
+                      
+                      // Si estamos en pendiente de verificación y el checklist NO está completo, Ocultamos el botón principal.
+                      if (isVerification && !isChecklistComplete) return null;
+
+                      return (
+                        <button 
+                          onClick={() => {
+                            if (isVerification && hasIssues) {
+                               alert('No se puede completar la verificación porque hay incidencias sin resolver.');
+                               return;
+                            }
+                            handleTransition(next.action);
+                          }}
+                          disabled={isTransitioning}
+                          className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white transition-colors ${
+                            isTransitioning ? 'bg-rio-border cursor-not-allowed' : 'bg-rio-ink hover:bg-rio-ink/90'
+                          }`}
+                        >
+                          {isTransitioning ? (
+                            <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : isVerification && <PackageCheck className="w-4 h-4 mr-2" />}
+                          {isTransitioning ? 'Procesando...' : next.label}
+                        </button>
+                      );
+                    })()}
+
                   {(() => {
-                    const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
-                    if (!next) return null;
-                    
-                    const isVerification = next.action === 'COMPLETE_VERIFICATION';
-                    const disableNext = isVerification && hasIssues;
-
-                    return (
-                      <button 
-                        onClick={() => {
-                          if (disableNext) {
-                             alert('No se puede completar la verificación porque hay incidencias sin resolver.');
-                             return;
-                          }
-                          handleTransition(next.action);
-                        }}
-                        disabled={disableNext || isTransitioning}
-                        className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white transition-colors ${
-                          (disableNext || isTransitioning) ? 'bg-rio-border cursor-not-allowed' : 'bg-rio-ink hover:bg-rio-ink/90'
-                        }`}
-                      >
-                        {isTransitioning ? (
-                          <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : isVerification && <PackageCheck className="w-4 h-4 mr-2" />}
-                        {isTransitioning ? 'Procesando...' : next.label}
-                      </button>
-                    );
+                    const isChecklistComplete = order.items.length > 0 && order.items.every(i => i.verified || i.adjustmentReason);
+                    // Solo mostramos el checklist en "Pendiente de verificación" y SI NO está completo
+                    if (order.status === 'Pendiente de verificación' && !isChecklistComplete) {
+                      return (
+                        <Link 
+                          href={`/admin/pedidos/${order.id}/verificar`}
+                          className="w-full flex items-center justify-center px-4 py-3 border border-rio-ink text-sm font-bold rounded-xl text-rio-ink bg-transparent hover:bg-rio-ink/5 transition-colors"
+                        >
+                          <ClipboardCheck className="w-4 h-4 mr-2" />
+                          Ir al Checklist Digital
+                        </Link>
+                      );
+                    }
+                    return null;
                   })()}
-
-                {(order.status === 'En preparación' || order.status === 'Pendiente de verificación') && (
-                  <Link 
-                    href={`/admin/pedidos/${order.id}/verificar`}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-rio-border text-sm font-bold rounded-xl text-rio-ink bg-rio-background hover:bg-rio-surface-muted transition-colors"
-                  >
-                    <ClipboardCheck className="w-4 h-4 mr-2 text-rio-muted" />
-                    Ir al Checklist Digital
-                  </Link>
-                )}
                 
                 {order.status !== 'Cancelado' && order.status !== 'Despachado' && (
                   <button 
