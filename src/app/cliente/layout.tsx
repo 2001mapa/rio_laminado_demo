@@ -8,7 +8,7 @@ import { useDemo } from '@/lib/DemoContext';
 import ToastContainer from '@/components/ToastContainer';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
-import { getClientOrderStatuses } from '@/app/actions/queries';
+import { getClientOrderStatuses, getClientActiveProductsDigest } from '@/app/actions/queries';
 import { PUBLIC_STATES, InternalOrderState } from '@/lib/order-status';
 
 export default function ClienteLayout({
@@ -18,10 +18,15 @@ export default function ClienteLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { cart, orders, currentCustomer, isLoaded, refreshData } = useDemo();
+  const { cart, orders, products, currentCustomer, isLoaded, refreshData } = useDemo();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [knownStatuses, setKnownStatuses] = useState<Record<string, string> | null>(null);
-  const [statusAlerts, setStatusAlerts] = useState<{id: string, number: string, newPublicStatus: string, message: string}[]>([]);
+  
+  // Product updates
+  const [knownProductIds, setKnownProductIds] = useState<Set<string> | null>(null);
+  const [productStocks, setProductStocks] = useState<Record<string, {p: number, r: number}> | null>(null);
+  
+  const [statusAlerts, setStatusAlerts] = useState<{id: string, number: string, newPublicStatus: string, message: string, isProductAlert?: boolean}[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -39,36 +44,42 @@ export default function ClienteLayout({
 
   useEffect(() => {
     if (isLoaded && currentCustomer && knownStatuses === null) {
-      const initial: Record<string, string> = {};
+      const initialOrd: Record<string, string> = {};
       orders.filter(o => o.customerId === currentCustomer.id).forEach(o => {
-         initial[o.id] = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
+         initialOrd[o.id] = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
       });
-      setKnownStatuses(initial);
+      setKnownStatuses(initialOrd);
+
+      setKnownProductIds(new Set(products.map(p => p.id)));
+      const initialStocks: Record<string, {p: number, r: number}> = {};
+      products.forEach(p => { initialStocks[p.id] = { p: p.physicalStock, r: p.reservedStock }; });
+      setProductStocks(initialStocks);
     }
-  }, [isLoaded, orders, currentCustomer, knownStatuses]);
+  }, [isLoaded, orders, products, currentCustomer, knownStatuses]);
 
   useEffect(() => {
-    if (knownStatuses === null || !isAuthorized) return;
+    if (knownStatuses === null || knownProductIds === null || productStocks === null || !isAuthorized) return;
     
     let isPolling = false;
     const intervalId = setInterval(async () => {
       if (document.hidden || isPolling) return;
       isPolling = true;
       try {
-        const res = await getClientOrderStatuses();
-        if (res.success && res.orders) {
-          const fetchedOrders = res.orders as {id: string, number: string, status: string}[];
-          
-          let updated = false;
+        // 1. Poll orders
+        const resOrders = await getClientOrderStatuses();
+        let shouldRefresh = false;
+        const newAlerts: typeof statusAlerts = [];
+
+        if (resOrders.success && resOrders.orders) {
+          const fetchedOrders = resOrders.orders as {id: string, number: string, status: string}[];
           const newStatuses = { ...knownStatuses };
-          const newAlerts: typeof statusAlerts = [];
           
           for (const order of fetchedOrders) {
             const publicStatus = PUBLIC_STATES[order.status as InternalOrderState] || order.status;
             const oldPublicStatus = knownStatuses[order.id];
             
             if (oldPublicStatus && oldPublicStatus !== publicStatus) {
-              updated = true;
+              shouldRefresh = true;
               
               let msg = `Tu pedido ${order.number} se ha actualizado a: ${publicStatus}`;
               if (publicStatus === 'Pedido enviado') {
@@ -86,22 +97,65 @@ export default function ClienteLayout({
             }
             newStatuses[order.id] = publicStatus;
           }
+          if (shouldRefresh) setKnownStatuses(newStatuses);
+        }
+
+        // 2. Poll products
+        const resProd = await getClientActiveProductsDigest();
+        if (resProd.success && resProd.products) {
+          const fetchedP = resProd.products as {id: string, physicalStock: number, reservedStock: number}[];
+          let updatedProducts = false;
+          let hasNewReferences = false;
+          const newStocks = { ...productStocks };
+          const newKnownIds = new Set(knownProductIds);
+
+          for (const p of fetchedP) {
+             if (!knownProductIds.has(p.id)) {
+                hasNewReferences = true;
+                updatedProducts = true;
+                newKnownIds.add(p.id);
+                newStocks[p.id] = { p: p.physicalStock, r: p.reservedStock };
+             } else {
+                const old = productStocks[p.id];
+                if (!old || old.p !== p.physicalStock || old.r !== p.reservedStock) {
+                   updatedProducts = true;
+                   newStocks[p.id] = { p: p.physicalStock, r: p.reservedStock };
+                }
+             }
+          }
           
-          if (updated) {
-            setKnownStatuses(newStatuses);
-            await refreshData();
-            setStatusAlerts(prev => [...prev, ...newAlerts]);
+          if (updatedProducts) {
+             setKnownProductIds(newKnownIds);
+             setProductStocks(newStocks);
+             shouldRefresh = true;
+
+             if (hasNewReferences) {
+                newAlerts.push({
+                  id: 'new-products-' + Date.now(),
+                  number: 'Catálogo',
+                  newPublicStatus: 'Novedad',
+                  message: 'Hay nuevos productos en el catálogo.',
+                  isProductAlert: true
+                });
+             }
+          }
+        }
+        
+        if (shouldRefresh) {
+          await refreshData();
+          if (newAlerts.length > 0) {
+             setStatusAlerts(prev => [...prev, ...newAlerts]);
           }
         }
       } catch (e) {
-        console.error("Error polling client orders");
+        console.error("Error polling client updates");
       } finally {
         isPolling = false;
       }
     }, 15000);
     
     return () => clearInterval(intervalId);
-  }, [knownStatuses, isAuthorized, refreshData]);
+  }, [knownStatuses, knownProductIds, productStocks, isAuthorized, refreshData]);
 
 
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
@@ -129,15 +183,15 @@ export default function ClienteLayout({
              <div className="flex-1 pr-3">
                 <h3 className="text-sm font-bold text-white mb-1 flex items-center">
                   <PackageSearch className="w-4 h-4 mr-2 text-rio-gold-light" />
-                  Actualización de pedido
+                  {alert.isProductAlert ? 'Nuevos Productos' : 'Actualización de pedido'}
                 </h3>
                 <p className="text-[13px] text-white/80 mb-3 leading-tight">{alert.message}</p>
                 <Link 
-                  href={`/cliente/pedido/${alert.id}`}
+                  href={alert.isProductAlert ? '/cliente' : `/cliente/pedido/${alert.id}`}
                   onClick={() => setStatusAlerts(prev => prev.filter(a => a.id !== alert.id))}
                   className="inline-block bg-white text-rio-ink text-[11px] font-bold px-4 py-2 rounded-lg hover:bg-rio-surface-muted transition-colors"
                 >
-                  Ver Detalle
+                  {alert.isProductAlert ? 'Ver Novedades' : 'Ver Detalle'}
                 </Link>
              </div>
              <button 

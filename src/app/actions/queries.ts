@@ -104,3 +104,23 @@ export async function getClientOrderStatuses() {
     return { success: false, error: error.message };
   }
 }
+
+
+export async function getClientActiveProductsDigest() {
+  noStore();
+  try {
+    const { role } = await requireRole(['cliente']);
+    if (role !== 'cliente') return { success: false };
+    const products = await prisma.product.findMany({
+      where: { isActive: true },
+      select: { id: true, physicalStock: true, reservedStock: true }
+    });
+    return { success: true, products: products.map(p => ({
+      id: p.id,
+      physicalStock: p.physicalStock,
+      reservedStock: p.reservedStock
+    })) };
+  } catch (error: any) {
+    return { success: false };
+  }
+}
