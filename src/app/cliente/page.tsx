@@ -108,22 +108,6 @@ export default function CatalogoPage() {
     <>
       <div className="p-4 md:p-0 space-y-5 md:space-y-8">
         
-        {/* Compact Greeting */}
-        {currentCustomer && (
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2 px-1">
-            <div>
-              <p className="text-[12px] md:text-sm text-rio-muted font-bold uppercase tracking-wider mb-0.5">Hola,</p>
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink leading-none">{currentCustomer.name}</h1>
-            </div>
-            {currentCustomer.showDiscount && currentCustomer.discount > 0 && (
-              <div className="bg-rio-gold-light/20 border border-rio-gold-light px-3 py-1.5 rounded-lg flex items-center gap-2">
-                <span className="text-[10px] font-bold text-rio-gold-dark uppercase tracking-wider">Descuento</span>
-                <span className="text-sm font-black text-rio-gold-dark">{currentCustomer.discount}%</span>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Descubre la colección */}
         {discoverProducts.length > 0 && (
           <div className="mb-2 relative group px-1">
@@ -151,11 +135,7 @@ export default function CatalogoPage() {
                 {discoverProducts.map(product => (
                   <div 
                     key={product.id}
-                    onClick={() => {
-                      setSearchTerm(product.sku);
-                      setActiveCategory('Todos');
-                      window.scrollTo({ top: document.getElementById('catalog-grid')?.offsetTop || 0, behavior: 'smooth' });
-                    }}
+                    onClick={() => setSelectedProduct(product)}
                     className="snap-start shrink-0 flex items-center gap-3 w-[240px] md:w-[280px] h-[95px] md:h-[105px] bg-white rounded-xl border border-rio-border shadow-sm cursor-pointer hover:border-rio-gold/40 hover:shadow-md transition-all p-2.5"
                   >
                     <div className="w-[75px] h-[75px] md:w-[85px] md:h-[85px] shrink-0 bg-rio-surface-muted rounded-lg overflow-hidden border border-rio-border/50">

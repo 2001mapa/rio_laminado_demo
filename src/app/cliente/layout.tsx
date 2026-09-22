@@ -88,12 +88,11 @@ export default function ClienteLayout({
         </nav>
 
         <Link 
-          href="/api/auth/logout"
-          className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center gap-2 rounded-xl hover:bg-rio-danger/5"
-          title="Cerrar sesión"
+          href="/cliente/perfil"
+          aria-label="Ir a mi perfil"
+          className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-rio-ink text-white flex items-center justify-center font-bold font-serif text-sm md:text-base border-2 border-rio-surface-muted shadow-sm hover:scale-105 transition-transform shrink-0"
         >
-          <span className="hidden md:inline text-sm font-semibold text-rio-danger">Salir</span>
-          <LogOut className="w-5 h-5 text-rio-danger" />
+          {currentCustomer?.name ? currentCustomer.name.charAt(0).toUpperCase() : 'U'}
         </Link>
       </header>
 
