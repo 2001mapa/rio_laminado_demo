@@ -10,6 +10,7 @@ export type Product = {
   imageUrl?: string | null;
   hoverImageUrl?: string | null;
   locationCode?: string | null;
+  createdAt?: string | Date;
 };
 
 export type Customer = {

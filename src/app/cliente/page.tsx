@@ -9,25 +9,36 @@ import { addToast } from '@/lib/toast';
 import { ProductCardSkeleton, WelcomeBannerSkeleton } from '@/components/Skeletons';
 import Link from 'next/link';
 
+const NEW_ARRIVAL_DAYS = 30;
+
 export default function CatalogoPage() {
   const { products, currentCustomer, isLoaded, cart, orders } = useDemo();
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showOnlyNew, setShowOnlyNew] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const categories = ['Todos', ...Array.from(new Set(products.filter(p => p.imageUrl).map(p => p.category)))];
-  const filteredProducts = products.filter(p => {
-    // 1. Ocultar productos sin imagen principal en el catálogo público
+  
+  const availableProducts = products.filter(p => {
     if (!p.imageUrl) return false;
-
-    // 2. Ocultar productos sin stock
     const stockDisponible = p.physicalStock - p.reservedStock;
     if (stockDisponible <= 0) return false;
+    return true;
+  });
 
-    // 3. Filtrar por categoría
+  const newArrivals = availableProducts
+    .filter(p => {
+      if (!p.createdAt) return false;
+      const isNew = (new Date().getTime() - new Date(p.createdAt).getTime()) / (1000 * 3600 * 24) <= NEW_ARRIVAL_DAYS;
+      return isNew;
+    })
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .slice(0, 8);
+
+  const filteredProducts = availableProducts.filter(p => {
     if (activeCategory !== 'Todos' && p.category !== activeCategory) return false;
-    
-    // 4. Filtrar por búsqueda
+    if (showOnlyNew && !newArrivals.some(n => n.id === p.id)) return false;
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
@@ -68,21 +79,69 @@ export default function CatalogoPage() {
     <>
       <div className="p-4 md:p-0 space-y-5 md:space-y-8">
         
-        {/* Welcome Banner */}
+        {/* Compact Greeting */}
         {currentCustomer && (
-          <div className="bg-rio-surface border border-rio-border rounded-2xl px-5 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-center justify-between shadow-sm relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-[11px] text-rio-muted font-bold uppercase tracking-[0.2em] mb-1">Cliente Mayorista</p>
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">{currentCustomer.name}</h1>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2 px-1">
+            <div>
+              <p className="text-[12px] md:text-sm text-rio-muted font-bold uppercase tracking-wider mb-0.5">Hola,</p>
+              <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink leading-none">{currentCustomer.name}</h1>
             </div>
             {currentCustomer.showDiscount && currentCustomer.discount > 0 && (
-              <div className="mt-4 md:mt-0 relative z-10 flex flex-col items-start md:items-end">
-                <p className="text-[10px] font-bold text-rio-gold-dark uppercase tracking-wider mb-1">Descuento Activo</p>
-                <div className="bg-rio-gold-light/20 border border-rio-gold-light px-4 py-1.5 rounded-lg">
-                  <p className="text-xl md:text-2xl font-black text-rio-gold-dark leading-none">{currentCustomer.discount}% OFF</p>
-                </div>
+              <div className="bg-rio-gold-light/20 border border-rio-gold-light px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className="text-[10px] font-bold text-rio-gold-dark uppercase tracking-wider">Descuento</span>
+                <span className="text-sm font-black text-rio-gold-dark">{currentCustomer.discount}%</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Novedades Section */}
+        {newArrivals.length > 0 && (
+          <div className="bg-rio-surface-muted/30 -mx-4 px-4 md:mx-0 md:px-6 py-6 md:py-8 md:rounded-2xl border-y md:border border-rio-border">
+            <div className="flex justify-between items-end mb-4">
+              <div>
+                <h2 className="text-xl md:text-2xl font-serif font-bold text-rio-ink mb-1">Novedades</h2>
+                <p className="text-xs md:text-sm text-rio-muted font-medium hidden sm:block">Últimos ingresos disponibles</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowOnlyNew(true);
+                  setSearchTerm('');
+                  setActiveCategory('Todos');
+                  window.scrollTo({ top: document.getElementById('catalog-grid')?.offsetTop || 0, behavior: 'smooth' });
+                }}
+                className="text-xs font-bold text-rio-gold-dark hover:text-rio-gold transition-colors pb-1"
+              >
+                Ver todo →
+              </button>
+            </div>
+
+            <div className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+              {newArrivals.map(product => (
+                <div 
+                  key={product.id}
+                  onClick={() => {
+                    setSearchTerm(product.sku);
+                    setShowOnlyNew(false);
+                    setActiveCategory('Todos');
+                    window.scrollTo({ top: document.getElementById('catalog-grid')?.offsetTop || 0, behavior: 'smooth' });
+                  }}
+                  className="snap-start shrink-0 w-[55vw] max-w-[160px] md:w-[200px] md:max-w-none bg-white rounded-xl border border-rio-border shadow-sm overflow-hidden cursor-pointer hover:border-rio-gold/40 transition-colors group relative flex flex-col"
+                >
+                  <div className="w-full aspect-[4/5] md:aspect-square bg-rio-surface-muted relative overflow-hidden">
+                    <div className="absolute top-2 left-2 z-10 bg-rio-ink text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded">Nuevo</div>
+                    <img src={product.imageUrl || undefined} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-3 md:p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono text-rio-muted block mb-0.5">{product.sku}</span>
+                      <p className="text-xs md:text-sm font-semibold text-rio-ink line-clamp-2 leading-tight mb-2">{product.name}</p>
+                    </div>
+                    <p className="text-xs md:text-sm font-bold text-rio-gold-dark">{formatPrice(product.price)} <span className="text-[9px] md:text-[10px] text-rio-muted font-normal">c/u</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -145,24 +204,35 @@ export default function CatalogoPage() {
               ))}
             </div>
             
-            {/* Search */}
-            <div className="relative w-full md:w-72 shrink-0 md:mb-2">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-rio-muted" />
+            {/* Search and Novedades Badge */}
+            <div className="flex flex-col md:items-end gap-3 w-full md:w-auto shrink-0 md:mb-2">
+              <div className="relative w-full md:w-72">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-rio-muted" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full pl-10 pr-4 py-2 border border-rio-border rounded-xl text-sm bg-rio-surface placeholder-rio-muted focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink text-rio-ink shadow-sm"
+                  placeholder="Buscar por nombre o referencia..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    if (e.target.value) setShowOnlyNew(false);
+                  }}
+                />
               </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-4 py-2 border border-rio-border rounded-xl text-sm bg-rio-surface placeholder-rio-muted focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink text-rio-ink shadow-sm"
-                placeholder="Buscar por nombre o referencia..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              {showOnlyNew && (
+                <div className="flex items-center gap-2 bg-rio-ink text-white px-3 py-1.5 rounded-full w-fit self-end md:self-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Filtro: Novedades</span>
+                  <button onClick={() => setShowOnlyNew(false)} className="hover:text-rio-gold-light transition-colors"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Product Grid */}
-        <div className="space-y-8 md:space-y-12 md:pt-2">
+        <div id="catalog-grid" className="space-y-8 md:space-y-12 md:pt-2 scroll-mt-20">
           {searchTerm ? (
             <div className="space-y-4 md:space-y-6">
               <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
