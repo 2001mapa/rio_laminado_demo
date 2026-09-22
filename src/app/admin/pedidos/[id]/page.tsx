@@ -37,7 +37,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   if (!order) return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;
 
   const customer = customers.find(c => c.id === order.customerId);
-  const hasIssues = order.items.some(i => i.issue);
+  const hasIssues = order.items.some(i => i.issue && !i.adjustmentReason);
 
   const sortedItems = [...order.items].sort((a, b) => {
     const pA = products.find(p => p.id === a.productId);
