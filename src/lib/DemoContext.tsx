@@ -202,6 +202,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateOrder = async (order: Order) => {
+    // Optimistic update for immediate feedback
+    setOrders(prev => prev.map(o => o.id === order.id ? order : o));
+
     // Si la orden tiene items ajustados o fue validada/acknowledgement, 
     // llamamos al server action que acabamos de crear.
     const { updateOrderChecklist } = await import('@/app/actions/orders');
@@ -222,6 +225,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       setOrders(prev => prev.map(o => o.id === result.order.id ? { ...o, ...mappedOrder } as unknown as Order : o));
     } else {
       console.error("Failed to update order checklist:", result.error);
+      await refreshData(); // Revert on failure
     }
   };
 

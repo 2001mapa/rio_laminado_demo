@@ -241,7 +241,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                           )}
                         </div>
                         <p className="text-sm font-semibold text-rio-ink leading-snug">{product.name}</p>
-                        {item.issue && (
+                        {item.issue && !item.adjustmentReason && (
                           <div className="mt-2 text-[11px] font-medium text-rio-danger bg-rio-danger/5 p-2 rounded-lg border border-rio-danger/20 flex items-start">
                             <AlertTriangle className="w-3.5 h-3.5 mr-1.5 shrink-0 mt-0.5" />
                             <span>{item.issue}</span>

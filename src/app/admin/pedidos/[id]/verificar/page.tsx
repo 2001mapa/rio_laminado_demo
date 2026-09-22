@@ -154,7 +154,14 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
                         className="flex-1 text-[13px] border border-rio-border rounded-xl px-3 bg-rio-surface text-rio-ink placeholder-rio-muted focus:outline-none focus:border-rio-warning focus:ring-1 focus:ring-rio-warning"
                       />
                       <button
-                        onClick={() => handleVerify(item.id, 'issue', issueInputs[item.id] || 'Faltante/Dañado')}
+                        onClick={() => {
+                          const msg = issueInputs[item.id]?.trim();
+                          if (!msg) {
+                            alert('Por favor escribe una nota de incidencia antes de reportar el problema.');
+                            return;
+                          }
+                          handleVerify(item.id, 'issue', msg);
+                        }}
                         className="flex items-center justify-center px-3 bg-rio-warning/10 hover:bg-rio-warning/20 text-rio-warning font-bold rounded-xl border border-rio-warning/20 transition-colors"
                         title="Reportar Incidencia"
                       >
