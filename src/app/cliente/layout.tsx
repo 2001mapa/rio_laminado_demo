@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutGrid, Search, ShoppingBag, User, LogOut } from 'lucide-react';
+import { LayoutGrid, Search, ShoppingBag, User, LogOut, PackageSearch, X } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { useDemo } from '@/lib/DemoContext';
 import ToastContainer from '@/components/ToastContainer';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
+import { getClientOrderStatuses } from '@/app/actions/queries';
+import { PUBLIC_STATES, InternalOrderState } from '@/lib/order-status';
 
 export default function ClienteLayout({
   children,
@@ -16,15 +18,17 @@ export default function ClienteLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { cart, orders, currentCustomer } = useDemo();
+  const { cart, orders, currentCustomer, isLoaded, refreshData } = useDemo();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [knownStatuses, setKnownStatuses] = useState<Record<string, string> | null>(null);
+  const [statusAlerts, setStatusAlerts] = useState<{id: string, number: string, newPublicStatus: string, message: string}[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
       const { data: { session }, error } = await supabase.auth.getSession();
       if (!session || session.user.user_metadata?.role !== 'cliente') {
-        console.log('[Layout Cliente] No session or wrong role', { hasSession: !!session, error: error?.message });
+        console.log('[Layout Cliente] No session or wrong role');
         router.push('/login');
       } else {
         setIsAuthorized(true);
@@ -32,6 +36,73 @@ export default function ClienteLayout({
     };
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    if (isLoaded && currentCustomer && knownStatuses === null) {
+      const initial: Record<string, string> = {};
+      orders.filter(o => o.customerId === currentCustomer.id).forEach(o => {
+         initial[o.id] = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
+      });
+      setKnownStatuses(initial);
+    }
+  }, [isLoaded, orders, currentCustomer, knownStatuses]);
+
+  useEffect(() => {
+    if (knownStatuses === null || !isAuthorized) return;
+    
+    let isPolling = false;
+    const intervalId = setInterval(async () => {
+      if (document.hidden || isPolling) return;
+      isPolling = true;
+      try {
+        const res = await getClientOrderStatuses();
+        if (res.success && res.orders) {
+          const fetchedOrders = res.orders as {id: string, number: string, status: string}[];
+          
+          let updated = false;
+          const newStatuses = { ...knownStatuses };
+          const newAlerts: typeof statusAlerts = [];
+          
+          for (const order of fetchedOrders) {
+            const publicStatus = PUBLIC_STATES[order.status as InternalOrderState] || order.status;
+            const oldPublicStatus = knownStatuses[order.id];
+            
+            if (oldPublicStatus && oldPublicStatus !== publicStatus) {
+              updated = true;
+              
+              let msg = `Tu pedido ${order.number} se ha actualizado a: ${publicStatus}`;
+              if (publicStatus === 'Pedido enviado') {
+                msg = `Tu pedido ${order.number} fue enviado`;
+              } else if (publicStatus === 'Estamos preparando tu pedido') {
+                msg = `Estamos preparando tu pedido ${order.number}`;
+              }
+
+              newAlerts.push({
+                id: order.id,
+                number: order.number,
+                newPublicStatus: publicStatus,
+                message: msg
+              });
+            }
+            newStatuses[order.id] = publicStatus;
+          }
+          
+          if (updated) {
+            setKnownStatuses(newStatuses);
+            await refreshData();
+            setStatusAlerts(prev => [...prev, ...newAlerts]);
+          }
+        }
+      } catch (e) {
+        console.error("Error polling client orders");
+      } finally {
+        isPolling = false;
+      }
+    }, 15000);
+    
+    return () => clearInterval(intervalId);
+  }, [knownStatuses, isAuthorized, refreshData]);
+
 
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
   
@@ -49,6 +120,36 @@ export default function ClienteLayout({
 
   return (
     <div className="min-h-screen bg-rio-background pb-20 md:pb-0 relative font-sans">
+      
+      {/* Status Alerts */}
+      <div className="fixed bottom-24 left-4 right-4 md:left-auto md:bottom-8 md:right-8 z-[100] flex flex-col gap-3 pointer-events-none md:w-80">
+        {statusAlerts.map(alert => (
+          <div key={alert.id} className="bg-rio-ink border border-rio-surface-muted shadow-2xl rounded-2xl p-4 flex items-start justify-between pointer-events-auto animate-slide-up relative overflow-hidden">
+             <div className="absolute top-0 left-0 bottom-0 w-1 bg-rio-gold-light"></div>
+             <div className="flex-1 pr-3">
+                <h3 className="text-sm font-bold text-white mb-1 flex items-center">
+                  <PackageSearch className="w-4 h-4 mr-2 text-rio-gold-light" />
+                  Actualización de pedido
+                </h3>
+                <p className="text-[13px] text-white/80 mb-3 leading-tight">{alert.message}</p>
+                <Link 
+                  href={`/cliente/pedido/${alert.id}`}
+                  onClick={() => setStatusAlerts(prev => prev.filter(a => a.id !== alert.id))}
+                  className="inline-block bg-white text-rio-ink text-[11px] font-bold px-4 py-2 rounded-lg hover:bg-rio-surface-muted transition-colors"
+                >
+                  Ver Detalle
+                </Link>
+             </div>
+             <button 
+               onClick={() => setStatusAlerts(prev => prev.filter(a => a.id !== alert.id))}
+               className="text-white/40 hover:text-white p-1 transition-colors"
+             >
+               <X className="w-4 h-4" />
+             </button>
+          </div>
+        ))}
+      </div>
+
       {/* Top Bar */}
       <header className="bg-rio-surface border-b border-rio-border sticky top-0 z-30 px-4 md:px-8 h-14 md:h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3">

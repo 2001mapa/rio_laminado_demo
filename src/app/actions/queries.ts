@@ -82,3 +82,25 @@ export async function getAdminLatestOrderIds() {
     return { success: false, error: error.message };
   }
 }
+
+
+export async function getClientOrderStatuses() {
+  noStore();
+  try {
+    const { user, role } = await requireRole(['cliente']);
+    if (role !== 'cliente') return { success: false };
+    
+    const customerProfile = await prisma.customer.findUnique({ where: { authUserId: user.id } });
+    if (!customerProfile) return { success: false };
+
+    const orders = await prisma.order.findMany({
+      where: { customerId: customerProfile.id },
+      select: { id: true, orderNumber: true, status: true },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+    return { success: true, orders: orders.map(o => ({ id: o.id, number: o.orderNumber, status: o.status })) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

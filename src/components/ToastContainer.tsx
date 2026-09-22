@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 
-type Toast = { id: number; message: string };
+type Toast = { id: number; message: React.ReactNode };
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([]);

@@ -18,7 +18,20 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [adjustReason, setAdjustReason] = useState<string>('');
   const [printingSingle, setPrintingSingle] = useState<string | null>(null);
   const [showPrintSettings, setShowPrintSettings] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
+  const handleTransition = async (action: any) => {
+    try {
+      setIsTransitioning(true);
+      const res = await transitionOrder(order!.id, action);
+      if (!res?.success) throw new Error(res?.error || 'Error al cambiar el estado');
+      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Estado actualizado correctamente' } }));
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsTransitioning(false);
+    }
+  };
   const order = orders.find(o => o.id === resolvedParams.id);
 
   if (!order) return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;
@@ -278,32 +291,34 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               </div>
 
               <div className="space-y-3">
-                {(() => {
-                  const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
-                  if (!next) return null;
-                  
-                  const isVerification = next.action === 'COMPLETE_VERIFICATION';
-                  const disableNext = isVerification && hasIssues;
+                  {(() => {
+                    const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
+                    if (!next) return null;
+                    
+                    const isVerification = next.action === 'COMPLETE_VERIFICATION';
+                    const disableNext = isVerification && hasIssues;
 
-                  return (
-                    <button 
-                      onClick={() => {
-                        if (disableNext) {
-                           alert('No se puede completar la verificación porque hay incidencias sin resolver.');
-                           return;
-                        }
-                        transitionOrder(order.id, next.action);
-                      }}
-                      disabled={disableNext}
-                      className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white transition-colors ${
-                        disableNext ? 'bg-rio-border cursor-not-allowed' : 'bg-rio-ink hover:bg-rio-ink/90'
-                      }`}
-                    >
-                      {isVerification && <PackageCheck className="w-4 h-4 mr-2" />}
-                      {next.label}
-                    </button>
-                  );
-                })()}
+                    return (
+                      <button 
+                        onClick={() => {
+                          if (disableNext) {
+                             alert('No se puede completar la verificación porque hay incidencias sin resolver.');
+                             return;
+                          }
+                          handleTransition(next.action);
+                        }}
+                        disabled={disableNext || isTransitioning}
+                        className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white transition-colors ${
+                          (disableNext || isTransitioning) ? 'bg-rio-border cursor-not-allowed' : 'bg-rio-ink hover:bg-rio-ink/90'
+                        }`}
+                      >
+                        {isTransitioning ? (
+                          <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : isVerification && <PackageCheck className="w-4 h-4 mr-2" />}
+                        {isTransitioning ? 'Procesando...' : next.label}
+                      </button>
+                    );
+                  })()}
 
                 {(order.status === 'En preparación' || order.status === 'Pendiente de verificación') && (
                   <Link 
@@ -319,10 +334,13 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   <button 
                     onClick={() => {
                       if(confirm('¿Estás seguro de cancelar este pedido? Esta acción es irreversible.')) {
-                        transitionOrder(order.id, 'CANCEL');
+                        handleTransition('CANCEL');
                       }
                     }}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-rio-danger text-sm font-bold rounded-xl text-rio-danger bg-transparent hover:bg-rio-danger/10 transition-colors"
+                    disabled={isTransitioning}
+                    className={`w-full flex items-center justify-center px-4 py-3 border border-rio-danger text-sm font-bold rounded-xl text-rio-danger transition-colors ${
+                      isTransitioning ? 'opacity-50 cursor-not-allowed bg-transparent' : 'bg-transparent hover:bg-rio-danger/10'
+                    }`}
                   >
                     Cancelar Pedido
                   </button>
