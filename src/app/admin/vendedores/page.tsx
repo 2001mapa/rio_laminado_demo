@@ -1,14 +1,14 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Store, CheckCircle, XCircle } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import SellerModal from '@/components/SellerModal';
 import { Seller } from '@/lib/types';
 
 export default function AdminVendedoresPage() {
   const { sellers, orders, refreshData } = useDemo();
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
 
@@ -22,20 +22,36 @@ export default function AdminVendedoresPage() {
     setIsModalOpen(true);
   };
 
+  const filteredSellers = sellers.filter(s => 
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-serif font-black text-rio-ink">Gestión de Vendedores</h1>
-          <p className="text-sm text-rio-muted font-medium mt-1">Administra el personal que usa el punto de venta (POS).</p>
-        </div>
-        <button onClick={handleOpenNew} className="bg-rio-gold-dark hover:bg-rio-gold text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-sm text-sm">
-          + Nuevo Vendedor
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h1 className="text-2xl font-serif font-bold text-rio-ink">Vendedores</h1>
+        <button onClick={handleOpenNew} className="flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors">
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Vendedor
         </button>
       </div>
 
+      <div className="relative max-w-md">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-4 w-4 text-rio-muted" />
+        </div>
+        <input
+          type="text"
+          className="block w-full pl-10 pr-3 py-2 border border-rio-border rounded-xl leading-5 bg-rio-surface placeholder-rio-muted text-sm focus:outline-none focus:ring-1 focus:ring-rio-gold focus:border-rio-gold text-rio-ink"
+          placeholder="Buscar por nombre o correo..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {sellers.map((seller) => {
+        {filteredSellers.map((seller) => {
           const sellerOrders = orders.filter(o => o.sellerId === seller.id);
           
           return (
@@ -47,11 +63,7 @@ export default function AdminVendedoresPage() {
                 <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${
                   seller.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'
                 }`}>
-                  {seller.status === 'active' ? (
-                    <><CheckCircle className="w-3 h-3 mr-1" /> Activo</>
-                  ) : (
-                    <><XCircle className="w-3 h-3 mr-1" /> Inactivo</>
-                  )}
+                  {seller.status === 'active' ? 'Activo' : 'Suspendido'}
                 </span>
               </div>
               
