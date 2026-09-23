@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ScanLine, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, ScanLine, User, LogOut, Bell, BellOff, Package } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import ToastContainer from '@/components/ToastContainer';
 import { createClient } from '@/utils/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { getSellerOrderStates } from '@/app/actions/queries';
+import { useDemo } from '@/lib/DemoContext';
+import { addToast } from '@/lib/toast';
 
 export default function VendedorLayout({
   children,
@@ -16,6 +19,10 @@ export default function VendedorLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const { refreshData } = useDemo();
+  
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const knownStatesRef = useRef<Record<string, string> | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -24,7 +31,6 @@ export default function VendedorLayout({
       
       const role = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role;
       if (!session || role !== 'vendedor') {
-        console.log('[Layout Vendedor] No session or wrong role', { hasSession: !!session, error: error?.message });
         router.push('/login');
       } else {
         setIsAuthorized(true);
@@ -32,6 +38,151 @@ export default function VendedorLayout({
     };
     checkAuth();
   }, [router]);
+
+  let audioCtxRef = useRef<any>(null);
+  const getAudioCtx = () => {
+    if (!audioCtxRef.current) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) audioCtxRef.current = new AudioContextClass();
+    }
+    return audioCtxRef.current;
+  };
+
+  useEffect(() => {
+    const val = localStorage.getItem('vendedor-sound-enabled');
+    if (val === 'true') setSoundEnabled(true);
+  }, []);
+
+  const playNotificationSound = (force = false) => {
+    if (!force && localStorage.getItem('vendedor-sound-enabled') !== 'true') return;
+    try {
+      const audioCtx = getAudioCtx();
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') {
+         audioCtx.resume().catch(() => {});
+      }
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(600, audioCtx.currentTime); // C5ish
+      oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1); 
+      
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+      
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.2);
+    } catch (e) {
+      console.warn('Audio play blocked or not supported');
+    }
+  };
+
+  const toggleSound = async () => {
+    const newVal = !soundEnabled;
+    setSoundEnabled(newVal);
+    localStorage.setItem('vendedor-sound-enabled', newVal.toString());
+    
+    if (newVal) {
+      try {
+        const audioCtx = getAudioCtx();
+        if (audioCtx && audioCtx.state === 'suspended') {
+           await audioCtx.resume();
+        }
+        playNotificationSound(true);
+      } catch (err) {
+        alert('El navegador bloqueó el audio. El aviso visual seguirá funcionando.');
+      }
+    }
+  };
+
+  // 1. Initial baseline fetch on mount
+  useEffect(() => {
+    if (!isAuthorized) return;
+    
+    const initBaseline = async () => {
+      try {
+        const res = await getSellerOrderStates();
+        if (res.success && res.orders) {
+          const map: Record<string, string> = {};
+          (res.orders as any[]).forEach(o => {
+            map[o.id] = o.status;
+          });
+          knownStatesRef.current = map;
+        } else {
+          knownStatesRef.current = {};
+        }
+      } catch (e) {
+        knownStatesRef.current = {}; 
+      }
+    };
+    initBaseline();
+  }, [isAuthorized]);
+
+  // 2. Stable polling and focus check
+  useEffect(() => {
+    if (!isAuthorized) return;
+    
+    let isPolling = false;
+    const checkOrderChanges = async () => {
+      if (document.hidden || isPolling || !knownStatesRef.current) return;
+      isPolling = true;
+      try {
+        const res = await getSellerOrderStates();
+        if (res.success && res.orders) {
+          const fetchedOrders = res.orders as any[];
+          const currentKnown = knownStatesRef.current;
+          let changed = false;
+
+          fetchedOrders.forEach(o => {
+            const oldStatus = currentKnown[o.id];
+            if (oldStatus && oldStatus !== o.status) {
+              changed = true;
+              currentKnown[o.id] = o.status;
+              
+              if (o.status === 'Despachado') {
+                addToast(`¡Pedido despachado! #${o.number} va en camino.`);
+                playNotificationSound();
+              } else {
+                addToast(`El pedido #${o.number} ahora está: ${o.status}`);
+              }
+            } else if (!oldStatus) {
+              // New order (created by this seller just now probably)
+              currentKnown[o.id] = o.status;
+            }
+          });
+          
+          if (changed) {
+             await refreshData();
+          }
+        }
+      } catch (e) {
+        console.error("Error diagnosticando pedidos nuevos del vendedor. Se reintentará...", e);
+      } finally {
+        isPolling = false;
+      }
+    };
+
+    const intervalId = setInterval(checkOrderChanges, 15000);
+    
+    const handleFocus = () => {
+      if (!document.hidden) checkOrderChanges();
+    };
+    
+    window.addEventListener('visibilitychange', handleFocus);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('visibilitychange', handleFocus);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isAuthorized, refreshData]);
 
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
 
@@ -80,7 +231,15 @@ export default function VendedorLayout({
           })}
         </nav>
 
-        <div className="flex justify-end md:w-1/3">
+        <div className="flex justify-end md:w-1/3 items-center gap-2">
+          <button
+            onClick={toggleSound}
+            className="p-2 text-rio-muted hover:text-rio-ink transition-colors flex items-center rounded-xl hover:bg-rio-surface-muted"
+            title={soundEnabled ? 'Desactivar sonido' : 'Activar sonido'}
+          >
+            {soundEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+          </button>
+
           <button 
             onClick={handleLogout}
             className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center gap-2 rounded-xl hover:bg-rio-danger/5"
