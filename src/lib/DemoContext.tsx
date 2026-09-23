@@ -373,6 +373,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       addSeller,
       resetDemoData,
       refreshData,
+      updateGroupInvoice,
       isLoaded,
     }}>
       {children}
