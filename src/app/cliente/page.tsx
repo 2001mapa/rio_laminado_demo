@@ -18,15 +18,18 @@ export default function CatalogoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const categories = ['Todos', ...Array.from(new Set(products.filter(p => p.imageUrl).map(p => p.category)))];
-  
   const availableProducts = products.filter(p => {
+    if (p.material === 'Por revisar') return false;
     if (activeMaterial !== 'Todos' && p.material !== activeMaterial) return false;
     if (!p.imageUrl) return false;
     const stockDisponible = p.physicalStock - p.reservedStock;
     if (stockDisponible <= 0) return false;
     return true;
   });
+
+  const categories = ['Todos', ...Array.from(new Set(availableProducts.map(p => p.category)))];
+  
+  const clientMaterials = ['Todos', 'Laminado', 'Plata', 'Rodio'];
 
   const discoverProducts = (() => {
     const now = new Date().getTime();
@@ -179,8 +182,24 @@ export default function CatalogoPage() {
           </div>
         )}
 
-        {/* Category Tabs & Search */}
-        <div className="sticky top-14 md:top-0 z-20 bg-rio-background pt-3 -mx-4 px-4 md:mx-0 md:px-0 border-b border-rio-border/50 md:border-rio-border">
+        {/* Materials, Category Tabs & Search */}
+          <div className="sticky top-14 md:top-0 z-20 bg-rio-background pt-3 -mx-4 px-4 md:mx-0 md:px-0 border-b border-rio-border/50 md:border-rio-border">
+            {/* Materials Tabs */}
+            <div className="flex space-x-2 overflow-x-auto pb-3 scrollbar-hide">
+              {clientMaterials.map((mat) => (
+                <button
+                  key={mat}
+                  onClick={() => { setActiveMaterial(mat); setActiveCategory('Todos'); }}
+                  className={`px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${
+                    activeMaterial === mat
+                      ? 'bg-rio-ink text-white shadow-md'
+                      : 'bg-white text-rio-ink border border-rio-border hover:bg-rio-surface-muted'
+                  }`}
+                >
+                  {mat}
+                </button>
+              ))}
+            </div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Categories */}
             <div className="flex overflow-x-auto scrollbar-hide flex-1">
