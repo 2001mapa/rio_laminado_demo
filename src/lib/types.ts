@@ -10,6 +10,7 @@ export type Product = {
   imageUrl?: string | null;
   hoverImageUrl?: string | null;
   locationCode?: string | null;
+  material?: string;
   createdAt?: string | Date;
 };
 
@@ -44,6 +45,7 @@ export type OrderItem = {
   adjustmentReason?: string;
   verified?: boolean;
   issue?: string;
+  materialGroupId?: string | null;
 };
 
 export type Seller = {
@@ -53,6 +55,17 @@ export type Seller = {
   authUserId?: string | null;
   email: string;
   status: 'active' | 'suspended';
+};
+
+export type OrderMaterialGroup = {
+  id: string;
+  orderId: string;
+  material: string;
+  groupNumber: string;
+  status: string;
+  isVerified: boolean;
+  externalInvoice?: string | null;
+  items: OrderItem[];
 };
 
 export type Order = {
@@ -66,4 +79,5 @@ export type Order = {
   adjustmentAcknowledged?: boolean;
   carrier?: string | null;
   trackingNumber?: string | null;
+  groups?: OrderMaterialGroup[];
 };

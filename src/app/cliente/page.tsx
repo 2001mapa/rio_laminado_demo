@@ -14,12 +14,14 @@ const NEW_ARRIVAL_DAYS = 30;
 export default function CatalogoPage() {
   const { products, currentCustomer, isLoaded, cart, orders } = useDemo();
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const categories = ['Todos', ...Array.from(new Set(products.filter(p => p.imageUrl).map(p => p.category)))];
   
   const availableProducts = products.filter(p => {
+    if (activeMaterial !== 'Todos' && p.material !== activeMaterial) return false;
     if (!p.imageUrl) return false;
     const stockDisponible = p.physicalStock - p.reservedStock;
     if (stockDisponible <= 0) return false;

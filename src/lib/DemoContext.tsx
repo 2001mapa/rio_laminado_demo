@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase/client';
 import { getAppData } from '@/app/actions/queries';
 import { createCustomer as createCustomerAction, updateCustomerStatusAction } from '@/app/actions/clients';
 import { createSeller as createSellerAction } from '@/app/actions/sellers';
-import { createOrder as createOrderAction, transitionOrder as transitionOrderAction, acknowledgeOrderAdjustment as acknowledgeAdjustmentAction } from '@/app/actions/orders';
+import { createOrder as createOrderAction, transitionOrder as transitionOrderAction, acknowledgeOrderAdjustment as acknowledgeAdjustmentAction, updateMaterialGroupInvoice as updateMaterialGroupInvoiceAction } from '@/app/actions/orders';
 import { OrderTransitionAction } from '@/lib/order-status';
 
 export type CartItem = {
@@ -39,6 +39,7 @@ type DemoContextType = {
   checkoutSeller: (customerId: string, cartItems: CartItem[]) => Promise<any>;
   resetDemoData: () => void;
   refreshData: () => Promise<void>;
+  updateGroupInvoice: (groupId: string, invoice: string) => Promise<{success: boolean, error?: string}>;
   isLoaded: boolean;
 };
 
@@ -257,7 +258,19 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
-  const checkoutSeller = async (customerId: string, cartItems: CartItem[]) => {
+  const updateGroupInvoice = async (groupId: string, invoice: string) => {
+      try {
+        const result = await updateMaterialGroupInvoiceAction(groupId, invoice);
+        if (result.success) {
+           await refreshData();
+        }
+        return result;
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    };
+    
+    const checkoutSeller = async (customerId: string, cartItems: CartItem[]) => {
     if (!currentSeller) return { success: false, error: 'No seller logged in' };
     
     const orderData = {

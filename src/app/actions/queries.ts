@@ -23,7 +23,7 @@ export async function getAppData() {
       customers = await prisma.customer.findMany();
       sellers = await prisma.seller.findMany();
       orders = await prisma.order.findMany({
-        include: { items: { include: { product: true } }, customer: true, seller: true },
+        include: { items: { include: { product: true } }, customer: true, seller: true, groups: { include: { items: true } } },
         orderBy: { createdAt: 'desc' }
       });
     } else if (role === 'vendedor') {
@@ -34,7 +34,7 @@ export async function getAppData() {
         sellers = [sellerProfile];
         orders = await prisma.order.findMany({
           where: { sellerId: sellerProfile.id },
-          include: { items: { include: { product: true } }, customer: true },
+          include: { items: { include: { product: true } }, customer: true, groups: { include: { items: true } } },
           orderBy: { createdAt: 'desc' }
         });
       }

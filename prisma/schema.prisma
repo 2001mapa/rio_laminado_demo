@@ -32,6 +32,7 @@ model Product {
   physicalStock Int         @default(0)
   reservedStock Int         @default(0)
   isActive      Boolean     @default(true)
+  material      String?     @default("Por revisar")
   imageUrl      String?
   hoverImageUrl String?
   locationCode  String?
@@ -64,6 +65,7 @@ model Order {
   adjustmentAcknowledged Boolean @default(false)
   items       OrderItem[]
   statusHistory OrderStatusHistory[]
+  groups      OrderMaterialGroup[]
 }
 
 model OrderItem {
@@ -78,8 +80,10 @@ model OrderItem {
   adjustmentReason String?
   verified         Boolean  @default(false)
   issue            String?
+  materialGroupId  String?
+  group            OrderMaterialGroup? @relation(fields: [materialGroupId], references: [id], onDelete: SetNull)
+  materialSnapshot String?
 }
-
 
 model OrderStatusHistory {
   id              String   @id @default(uuid())
@@ -91,5 +95,18 @@ model OrderStatusHistory {
   actorAuthUserId String?
   actorRole       String?
   reason          String?
+  createdAt       DateTime @default(now())
+}
+
+model OrderMaterialGroup {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  material        String
+  groupNumber     String
+  isVerified      Boolean  @default(false)
+  status          String   @default("Pendiente")
+  externalInvoice String?
+  items           OrderItem[]
   createdAt       DateTime @default(now())
 }

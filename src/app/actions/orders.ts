@@ -46,74 +46,96 @@ export async function createOrder(data: {
 
     // Transacción atómica
     const order = await prisma.$transaction(async (tx) => {
-      // 2. Verificar inventario y preparar items con precios de la base de datos
-      let subtotal = 0;
-      const orderItemsData = [];
+        let subtotal = 0;
+        const orderItemsByMaterial: Record<string, any[]> = {};
 
-      for (const item of data.items) {
-        if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-          throw new Error('Cantidad inválida.');
-        }
+        for (const item of data.items) {
+          if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+            throw new Error('Cantidad inválida.');
+          }
 
-        const product = await tx.product.findUnique({
-          where: { id: item.productId }
-        });
-        
-        if (!product || !product.isActive) {
-          throw new Error(`Producto no encontrado o inactivo.`);
+          const product = await tx.product.findUnique({
+            where: { id: item.productId }
+          });
+          
+          if (!product || !product.isActive) {
+            throw new Error(`Producto no encontrado o inactivo.`);
+          }
+          
+          if (!product.material || product.material === 'Por revisar') {
+            throw new Error(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
+          }
+          
+          const available = product.physicalStock - product.reservedStock;
+          if (item.quantity > available) {
+            throw new Error(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
+          }
+          
+          const updatedProduct = await tx.product.update({
+            where: { id: product.id },
+            data: {
+              reservedStock: { increment: item.quantity }
+            }
+          });
+
+          if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
+            throw new Error(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
+          }
+
+          const price = product.price;
+          subtotal += price * item.quantity;
+          
+          const mat = product.material;
+          if (!orderItemsByMaterial[mat]) orderItemsByMaterial[mat] = [];
+          orderItemsByMaterial[mat].push({
+            productId: product.id,
+            quantity: item.quantity,
+            priceAtTime: price,
+            materialSnapshot: mat
+          });
         }
         
-        const available = product.physicalStock - product.reservedStock;
-        if (item.quantity > available) {
-          throw new Error(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
-        }
-        
-        // 3. Incrementar stock reservado usando increment atómico
-        // Aunque estamos en transacción, el incremento es seguro
-        const updatedProduct = await tx.product.update({
-          where: { id: product.id },
+        const totalAmount = subtotal * (1 - discount);
+        const orderNumber = `PED-${Math.floor(1000 + Math.random() * 9000)}-${Date.now().toString().slice(-4)}`;
+
+        const newOrder = await tx.order.create({
           data: {
-            reservedStock: { increment: item.quantity }
+            orderNumber,
+            customerId: finalCustomerId,
+            sellerId: finalSellerId,
+            status: 'Reservado',
+            totalAmount: totalAmount,
           }
         });
-
-        // Verificación optimista de concurrencia
-        if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
-          throw new Error(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
+        
+        for (const [material, items] of Object.entries(orderItemsByMaterial)) {
+           const materialCode = material.substring(0, 3).toUpperCase();
+           const group = await tx.orderMaterialGroup.create({
+             data: {
+                orderId: newOrder.id,
+                material,
+                groupNumber: `${orderNumber}-${materialCode}`,
+                status: 'Pendiente'
+             }
+           });
+           
+           await tx.orderItem.createMany({
+             data: items.map(item => ({
+               ...item,
+               orderId: newOrder.id,
+               materialGroupId: group.id
+             }))
+           });
         }
-
-        const price = product.price;
-        subtotal += price * item.quantity;
-
-        orderItemsData.push({
-          productId: product.id,
-          quantity: item.quantity,
-          priceAtTime: price
+        
+        return await tx.order.findUnique({
+           where: { id: newOrder.id },
+           include: { items: true, groups: { include: { items: true } } }
         });
-      }
-      
-      const totalAmount = subtotal * (1 - discount);
-
-      // 4. Crear el pedido
-      return await tx.order.create({
-        data: {
-          orderNumber: `PED-${Math.floor(1000 + Math.random() * 9000)}-${Date.now().toString().slice(-4)}`,
-          customerId: finalCustomerId,
-          sellerId: finalSellerId,
-          status: 'Reservado',
-          totalAmount: totalAmount,
-          items: {
-            create: orderItemsData
-          }
-        },
-        include: {
-          items: true
-        }
+      }, {
+        maxWait: 5000, 
+        timeout: 10000 
       });
-    }, {
-      maxWait: 5000, 
-      timeout: 10000 
-    });
     
     return { success: true, order };
   } catch (error: any) {
@@ -144,6 +166,17 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
       }
       
       const nextStatus = getNextState(existingOrder.status, action);
+
+        // Bloquear confirmación o avance si faltan facturas
+        if (action === 'SEND_TO_VERIFICATION' || action === 'PACK' || action === 'DISPATCH') {
+           const orderWithGroups = await tx.order.findUnique({ where: { id: orderId }, include: { groups: true } });
+           if (orderWithGroups?.groups && orderWithGroups.groups.length > 0) {
+              const allInvoiced = orderWithGroups.groups.every(g => g.externalInvoice);
+              if (!allInvoiced) {
+                 throw new Error('No se puede avanzar el pedido principal hasta que TODOS los grupos de material estén facturados.');
+              }
+           }
+        }
 
       if (action === 'CANCEL' && existingOrder.status !== 'Cancelado') {
         for (const item of existingOrder.items) {
@@ -286,5 +319,45 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
   } catch (error: any) {
     console.error('Error updating order checklist:', error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function updateMaterialGroupInvoice(groupId: string, invoice: string) {
+  try {
+    await requireRole(['admin']);
+    const group = await prisma.orderMaterialGroup.findUnique({
+       where: { id: groupId },
+       include: { order: { include: { groups: true } } }
+    });
+    if (!group) throw new Error("Grupo no encontrado");
+    if (!invoice.trim()) throw new Error("El número de factura no puede estar vacío");
+
+    // Verificar unicidad externa dentro del pedido
+    const duplicate = group.order.groups.find(g => g.id !== groupId && g.externalInvoice === invoice.trim());
+    if (duplicate) throw new Error("El número de factura externa ya está registrado en otro grupo de este pedido");
+
+    await prisma.orderMaterialGroup.update({
+       where: { id: groupId },
+       data: { 
+         externalInvoice: invoice.trim(),
+         status: 'Preparado y Facturado',
+         isVerified: true
+       }
+    });
+
+    // Auto-avanzar el pedido principal si todos los grupos están facturados y el pedido sigue en preparación
+    const updatedOrder = await prisma.order.findUnique({
+      where: { id: group.orderId },
+      include: { groups: true }
+    });
+
+    const allInvoiced = updatedOrder?.groups.every(g => g.externalInvoice);
+    if (allInvoiced && updatedOrder?.status === 'En preparación') {
+      await transitionOrder(group.orderId, 'SEND_TO_VERIFICATION', 'Autocompletado al facturar todos los materiales');
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
