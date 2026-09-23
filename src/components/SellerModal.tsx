@@ -1,26 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Loader2, CheckCircle, Copy } from 'lucide-react';
-import { createSeller, updateSeller } from '@/app/actions/sellers';
-import { Seller } from '@/lib/types';
 import { useDemo } from '@/lib/DemoContext';
+import { createSeller, updateSeller } from '@/app/actions/sellers';
+import { X, Loader2, Copy, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Seller } from '@/lib/types';
 
 export default function SellerModal({ 
   isOpen, 
   onClose,
   onComplete,
-  sellerToEdit = null
+  sellerToEdit 
 }: { 
   isOpen: boolean; 
   onClose: () => void;
   onComplete: () => void;
-  sellerToEdit?: Seller | null;
+  sellerToEdit: Seller | null;
 }) {
   const { addSeller } = useDemo();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [successData, setSuccessData] = useState<any>(null);
+  const [successData, setSuccessData] = useState<Seller & { tempPassword?: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   // Form states
@@ -62,21 +62,12 @@ export default function SellerModal({
           onComplete(); // Cerramos directo tras editar
         }
       } else {
-        // Modo Creación (Invitación)
+        // Modo Creación
         const res = await createSeller({ name, email });
         if (!res.success) {
           setError(res.message);
         } else {
-          setSuccessData(res.seller);
-          if (res.seller) {
-            addSeller({
-              id: res.seller.id,
-              name: res.seller.name,
-            username: email,
-              email: res.seller.email,
-              status: res.seller.status as 'active' | 'suspended'
-            });
-          }
+          setSuccessData({ ...(res.seller as Seller), tempPassword: (res as any).tempPassword });
         }
       }
     } catch (err) {
@@ -92,7 +83,7 @@ export default function SellerModal({
     const inviteUrl = `${baseUrl}/login`;
     
     navigator.clipboard.writeText(
-      `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. \n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}`
+      `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO.\n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}\nCorreo: ${successData.email}\nContraseña temporal: ${successData.tempPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -128,7 +119,7 @@ export default function SellerModal({
 
             {!sellerToEdit && (
               <div className="bg-rio-gold-light/10 border border-rio-gold-light rounded-xl p-3 text-xs text-rio-ink leading-relaxed">
-                <strong>Lógica por Invitación:</strong> Al crear este vendedor, el sistema generará un <strong>Enlace Mágico</strong> único para que ingrese directamente a su terminal de ventas sin necesidad de claves.
+                <strong>Acceso Seguro:</strong> Se creará una cuenta real con contraseña temporal. Podrás compartirle las credenciales para que inicie sesión y registre ventas.
               </div>
             )}
 
@@ -159,7 +150,7 @@ export default function SellerModal({
                 Cancelar
               </button>
               <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-rio-ink text-white rounded-xl text-sm font-bold hover:bg-rio-ink/90 transition-colors flex justify-center items-center">
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : sellerToEdit ? 'Guardar Cambios' : 'Generar Invitación'}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : sellerToEdit ? 'Guardar Cambios' : 'Crear Vendedor'}
               </button>
             </div>
           </form>
@@ -169,21 +160,23 @@ export default function SellerModal({
             
             <div>
               <h4 className="text-xl font-bold text-rio-ink mb-1">{successData.name}</h4>
-              <p className="text-sm text-rio-muted">El perfil ha sido creado con éxito. Ya puedes compartirle su acceso único para el punto de venta (POS).</p>
+              <p className="text-sm text-rio-muted">El perfil ha sido creado con éxito y su acceso real está configurado.</p>
             </div>
 
             <div className="bg-rio-background border border-rio-border rounded-xl p-4 text-left">
-              <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Mensaje Listo para Enviar:</p>
+              <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Credenciales Generadas:</p>
               <p className="text-sm text-rio-ink font-serif italic mb-4">
-                "¡Hola {successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. Ingresa a tu panel de ventas (POS) aquí: <br/><br/>
-                <span className="font-mono text-rio-gold-dark text-xs break-all">{window.location.origin}/login</span>"
+                {`¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. Ingresa aquí:`}<br/><br/>
+                URL: <span className="font-mono text-rio-gold-dark text-xs">{window.location.origin}/login</span><br/>
+                Correo: <span className="font-mono text-rio-gold-dark text-xs">{successData.email}</span><br/>
+                Clave temporal: <span className="font-mono text-rio-gold-dark text-xs font-bold">{successData.tempPassword}</span>
               </p>
               <button 
                 onClick={copyInviteLink}
                 className="w-full py-2.5 bg-rio-surface-muted border border-rio-border rounded-lg text-[13px] font-bold text-rio-ink hover:bg-rio-border transition-colors flex justify-center items-center gap-2"
               >
                 {copied ? <CheckCircle className="w-4 h-4 text-rio-success" /> : <Copy className="w-4 h-4" />}
-                {copied ? '¡Mensaje Copiado!' : 'Copiar Mensaje para WhatsApp'}
+                {copied ? '¡Copiado!' : 'Copiar para WhatsApp'}
               </button>
             </div>
 

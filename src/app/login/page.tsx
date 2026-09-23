@@ -61,7 +61,7 @@ export default function LoginPage() {
       
       const cookieNames2 = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
       
-      const role = data.user?.user_metadata?.role || 'admin';
+      const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role || 'admin';
       const targetPath = role === 'admin' ? '/admin' : role === 'vendedor' ? '/vendedor' : role === 'cliente' ? '/cliente' : '/';
       
       // Breve pausa para asegurar escritura en disco antes de la redirección dura

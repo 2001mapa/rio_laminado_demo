@@ -4,38 +4,31 @@ import { useDemo } from '@/lib/DemoContext';
 import { Package, Mail, LogOut, RefreshCw, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { createClient } from '@/utils/supabase/client';
+
 export default function VendedorPerfilPage() {
-  const { currentSeller, orders, resetDemoData } = useDemo();
+  const { currentSeller, orders } = useDemo();
 
   if (!currentSeller) return null;
 
   const sellerOrders = orders.filter(o => o.sellerId === currentSeller.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const handleReset = () => {
-    if (confirm('¿Restablecer tu sesión a su estado inicial?')) {
-      resetDemoData();
-      alert('Datos restablecidos');
-      window.location.reload();
-    }
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
   };
 
   const ActionButtons = () => (
     <div className="space-y-3">
       <button 
-        onClick={handleReset}
-        className="w-full flex items-center justify-center py-3.5 px-4 border border-rio-border rounded-xl text-sm font-semibold text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors shadow-sm"
-      >
-        <RefreshCw className="w-4 h-4 mr-2 text-rio-muted" />
-        Restablecer Datos Locales
-      </button>
-      <Link 
-        href="/api/auth/logout"
+        onClick={handleLogout}
         className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/10 hover:bg-rio-danger/20 transition-colors shadow-sm"
       >
         <LogOut className="w-4 h-4 mr-2" />
         Cerrar sesión
-      </Link>
+      </button>
     </div>
   );
 

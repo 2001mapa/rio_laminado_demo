@@ -28,6 +28,7 @@ export async function createOrder(data: {
       if (role === 'vendedor') {
         const seller = await prisma.seller.findUnique({ where: { authUserId: user.id } });
         if (!seller) throw new Error('Perfil de vendedor no encontrado');
+        if (seller.status !== 'active') throw new Error('Cuenta de vendedor suspendida');
         finalSellerId = seller.id;
       }
     }

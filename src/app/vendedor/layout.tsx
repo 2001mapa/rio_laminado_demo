@@ -22,7 +22,8 @@ export default function VendedorLayout({
       const supabase = createClient();
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (!session || session.user.user_metadata?.role !== 'vendedor') {
+      const role = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role;
+      if (!session || role !== 'vendedor') {
         console.log('[Layout Vendedor] No session or wrong role', { hasSession: !!session, error: error?.message });
         router.push('/login');
       } else {
@@ -39,6 +40,12 @@ export default function VendedorLayout({
     { name: 'Nueva Venta', href: '/vendedor/nueva-venta', icon: ScanLine },
     { name: 'Perfil', href: '/vendedor/perfil', icon: User },
   ];
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   return (
     <div className="min-h-screen bg-rio-background pb-20 md:pb-0 relative font-sans">
@@ -74,14 +81,14 @@ export default function VendedorLayout({
         </nav>
 
         <div className="flex justify-end md:w-1/3">
-          <Link 
-            href="/api/auth/logout"
+          <button 
+            onClick={handleLogout}
             className="p-2 text-rio-muted hover:text-rio-danger transition-colors flex items-center gap-2 rounded-xl hover:bg-rio-danger/5"
             title="Salir de la Demo"
           >
             <span className="hidden md:inline text-sm font-semibold text-rio-danger">Salir</span>
             <LogOut className="w-5 h-5 text-rio-danger" />
-          </Link>
+          </button>
         </div>
       </header>
 

@@ -19,6 +19,8 @@ export default function NuevaVentaPage() {
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [scanQuantity, setScanQuantity] = useState(1);
@@ -182,13 +184,21 @@ export default function NuevaVentaPage() {
   };
 
   const handleCheckout = async () => {
-    if (!selectedCustomer || cartItems.length === 0) return;
+    if (!selectedCustomer || cartItems.length === 0 || isCheckingOut) return;
     
+    setIsCheckingOut(true);
     if (scannerRef.current && isScanning) {
       await scannerRef.current.stop();
     }
     
-    const result = await checkoutSeller(selectedCustomer.id, cartItems); if(result && result.success) { addToast('Venta registrada con �xito!'); router.push('/vendedor'); } else { alert('Error: ' + (result?.error || '')); }
+    const result = await checkoutSeller(selectedCustomer.id, cartItems); 
+    if (result && result.success) { 
+      addToast("Venta registrada con éxito! Pedido #" + result.order.number); 
+      router.push('/vendedor'); 
+    } else { 
+      alert('Error: ' + (result?.error || '')); 
+      setIsCheckingOut(false);
+    }
   };
 
   const totalAmount = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
@@ -450,10 +460,10 @@ export default function NuevaVentaPage() {
             </div>
             <button 
               onClick={handleCheckout}
-              disabled={cartItems.length === 0 || !selectedCustomer}
+              disabled={cartItems.length === 0 || !selectedCustomer || isCheckingOut}
               className="w-full bg-rio-gold-dark disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-rio-gold active:scale-[0.98] transition-all flex items-center justify-center"
             >
-              Finalizar Venta <Check className="w-5 h-5 ml-2"/>
+              {isCheckingOut ? "Procesando..." : "Finalizar Venta"} <Check className="w-5 h-5 ml-2"/>
             </button>
             {(!selectedCustomer && cartItems.length > 0) && (
               <p className="text-[10px] text-center text-rio-danger mt-2">Selecciona un cliente para finalizar.</p>

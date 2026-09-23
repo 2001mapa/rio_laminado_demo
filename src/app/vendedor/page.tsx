@@ -10,8 +10,7 @@ export default function VendedorDashboard() {
 
   const sellerOrders = orders.filter(o => o.sellerId === currentSeller?.id);
   const totalSales = sellerOrders.reduce((acc, order) => {
-    // For simplicity, we assume an average item price of 60,000 COP for demo stats
-    return acc + (order.items.length * 60000);
+    return acc + ((order as any).totalAmount || 0);
   }, 0);
 
   return (
