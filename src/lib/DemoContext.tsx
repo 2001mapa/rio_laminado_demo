@@ -269,6 +269,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     };
     
     const result = await addOrder(orderData);
+    if (result && result.success) {
+      await refreshData();
+      setCart([]);
+    }
     return result;
   };
 
