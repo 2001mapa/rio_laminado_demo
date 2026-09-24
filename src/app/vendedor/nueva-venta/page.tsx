@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
   const router = useRouter();
-  const { customers, products, checkoutSeller, addCustomer } = useDemo();
+  const { customers, products, checkoutSeller } = useDemo();
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -151,37 +151,7 @@ export default function NuevaVentaPage() {
     if (scannerRef.current) scannerRef.current.resume();
   };
 
-  const handleCreateCustomer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustomerName.trim()) {
-      addToast("El nombre del cliente es obligatorio.");
-      return;
-    }
-    const tempId = `temp-${Date.now()}`;
-    const newCustomer: Customer = {
-      id: tempId,
-      username: 'temp_' + tempId,
-      name: newCustomerName.trim(),
-      email: newCustomerEmail.trim() || `temp_${tempId}@local.test`,
-      discount: 0,
-      showDiscount: false,
-      status: 'active',
-      phone: newCustomerPhone.trim() || 'No especificado',
-      address: newCustomerAddress.trim() || 'No especificada',
-    };
-    
-    addCustomer(newCustomer);
-    addToast(`Cliente ${newCustomer.name} creado.`);
-    
-    // Auto select
-    setSelectedCustomer(newCustomer);
-    setShowNewCustomerModal(false);
-    setNewCustomerName("");
-    setNewCustomerEmail("");
-    setNewCustomerPhone("");
-    setNewCustomerAddress("");
-    setStep(2);
-  };
+  
 
   const handleCheckout = async () => {
     if (!selectedCustomer || cartItems.length === 0 || isCheckingOut) return;
@@ -242,12 +212,12 @@ export default function NuevaVentaPage() {
               </div>
 
               <button 
-                onClick={() => setShowNewCustomerModal(true)}
-                className="w-full py-3 border-2 border-dashed border-rio-border rounded-xl text-rio-muted hover:text-rio-ink hover:border-rio-ink hover:bg-rio-surface-muted transition-colors flex items-center justify-center font-semibold text-sm"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Crear Cliente Rápido
-              </button>
+                  onClick={() => addToast('La creación de clientes por vendedores requiere configuración de permisos. Solicita la creación al administrador.')}
+                  className="w-full py-3 border-2 border-dashed border-rio-border rounded-xl text-rio-muted hover:bg-rio-surface-muted transition-colors flex items-center justify-center font-semibold text-sm cursor-not-allowed"
+                >
+                  <UserPlus className="w-4 h-4 mr-2 opacity-50" />
+                  <span className="opacity-50">Crear Cliente Rápido</span>
+                </button>
 
               <div className="space-y-2 mt-4">
                 <h3 className="text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Resultados ({filteredCustomers.length})</h3>
@@ -473,84 +443,7 @@ export default function NuevaVentaPage() {
       </div>
 
       {/* New Customer Modal */}
-      {showNewCustomerModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-slide-up">
-            <div className="p-4 border-b border-rio-border flex justify-between items-center bg-rio-surface-muted">
-              <h3 className="font-bold text-rio-ink flex items-center">
-                <UserPlus className="w-5 h-5 mr-2 text-rio-gold-dark" />
-                Registrar Cliente Nuevo
-              </h3>
-              <button onClick={() => setShowNewCustomerModal(false)} className="p-1 hover:bg-rio-border rounded-full text-rio-muted hover:text-rio-ink"><X className="w-5 h-5"/></button>
-            </div>
-            <form onSubmit={handleCreateCustomer} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-rio-muted uppercase mb-1.5">Nombre Completo / Empresa *</label>
-                <input 
-                  type="text" 
-                  autoFocus
-                  required
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
-                  placeholder="Ej. Comercializadora Oro S.A."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-rio-muted uppercase mb-1.5">Correo Electrónico (Opcional)</label>
-                <input 
-                  type="email" 
-                  value={newCustomerEmail}
-                  onChange={(e) => setNewCustomerEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
-                  placeholder="ejemplo@correo.com"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-rio-muted uppercase mb-1.5">Teléfono (Opcional)</label>
-                  <input 
-                    type="tel" 
-                    value={newCustomerPhone}
-                    onChange={(e) => setNewCustomerPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
-                    placeholder="3001234567"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-rio-muted uppercase mb-1.5">Dirección (Opcional)</label>
-                  <input 
-                    type="text" 
-                    value={newCustomerAddress}
-                    onChange={(e) => setNewCustomerAddress(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-rio-border bg-rio-background text-sm focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink"
-                    placeholder="Calle 10 # 45-23"
-                  />
-                </div>
-              </div>
-              <p className="text-[11px] text-rio-muted mt-4 bg-rio-gold-light/10 p-3 rounded-lg border border-rio-gold-light/30">
-                Al crear un pedido con este cliente temporal, el administrador lo verá como nuevo y podrá formalizarlo en el sistema.
-              </p>
-              
-              <div className="flex gap-3 pt-2">
-                <button 
-                  type="button" 
-                  onClick={() => setShowNewCustomerModal(false)} 
-                  className="flex-1 py-3.5 border border-rio-border text-rio-ink rounded-xl text-sm font-semibold hover:bg-rio-surface-muted transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-3.5 bg-rio-ink text-white rounded-xl text-sm font-bold hover:bg-rio-ink/90 transition-colors"
-                >
-                  Continuar a Escanear
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

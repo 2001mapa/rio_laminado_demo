@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { initialProducts, initialCustomers, initialSellers } from './src/lib/mockData';
+import { initialProducts, initialCustomers, initialSellers } from './src/__fixtures__/mockData';
 
 const prisma = new PrismaClient();
 

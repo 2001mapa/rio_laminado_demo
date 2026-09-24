@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product, Customer, Order, OrderStatus, Seller } from './types';
-import { initialProducts, initialCustomers, initialOrders, initialSellers } from './mockData';
 import { createClient } from '@/utils/supabase/client';
 import { getAppData } from '@/app/actions/queries';
 import { createCustomer as createCustomerAction, updateCustomerStatusAction } from '@/app/actions/clients';
@@ -34,10 +33,8 @@ type DemoContextType = {
   transitionOrder: (orderId: string, action: OrderTransitionAction, trackingInfo?: {carrier: string, trackingNumber: string}) => Promise<any>;
   acknowledgeAdjustment: (orderId: string) => Promise<any>;
   updateCustomer: (customer: Customer) => void;
-  addCustomer: (customer: Customer) => void;
   addSeller: (seller: Seller) => void;
   checkoutSeller: (customerId: string, cartItems: CartItem[]) => Promise<any>;
-  resetDemoData: () => void;
   refreshData: () => Promise<void>;
   updateGroupInvoice: (groupId: string, invoice: string) => Promise<{success: boolean, error?: string}>;
   isLoaded: boolean;
@@ -289,15 +286,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return result;
   };
 
-  const resetDemoData = () => {
-    setProducts(initialProducts);
-    setCustomers(initialCustomers);
-    setOrders(initialOrders);
-    setSellers(initialSellers);
-    setCurrentCustomer(initialCustomers[0]);
-    setCurrentSeller(initialSellers[0]);
-    localStorage.removeItem('rio_cart');
-  };
+  
 
   const updateCustomer = async (customer: Customer) => {
     // Optimistic UI update
@@ -313,27 +302,11 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (error) {
       console.error('Error updating customer in DB:', error);
-      // Optional: rollback optimistic update if needed
+      await refreshData(); // rollback optimistic update
     }
   };
 
-  const addCustomer = async (customer: Customer) => {
-    setCustomers(prev => [...prev, customer]);
-    try {
-      const res = await createCustomerAction({
-         name: customer.name,
-         username: customer.username,
-         email: customer.email,
-         phone: customer.phone,
-         address: customer.address,
-         discount: customer.discount || 0,
-         showDiscount: customer.showDiscount || false,
-      });
-      if (res.success && res.customer) {
-         setCustomers(prev => prev.map(c => c.id === customer.id ? (res.customer as any) : c));
-      }
-    } catch (e) { console.error(e) }
-  };
+  
 
   const addSeller = async (seller: Seller) => {
     setSellers(prev => [...prev, seller]);
@@ -369,9 +342,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       transitionOrder,
       acknowledgeAdjustment,
       updateCustomer,
-      addCustomer,
       addSeller,
-      resetDemoData,
       refreshData,
       updateGroupInvoice,
       isLoaded,

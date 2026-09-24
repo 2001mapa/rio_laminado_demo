@@ -4,6 +4,7 @@ import { useDemo } from '@/lib/DemoContext';
 import { Package, TrendingUp, Users } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
+import { addToast } from '@/lib/toast';
 
 export default function VendedorDashboard() {
   const { currentSeller, orders } = useDemo();
@@ -62,9 +63,7 @@ export default function VendedorDashboard() {
       <div className="pt-2">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-rio-ink">Tus pedidos recientes</h2>
-          <Link href="#" className="text-xs font-bold text-rio-gold-dark hover:underline">
-            Ver todos
-          </Link>
+          <button onClick={() => addToast('La vista de todos los pedidos está en construcción.')} className="text-xs font-bold text-rio-gold-dark hover:underline">Ver todos</button>
         </div>
         
         {sellerOrders.length === 0 ? (

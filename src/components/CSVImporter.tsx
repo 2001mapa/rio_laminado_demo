@@ -12,7 +12,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'parsing' | 'staging' | 'uploading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
-  const [previewData, setPreviewData] = useState<{ toCreate: number, toUpdate: number, errors: any[] } | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
   const [parsedItems, setParsedItems] = useState<any[]>([]);
   const [nuevosProductos, setNuevosProductos] = useState<any[]>([]);
 
@@ -53,7 +53,9 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
               setPreviewData({
                 toCreate: previewResponse.toCreate || 0,
                 toUpdate: previewResponse.toUpdate || 0,
-                errors: previewResponse.errors || []
+                errors: previewResponse.errors || [],
+                stats: previewResponse.stats || { laminado: 0, plata: 0, rodio: 0, revisar: 0 },
+                samples: previewResponse.samples || []
               });
               setStatus('staging');
             } else {
@@ -176,7 +178,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
                       <div className="mt-3 bg-rio-danger/10 border border-rio-danger/20 rounded-lg p-3">
                         <p className="text-xs font-bold text-rio-danger mb-2">Se detectaron {previewData.errors.length} errores:</p>
                         <ul className="text-[11px] text-rio-danger/80 space-y-1 max-h-24 overflow-y-auto pr-2">
-                          {previewData.errors.map((e, idx) => (
+                          {previewData.errors.map((e: any, idx: number) => (
                             <li key={idx}>Fila {e.row}: {e.error}</li>
                           ))}
                         </ul>

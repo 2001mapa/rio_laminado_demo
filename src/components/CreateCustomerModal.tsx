@@ -14,7 +14,7 @@ export default function CreateCustomerModal({
   onClose: () => void;
   onComplete: () => void;
 }) {
-  const { addCustomer } = useDemo();
+  const {} = useDemo();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successData, setSuccessData] = useState<any>(null);
@@ -50,18 +50,9 @@ export default function CreateCustomerModal({
           setSuccessData({
             ...res.customer,
             username: customerData.username,
+            temporaryPassword: customerData.temporaryPassword,
           });
-          addCustomer({
-            id: res.customer.id,
-            name: res.customer.name,
-            username: customerData.username,
-            email: res.customer.email || '',
-            phone: res.customer.phone || '',
-            address: res.customer.address || '',
-            discount: res.customer.discount,
-            showDiscount: res.customer.showDiscount,
-            status: res.customer.status as 'active' | 'suspended'
-          });
+          // Removed duplicate optimistic update since we're using refreshData/onComplete.
         }
       }
     } catch (err) {
@@ -79,7 +70,7 @@ export default function CreateCustomerModal({
     const inviteUrl = `${baseUrl}/login`;
     
     navigator.clipboard.writeText(
-      `¡Hola ${successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Usuario: ${successData.username}\n🔑 Contraseña temporal: RIO2024`
+      `¡Hola ${successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Usuario: ${successData.username}\n🔑 Contraseña temporal: ${successData.temporaryPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -130,7 +121,7 @@ export default function CreateCustomerModal({
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Contraseña Temporal *</label>
-                  <input name="temporaryPassword" required type="text" defaultValue="RIO2024" className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="Ej. RIO1234" />
+                  <input name="temporaryPassword" required type="text" defaultValue={Math.random().toString(36).slice(-8).toUpperCase()} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="Ej. RIO1234" />
                 </div>
               </div>
 
@@ -196,7 +187,7 @@ export default function CreateCustomerModal({
                 "¡Hola {successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. <br/><br/>
                 🔗 Ingresa aquí: <span className="font-mono text-rio-gold-dark font-bold">{window.location.origin}/login</span><br/>
                 👤 Usuario: <span className="font-mono text-rio-gold-dark font-bold">{successData.username}</span><br/>
-                🔑 Contraseña: <span className="font-mono text-rio-gold-dark font-bold">RIO2024</span>"
+                🔑 Contraseña temporal: <span className="font-mono text-rio-gold-dark font-bold">{successData.temporaryPassword}</span>"
               </p>
               <button 
                 onClick={copyInviteLink}
