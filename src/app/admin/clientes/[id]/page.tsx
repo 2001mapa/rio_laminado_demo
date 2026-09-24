@@ -3,6 +3,7 @@
 import { useDemo } from '@/lib/DemoContext';
 import { updateCustomerStatusAction } from '@/app/actions/clients';
 import EditCustomerModal from '@/components/EditCustomerModal';
+import ResetPasswordModal from '@/components/ResetPasswordModal';
 import { useState } from 'react';
 import { addToast } from '@/lib/toast';
 import { ArrowLeft, Edit2, Mail, ShieldAlert, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
@@ -15,6 +16,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
   const { customers, orders, updateCustomer, refreshData, onlineUsers } = useDemo();
   const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const customer = customers.find(c => c.id === resolvedParams.id);
 
@@ -124,7 +126,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               Reenviar Invitación
             </button>
             
-            <button onClick={() => addToast('El restablecimiento de credenciales requiere configuración de Supabase Auth.')} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">
+            <button onClick={() => setIsResetModalOpen(true)} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">
               <Key className="w-4 h-4 mr-3 text-rio-warning" />
               Restablecer Acceso
             </button>
@@ -241,6 +243,12 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
           setIsEditModalOpen(false);
           refreshData();
         }}
+      />}
+
+      {customer && <ResetPasswordModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        customer={customer}
       />}
     </div>
   );

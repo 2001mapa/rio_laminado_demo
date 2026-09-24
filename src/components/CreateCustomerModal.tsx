@@ -19,6 +19,12 @@ export default function CreateCustomerModal({
   const [error, setError] = useState('');
   const [successData, setSuccessData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [password, setPassword] = useState(() => Math.random().toString(36).slice(-8).toUpperCase());
+  
+  const generatePassword = () => {
+    setPassword(Math.random().toString(36).slice(-8).toUpperCase() + Math.floor(Math.random() * 10));
+  };
+  
 
   if (!isOpen) return null;
 
@@ -28,6 +34,12 @@ export default function CreateCustomerModal({
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
+    const tempPass = formData.get('temporaryPassword') as string;
+    if (tempPass.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      setIsSubmitting(false);
+      return;
+    }
     
     const customerData = {
       name: formData.get('name') as string,
@@ -121,7 +133,12 @@ export default function CreateCustomerModal({
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Contraseña Temporal *</label>
-                  <input name="temporaryPassword" required type="text" defaultValue={Math.random().toString(36).slice(-8).toUpperCase()} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="Ej. RIO1234" />
+                  <div className="flex gap-2">
+                    <input name="temporaryPassword" required type="text" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold font-mono" placeholder="Ej. RIO1234" />
+                    <button type="button" onClick={generatePassword} className="px-3 py-2 bg-rio-surface-muted border border-rio-border rounded-xl text-xs font-bold text-rio-ink hover:bg-rio-border transition-colors">
+                      Generar
+                    </button>
+                  </div>
                 </div>
               </div>
 
