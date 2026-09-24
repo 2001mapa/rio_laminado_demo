@@ -168,7 +168,7 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
       const nextStatus = getNextState(existingOrder.status, action);
 
         // Bloquear confirmación o avance si faltan facturas
-        if (action === 'SEND_TO_VERIFICATION' || action === 'PACK' || action === 'DISPATCH') {
+        if (action === 'PACK' || action === 'DISPATCH') {
            const orderWithGroups = await tx.order.findUnique({ where: { id: orderId }, include: { groups: true } });
            if (orderWithGroups?.groups && orderWithGroups.groups.length > 0) {
               const allInvoiced = orderWithGroups.groups.every(g => g.externalInvoice);

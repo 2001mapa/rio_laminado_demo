@@ -536,7 +536,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                    const product = products.find(p => p.id === item.productId);
                    elements.push({ type: 'item', item, index, product });
                 });
-                elements.push({ type: 'marker', text: `Fin de ${g.material}` });
+                
              });
           } else {
              itemsToPrint.forEach((item, index) => {
