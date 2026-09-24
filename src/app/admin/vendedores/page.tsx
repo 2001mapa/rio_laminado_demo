@@ -7,7 +7,7 @@ import SellerModal from '@/components/SellerModal';
 import { Seller } from '@/lib/types';
 
 export default function AdminVendedoresPage() {
-  const { sellers, orders, refreshData } = useDemo();
+  const { sellers, orders, refreshData, onlineUsers } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
@@ -57,8 +57,15 @@ export default function AdminVendedoresPage() {
           return (
             <div key={seller.id} className="bg-rio-surface rounded-2xl shadow-sm border border-rio-border p-6 flex flex-col hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center text-xl font-serif text-rio-gold-dark border border-rio-border shrink-0 shadow-sm">
-                  {seller.name.charAt(0)}
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center text-xl font-serif text-rio-gold-dark border border-rio-border shrink-0 shadow-sm">
+                    {seller.name.charAt(0)}
+                  </div>
+                  {seller.authUserId && onlineUsers.includes(seller.authUserId) ? (
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-rio-surface rounded-full" title="En línea" aria-label="En línea" />
+                  ) : (
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-gray-400 border-2 border-rio-surface rounded-full" title="Desconectado" aria-label="Desconectado" />
+                  )}
                 </div>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${
                   seller.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'

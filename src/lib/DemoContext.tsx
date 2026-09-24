@@ -38,6 +38,7 @@ type DemoContextType = {
   refreshData: () => Promise<void>;
   updateGroupInvoice: (groupId: string, invoice: string) => Promise<{success: boolean, error?: string}>;
   isLoaded: boolean;
+  onlineUsers: string[];
 };
 
 export const DemoContext = createContext<DemoContextType | undefined>(undefined);
@@ -51,6 +52,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [currentSeller, setCurrentSeller] = useState<Seller | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [currentUserAuthId, setCurrentUserAuthId] = useState<string | null>(null);
 
   const refreshData = async () => {
     try {
@@ -88,6 +91,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     
     async function processSession(session: any) {
       if (session?.user) {
+        setCurrentUserAuthId(session.user.id);
         const role = session.user.user_metadata?.role || 'admin';
         const metaUsername = session.user.user_metadata?.username?.toLowerCase().trim();
         const emailPrefix = session.user.email?.split('@')[0]?.toLowerCase().trim();
@@ -113,9 +117,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           else setCurrentSeller(null);
         }
       } else {
-        setCurrentCustomer(null);
-        setCurrentSeller(null);
-      }
+          setCurrentUserAuthId(null);
+          setCurrentCustomer(null);
+          setCurrentSeller(null);
+        }
     }
 
     // Get initial session
@@ -151,6 +156,43 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('rio_current_seller', JSON.stringify(currentSeller));
     localStorage.setItem('rio_cart', JSON.stringify(cart));
   }, [products, customers, orders, sellers, currentCustomer, currentSeller, cart, isLoaded]);
+
+
+  // Supabase Presence Effect
+  useEffect(() => {
+    if (!isLoaded) return;
+    const supabase = createClient();
+    const presenceChannel = supabase.channel('rio_presence', {
+      config: {
+        presence: {
+          key: currentUserAuthId || 'anonymous'
+        }
+      }
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const activeIds = new Set<string>();
+        for (const [key, presences] of Object.entries(state)) {
+          if (key !== 'anonymous') {
+            activeIds.add(key);
+          }
+        }
+        setOnlineUsers(Array.from(activeIds));
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          if (currentUserAuthId) {
+            await presenceChannel.track({ online_at: new Date().toISOString() });
+          }
+        }
+      });
+
+    return () => {
+      presenceChannel.unsubscribe();
+    };
+  }, [isLoaded, currentUserAuthId]);
 
   const addToCart = (product: Product, quantity: number) => {
     setCart(prev => {
@@ -346,7 +388,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       refreshData,
       updateGroupInvoice,
       isLoaded,
-    }}>
+        onlineUsers,
+      }}>
       {children}
     </DemoContext.Provider>
   );
