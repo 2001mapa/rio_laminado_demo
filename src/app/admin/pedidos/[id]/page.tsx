@@ -24,17 +24,10 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const [carrier, setCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [invoices, setInvoices] = useState<Record<string, string>>({});
+  
   const { updateGroupInvoice } = useDemo();
   
-  const handleSaveInvoice = async (groupId: string) => {
-    const inv = invoices[groupId];
-    if (!inv) return;
-    const res = await updateGroupInvoice(groupId, inv);
-    if (!res.success) alert(res.error);
-    else window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Factura registrada' } }));
-  };
-
+  
   const handleTransition = async (action: any, trackingInfo?: {carrier: string, trackingNumber: string}) => {
     try {
       setIsTransitioning(true);
@@ -207,29 +200,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                         <h2 className="text-lg font-bold text-rio-ink">{group.material}</h2>
                         <p className="text-sm text-rio-muted">Bolsa {groupIdx + 1} de {groups.length} - {group.groupNumber}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-2 w-full md:w-auto">
-                        <span className="text-[10px] font-bold text-rio-ink bg-rio-surface-muted border border-rio-border px-2.5 py-1 rounded-md uppercase tracking-wider">
-                          {(group as any).status || 'Pendiente'}
-                        </span>
-                        {group.id !== 'main' && (
-                          <div className="flex items-center gap-2 mt-2 w-full md:w-auto">
-                            <input 
-                              type="text" 
-                              placeholder="Nº Factura Externa" 
-                              className="border border-rio-border rounded-lg px-3 py-1.5 text-sm w-full md:w-40 bg-rio-background text-rio-ink"
-                              value={invoices[group.id] !== undefined ? invoices[group.id] : (group.externalInvoice || '')}
-                              onChange={e => setInvoices({...invoices, [group.id]: e.target.value})}
-                              disabled={!!group.externalInvoice}
-                            />
-                            {!group.externalInvoice && (
-                              <button 
-                                onClick={() => handleSaveInvoice(group.id)}
-                                className="bg-rio-ink text-white px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap"
-                              >Guardar</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      
                     </div>
                     <div className="space-y-4">
                       {gItems.map(item => {
