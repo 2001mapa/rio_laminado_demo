@@ -99,7 +99,7 @@ export default function InventarioPage() {
                   onClick={() => { setShowPhotos(true); setShowActionsMenu(false); }}
                   className="w-full text-left px-4 py-2.5 text-sm hover:bg-rio-surface-muted flex items-center text-rio-ink font-medium"
                 >
-                  <ImageIcon className="w-4 h-4 mr-3 text-rio-muted" /> Subir Fotos ZIP
+                  <ImageIcon className="w-4 h-4 mr-3 text-rio-muted" /> Subir fotos por SKU
                 </button>
                 <Link 
                   href="/admin/inventario/imprimir"
@@ -129,7 +129,7 @@ export default function InventarioPage() {
                   <button onClick={() => setShowCSV(false)}><X className="w-5 h-5" /></button>
                </div>
                <div className="p-4 bg-rio-surface-muted text-xs text-rio-muted border-b border-rio-border leading-relaxed">
-                  <strong>Información:</strong> La importación actualiza el stock físico y datos principales. Si el nombre sugiere un material diferente al existente, se conservará el actual y se advertirá para protección de historial.
+                  <strong>Información:</strong> Para referencias existentes, el CSV reemplaza nombre, categoría, precio, cantidad física y ubicación. Conserva fotos, material confirmado, estado de publicación y unidades reservadas. Para referencias nuevas, crea el producto y detecta Laminado, Plata o Rodio a partir del nombre. Si no puede identificar un único material, queda Por revisar.<br/><br/>El archivo debe usar <code>;</code> o <code>,</code> como separador.
                </div>
                <div className="p-6">
                  <CSVImporter onComplete={() => refreshData()} />
