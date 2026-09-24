@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
-  const { currentCustomer, orders, resetDemoData, isLoaded, customers } = useDemo();
+  const { currentCustomer, orders, isLoaded, customers } = useDemo();
   const [debugSession, setDebugSession] = useState<any>(null);
 
   useEffect(() => {
@@ -22,13 +22,7 @@ export default function PerfilPage() {
   const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const handleReset = () => {
-    if (confirm('¿Restablecer tu sesión a su estado inicial?')) {
-      resetDemoData();
-      alert('Datos restablecidos');
-      window.location.reload();
-    }
-  };
+  ;
 
   if (!isLoaded) {
     return <div className="min-h-[50vh] flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
@@ -65,13 +59,7 @@ export default function PerfilPage() {
 
   const ActionButtons = () => (
     <div className="space-y-3">
-      <button
-        onClick={handleReset}
-        className="w-full flex items-center justify-center py-3.5 px-4 border border-rio-border rounded-xl text-sm font-semibold text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors shadow-sm"
-      >
-        <RefreshCw className="w-4 h-4 mr-2 text-rio-muted" />
-        Restablecer Datos Locales
-      </button>
+      
       <a
         href="/api/auth/logout"
         onClick={(e) => {
