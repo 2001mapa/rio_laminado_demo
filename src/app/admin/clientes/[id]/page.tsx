@@ -2,6 +2,8 @@
 
 import { useDemo } from '@/lib/DemoContext';
 import { updateCustomerStatusAction } from '@/app/actions/clients';
+import EditCustomerModal from '@/components/EditCustomerModal';
+import { useState } from 'react';
 import { addToast } from '@/lib/toast';
 import { ArrowLeft, Edit2, Mail, ShieldAlert, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +14,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
   const resolvedParams = use(params);
   const { customers, orders, updateCustomer, refreshData } = useDemo();
   const router = useRouter();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const customer = customers.find(c => c.id === resolvedParams.id);
 
@@ -123,7 +126,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
           <div className="bg-rio-surface p-6 rounded-2xl shadow-sm border border-rio-border">
             <div className="flex justify-between items-center mb-4 border-b border-rio-border pb-3">
               <h3 className="text-sm font-bold text-rio-ink uppercase tracking-wider">Datos de Contacto y Envío</h3>
-              <button onClick={() => addToast('La interfaz de edición de datos está en construcción.')} className="text-[11px] font-bold text-rio-gold-dark hover:text-rio-gold flex items-center uppercase tracking-wider">
+              <button onClick={() => setIsEditModalOpen(true)} className="text-[11px] font-bold text-rio-gold-dark hover:text-rio-gold flex items-center uppercase tracking-wider">
                 <Edit2 className="w-3 h-3 mr-1" /> Editar
               </button>
             </div>
@@ -215,6 +218,15 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </div>
+      {customer && <EditCustomerModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        customer={customer}
+        onComplete={() => {
+          setIsEditModalOpen(false);
+          refreshData();
+        }}
+      />}
     </div>
   );
 }
