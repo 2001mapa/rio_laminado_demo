@@ -41,7 +41,7 @@ export const PUBLIC_MESSAGES: Record<InternalOrderState, string> = {
   'Pendiente de verificación': 'Tu pedido está siendo gestionado. Para cambios, comunícate con tu asesor RIO.',
   'Verificado': 'Tu pedido está siendo gestionado. Para cambios, comunícate con tu asesor RIO.',
   'Empacado': 'Tu pedido ya está listo para ser despachado.',
-  'Despachado': 'Tu pedido ha sido enviado, en un momento un asesor se comunicará contigo para enviarte la guía.',
+  'Despachado': '¡Tu pedido ha sido enviado! Aquí abajo puedes ver tu número de rastreo, y en un momento nos comunicaremos contigo para enviarte la foto de la guía física.',
   'Cancelado': 'Este pedido ha sido cancelado.'
 };
 
