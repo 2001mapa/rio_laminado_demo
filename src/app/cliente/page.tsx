@@ -8,6 +8,7 @@ import { Product } from '@/lib/types';
 import { addToast } from '@/lib/toast';
 import { ProductCardSkeleton, WelcomeBannerSkeleton } from '@/components/Skeletons';
 import Link from 'next/link';
+import { OFFICIAL_PRODUCT_TYPES } from '@/lib/constants';
 
 const NEW_ARRIVAL_DAYS = 30;
 
@@ -18,18 +19,46 @@ export default function CatalogoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const availableProducts = products.filter(p => {
-    if (p.material === 'Por revisar') return false;
-    if (activeMaterial !== 'Todos' && p.material !== activeMaterial) return false;
-    if (!p.imageUrl) return false;
-    const stockDisponible = p.physicalStock - p.reservedStock;
-    if (stockDisponible <= 0) return false;
-    return true;
-  });
-
-  const categories = ['Todos', ...Array.from(new Set(availableProducts.map(p => p.category)))];
   
-  const clientMaterials = ['Todos', 'Laminado', 'Plata', 'Rodio'];
+  // 1. Base visible products (active, photo, stock > 0, not "Por revisar")
+  const allVisibleProducts = products.filter(p => p.isActive && p.imageUrl && p.material !== 'Por revisar' && (p.physicalStock - p.reservedStock) > 0);
+
+  // 2. Calculate available materials
+  const rawMaterials = Array.from(new Set(allVisibleProducts.map(p => p.material))).filter(Boolean) as string[];
+  const canonicalOrder = ['Laminado', 'Plata', 'Rodio'];
+  const allAvailableMaterials = canonicalOrder.filter(m => rawMaterials.includes(m));
+
+  // Determine effective material
+  let effectiveMaterial = activeMaterial;
+  if (allAvailableMaterials.length === 1) {
+    effectiveMaterial = allAvailableMaterials[0];
+  } else if (!allAvailableMaterials.includes(activeMaterial) && activeMaterial !== 'Todos') {
+    effectiveMaterial = allAvailableMaterials.length > 0 ? allAvailableMaterials[0] : 'Todos';
+  }
+
+  const showMaterialTabs = allAvailableMaterials.length > 1;
+  const clientMaterials = showMaterialTabs ? ['Todos', ...allAvailableMaterials] : [];
+
+  // 3. Calculate available types based on effective material
+  const productsForMaterial = allVisibleProducts.filter(p => effectiveMaterial === 'Todos' || p.material === effectiveMaterial);
+  // Sort types according to OFFICIAL_PRODUCT_TYPES order
+  const rawTypes = Array.from(new Set(productsForMaterial.map(p => p.category))).filter(Boolean);
+  const availableTypes = OFFICIAL_PRODUCT_TYPES.filter(t => rawTypes.includes(t));
+  rawTypes.forEach(t => { if (!OFFICIAL_PRODUCT_TYPES.includes(t)) availableTypes.push(t) });
+
+  let effectiveCategory = activeCategory;
+  if (effectiveCategory !== 'Todos' && !availableTypes.includes(effectiveCategory)) {
+    effectiveCategory = 'Todos';
+  }
+
+  useEffect(() => {
+    if (activeMaterial !== effectiveMaterial) setActiveMaterial(effectiveMaterial);
+    if (activeCategory !== effectiveCategory) setActiveCategory(effectiveCategory);
+  }, [effectiveMaterial, effectiveCategory, activeMaterial, activeCategory]);
+
+  const availableProducts = productsForMaterial;
+  const categories = availableTypes; // Just to avoid breaking any other map if there is one
+
 
   const discoverProducts = (() => {
     const now = new Date().getTime();
@@ -273,8 +302,8 @@ export default function CatalogoPage() {
               )}
             </div>
           ) : (
-            categories.filter(c => c !== 'Todos').map(category => {
-              const categoryProducts = filteredProducts.filter(p => p.category === category);
+            (effectiveCategory === 'Todos' ? availableTypes : [effectiveCategory]).map(category => {
+                const categoryProducts = filteredProducts.filter(p => p.category === category);
               if (categoryProducts.length === 0) return null;
               
               return (

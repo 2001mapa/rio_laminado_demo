@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
+import { OFFICIAL_PRODUCT_TYPES, normalizeProductType } from '@/lib/constants'
 
 const detectMaterial = (name: string): string => {
   if (!name) return 'Por revisar';
@@ -25,52 +26,56 @@ export async function bulkUploadInventory(items: any[]) {
     await requireRole(['admin']);
     console.log(`Processing ${items.length} items from CSV...`);
     
-    // 1. Identificar referencias existentes ANTES del upsert
-    const existingProducts = await prisma.product.findMany({ select: { sku: true, material: true } });
-    const existingMap = new Map(existingProducts.map(p => [p.sku, p.material]));
+    const existingProducts = await prisma.product.findMany({ select: { sku: true, material: true, locationCode: true } });
+    const existingMap = new Map(existingProducts.map(p => [p.sku, p]));
 
     let warnings: string[] = [];
-
-    // 2. Filtrar cuáles de los items entrantes son completamente nuevos
     const newItems = items.filter(item => !existingMap.has(item.sku));
 
-    // 3. Ejecutar el upsert masivo
     const operations = items.map((item) => {
       const priceStr = item.price ? item.price.toString() : '0';
       const price = parseFloat(priceStr.replace(/[^\d.-]/g, '')) || 0;
       const physicalStock = parseInt(item.physicalStock?.toString(), 10) || 0;
       
       const suggestedMaterial = detectMaterial(item.name || '');
-      const existingMaterial = existingMap.get(item.sku);
+      const existing = existingMap.get(item.sku);
       
-      if (existingMaterial && existingMaterial !== 'Por revisar' && suggestedMaterial !== 'Por revisar' && existingMaterial !== suggestedMaterial) {
-        warnings.push(`Advertencia: El SKU ${item.sku} tiene material '${existingMaterial}' pero su nuevo nombre sugiere '${suggestedMaterial}'. Conservado el original.`);
+      if (existing) {
+         if (existing.material && existing.material !== 'Por revisar' && suggestedMaterial !== 'Por revisar' && existing.material !== suggestedMaterial) {
+           warnings.push(`El SKU ${item.sku} ya es '${existing.material}'. Sugiere '${suggestedMaterial}'. (Conservado original)`);
+         }
+      }
+      
+      const updateData: any = {
+        name: item.name,
+        category: normalizeProductType(item.category),
+        price: price,
+        physicalStock: physicalStock,
+      };
+      
+      if (item.locationCode && item.locationCode.trim() !== '') {
+         updateData.locationCode = item.locationCode;
       }
       
       return prisma.product.upsert({
         where: { sku: item.sku },
-        update: {
-          name: item.name,
-          category: item.category,
-          price: price,
-          physicalStock: physicalStock,
-          locationCode: item.locationCode || null,
-        },
+        update: updateData,
         create: {
           sku: item.sku,
           name: item.name || 'Sin nombre',
-          category: item.category || 'Sin categoria',
+          category: normalizeProductType(item.category) || 'Sin categoría',
           price: price,
           physicalStock: physicalStock,
-          locationCode: item.locationCode || null,
-          material: suggestedMaterial
+          locationCode: (item.locationCode && item.locationCode.trim() !== '') ? item.locationCode : null,
+          material: suggestedMaterial,
+          reservedStock: 0,
+          isActive: true
         }
       });
     });
 
     await prisma.$transaction(operations);
     
-    // 4. Retornar éxito y la lista de nuevos productos
     return { 
       success: true, 
       message: `Se actualizaron ${items.length} referencias. Se encontraron ${newItems.length} referencias nuevas.`,
@@ -101,7 +106,7 @@ export async function createSingleProduct(data: {
       where: { sku: data.sku },
       update: {
         name: data.name,
-        category: data.category,
+        category: normalizeProductType(data.category),
         price: data.price,
         physicalStock: data.physicalStock,
         isActive: true,
@@ -110,7 +115,7 @@ export async function createSingleProduct(data: {
       create: {
         sku: data.sku,
         name: data.name,
-        category: data.category,
+        category: normalizeProductType(data.category),
         price: data.price,
         physicalStock: data.physicalStock,
         reservedStock: 0,
@@ -127,62 +132,6 @@ export async function createSingleProduct(data: {
   }
 }
 
-export async function previewCSVUpload(items: any[]) {
-  console.log(`[previewCSVUpload] Action triggered with ${items?.length} items`);
-  try {
-    const { user } = await requireRole(['admin']);
-    console.log(`[previewCSVUpload] Authorized as: ${user.id}`);
-    const skus = items.map(i => i.sku).filter(Boolean);
-    const existingProducts = await prisma.product.findMany({
-      where: { sku: { in: skus } },
-      select: { sku: true, material: true }
-    });
-    
-    const existingMap = new Map(existingProducts.map(p => [p.sku, p.material]));
-    
-    let toCreate = 0;
-    let toUpdate = 0;
-    let errors: { row: number, error: string }[] = [];
-    let materialIssues = 0;
-    
-    items.forEach((item, index) => {
-      if (!item.sku) {
-        errors.push({ row: index + 2, error: 'Falta SKU' });
-        return;
-      }
-      
-      const priceStr = item.price ? item.price.toString() : '0';
-      const price = parseFloat(priceStr.replace(/[^\d.-]/g, ''));
-      if (isNaN(price)) {
-        errors.push({ row: index + 2, error: 'Precio inválido' });
-        return;
-      }
-      
-      const suggestedMaterial = detectMaterial(item.name || '');
-      
-      if (existingMap.has(item.sku)) {
-        toUpdate++;
-      } else {
-        toCreate++;
-        if (suggestedMaterial === 'Por revisar') {
-           materialIssues++;
-        }
-      }
-    });
-    
-    return { 
-      success: true, 
-      toCreate, 
-      toUpdate, 
-      errors, 
-      materialIssues,
-      message: materialIssues > 0 ? "Hay productos nuevos sin material definido. Se marcarán como Por revisar." : undefined 
-    };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
-}
-
 export async function updateProductAction(id: string, data: {
   sku?: string;
   name?: string;
@@ -196,7 +145,6 @@ export async function updateProductAction(id: string, data: {
   try {
     await requireRole(['admin']);
     
-    // Check if new sku is already used
     if (data.sku) {
        const existing = await prisma.product.findUnique({ where: { sku: data.sku } });
        if (existing && existing.id !== id) {
@@ -209,7 +157,7 @@ export async function updateProductAction(id: string, data: {
       data: {
         ...(data.sku && { sku: data.sku }),
         ...(data.name && { name: data.name }),
-        ...(data.category && { category: data.category }),
+        ...(data.category && { category: normalizeProductType(data.category) }),
         ...(data.price !== undefined && { price: data.price }),
         ...(data.physicalStock !== undefined && { physicalStock: data.physicalStock }),
         ...(data.locationCode !== undefined && { locationCode: data.locationCode }),
@@ -222,5 +170,88 @@ export async function updateProductAction(id: string, data: {
   } catch (error: any) {
     console.error('Error updating product:', error);
     return { success: false, message: error.message || 'Error interno al actualizar el producto.' };
+  }
+}
+
+export async function previewCSVUpload(items: any[]) {
+  try {
+    await requireRole(['admin']);
+    const skus = items.map(i => i.sku).filter(Boolean);
+    const existingProducts = await prisma.product.findMany({
+      where: { sku: { in: skus } },
+      select: { sku: true, material: true, locationCode: true }
+    });
+    
+    const existingMap = new Map(existingProducts.map(p => [p.sku, p]));
+    
+    let toCreate = 0;
+    let toUpdate = 0;
+    let errors: { row: number, error: string }[] = [];
+    
+    let stats = {
+       laminado: 0,
+       plata: 0,
+       rodio: 0,
+       revisar: 0
+    };
+    
+    let samples: { sku: string, name: string, material: string }[] = [];
+    
+    items.forEach((item, index) => {
+      const rowNum = index + 2;
+      
+      if (!item.sku) {
+        errors.push({ row: rowNum, error: 'Falta SKU' });
+        return;
+      }
+      
+      const priceStr = item.price ? item.price.toString() : '0';
+      const price = parseFloat(priceStr.replace(/[^\d.-]/g, ''));
+      if (isNaN(price)) {
+        errors.push({ row: rowNum, error: 'Precio inválido' });
+        return;
+      }
+      
+      const physicalStockStr = item.physicalStock ? item.physicalStock.toString() : '0';
+      const physicalStock = parseInt(physicalStockStr, 10);
+      if (isNaN(physicalStock) || physicalStock < 0) {
+        errors.push({ row: rowNum, error: 'Stock inválido' });
+        return;
+      }
+      
+      const normalizedCategory = normalizeProductType(item.category || '');
+      if (!OFFICIAL_PRODUCT_TYPES.includes(normalizedCategory)) {
+        errors.push({ row: rowNum, error: `Tipo de producto inválido: "${item.category}". Tipos válidos: ${OFFICIAL_PRODUCT_TYPES.join(', ')}` });
+        return;
+      }
+      
+      const suggestedMaterial = detectMaterial(item.name || '');
+      
+      if (existingMap.has(item.sku)) {
+        toUpdate++;
+      } else {
+        toCreate++;
+        if (suggestedMaterial === 'Laminado') stats.laminado++;
+        else if (suggestedMaterial === 'Plata') stats.plata++;
+        else if (suggestedMaterial === 'Rodio') stats.rodio++;
+        else stats.revisar++;
+        
+        if (samples.length < 5) {
+           samples.push({ sku: item.sku, name: item.name, material: suggestedMaterial });
+        }
+      }
+    });
+    
+    return { 
+      success: true, 
+      toCreate, 
+      toUpdate, 
+      errors, 
+      stats,
+      samples,
+      message: undefined 
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
