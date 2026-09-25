@@ -1,4 +1,6 @@
 'use server'
+import crypto from 'crypto';
+
 
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
@@ -39,7 +41,7 @@ export async function createSeller(data: {
     const { data: usersData, error: usersError } = await adminAuthClient.auth.admin.listUsers();
     let authUser = usersData?.users.find(u => u.email === normalizedEmail);
 
-    const tempPassword = `Vendedor-${Math.random().toString(36).substring(2, 8).toUpperCase()}*`;
+    const tempPassword = 'V-' + crypto.randomBytes(6).toString('hex').toUpperCase() + '*Ab1';
 
     if (!authUser) {
       // Create user

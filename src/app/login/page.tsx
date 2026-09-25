@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { resolveLoginDestination } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -43,31 +44,32 @@ export default function LoginPage() {
 
       // Safe Instrumentation Logging
       const cookieNames1 = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
-      console.log('[Login] T0 (Right after signIn):', {
-        hasSession: !!data.session,
-        hasUser: !!data.user,
-        expiresAt: data.session?.expires_at,
-        sbCookies: cookieNames1
-      });
+      
 
       // Fetch session again to see if SDK retained it
       const { data: sessionData } = await supabase.auth.getSession();
-      console.log('[Login] T1 (Re-fetching session):', {
-        hasSession: !!sessionData.session
-      });
+      
 
       // Wait 1 second to rule out race conditions/flush issues
       await new Promise(r => setTimeout(r, 1000));
       
       const cookieNames2 = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));
       
-      const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role || 'admin';
-      const targetPath = role === 'admin' ? '/admin' : role === 'vendedor' ? '/vendedor' : role === 'cliente' ? '/cliente' : '/';
       
-      // Breve pausa para asegurar escritura en disco antes de la redirección dura
+      // Check auth status securely on server
+      const destination = await resolveLoginDestination();
+      if (!destination.success) {
+        // Sign out client-side since they are rejected
+        await supabase.auth.signOut();
+        setError(destination.message || 'No autorizado');
+        setLoading(false);
+        return;
+      }
+      
       setTimeout(() => {
-        window.location.assign(targetPath);
+        window.location.assign(destination.targetPath as string);
       }, 300);
+
       
     } catch (err: any) {
       console.error(err);

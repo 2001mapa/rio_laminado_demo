@@ -6,6 +6,15 @@ import { resetCustomerPasswordAction } from '@/app/actions/clients';
 import { Customer } from '@/lib/types';
 import { addToast } from '@/lib/toast';
 
+const generateSecurePassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const array = new Uint32Array(10);
+  window.crypto.getRandomValues(array);
+  let pass = '';
+  for (let i = 0; i < 10; i++) { pass += chars[array[i] % chars.length]; }
+  return pass + 'A1a*';
+};
+
 export default function ResetPasswordModal({ 
   isOpen, 
   onClose,
@@ -17,7 +26,7 @@ export default function ResetPasswordModal({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [password, setPassword] = useState(() => Math.random().toString(36).slice(-8).toUpperCase());
+  const [password, setPassword] = useState(() => generateSecurePassword());
   const [confirmed, setConfirmed] = useState(false);
   const [successPassword, setSuccessPassword] = useState('');
   const [copied, setCopied] = useState(false);
@@ -25,7 +34,7 @@ export default function ResetPasswordModal({
   if (!isOpen) return null;
 
   const generatePassword = () => {
-    setPassword(Math.random().toString(36).slice(-8).toUpperCase() + Math.floor(Math.random() * 10));
+    setPassword(generateSecurePassword());
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

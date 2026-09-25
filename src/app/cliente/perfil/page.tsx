@@ -7,6 +7,14 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
+
+  const handleLogout = async () => {
+    const { createClient } = await import('@/utils/supabase/client');
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
   const { currentCustomer, orders, isLoaded, customers } = useDemo();
   const [debugSession, setDebugSession] = useState<any>(null);
 
@@ -42,17 +50,14 @@ export default function PerfilPage() {
       <div className="p-8 text-center text-rio-muted font-medium flex flex-col items-center">
         <p className="mb-4">No se encontró la información del cliente. Por favor, recarga la página.</p>
         
-        <a
-          href="/api/auth/logout"
+        <button onClick={handleLogout} 
           className="mb-6 inline-flex items-center justify-center py-2 px-6 border border-transparent rounded-xl text-sm font-semibold text-white bg-rio-danger hover:bg-rio-danger/90 transition-colors shadow-sm"
         >
           <LogOut className="w-4 h-4 mr-2" />
           Forzar Cierre de Sesión (Reparar)
-        </a>
+        </button>
 
-        <pre className="text-[10px] text-left bg-gray-100 p-4 rounded overflow-auto max-w-full text-black">
-          DEBUG INFO: {JSON.stringify(debugInfo, null, 2)}
-        </pre>
+        
       </div>
     );
   }
@@ -60,18 +65,12 @@ export default function PerfilPage() {
   const ActionButtons = () => (
     <div className="space-y-3">
       
-      <a
-        href="/api/auth/logout"
-        onClick={(e) => {
-          if (!window.confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-            e.preventDefault();
-          }
-        }}
+      <button onClick={handleLogout}
         className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"
       >
         <LogOut className="w-4 h-4 mr-2" />
         Cerrar sesión
-      </a>
+      </button>
     </div>
   );
 

@@ -1,5 +1,10 @@
 'use server'
 
+function isStrongPassword(password: string) {
+  return password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password);
+}
+
+
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
 
@@ -50,6 +55,9 @@ export async function createCustomer(data: {
     let authId: string | undefined = undefined;
 
     // 2. Crear en Supabase Auth usando el truco del correo falso
+    if (data.temporaryPassword && !isStrongPassword(data.temporaryPassword)) {
+      return { success: false, message: 'La contraseña no es segura.' };
+    }
     if (data.username && data.temporaryPassword) {
       const dummyEmail = `${data.username}@rio.local`;
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -144,8 +152,8 @@ export async function updateCustomerDataAction(id: string, data: {
 
 export async function resetCustomerPasswordAction(customerId: string, newPassword: string) {
   await requireRole(['admin']);
-  if (newPassword.length < 6) {
-    return { success: false, message: 'La contraseña debe tener al menos 6 caracteres.' };
+  if (!isStrongPassword(newPassword)) {
+    return { success: false, message: 'La contraseña no es segura.' };
   }
   try {
     const customer = await prisma.customer.findUnique({ where: { id: customerId } });

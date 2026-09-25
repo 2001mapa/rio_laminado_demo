@@ -5,6 +5,15 @@ import { X, Loader2, Link as LinkIcon, CheckCircle, Copy } from 'lucide-react';
 import { createCustomer } from '@/app/actions/clients';
 import { useDemo } from '@/lib/DemoContext';
 
+const generateSecurePassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const array = new Uint32Array(10);
+  window.crypto.getRandomValues(array);
+  let pass = '';
+  for (let i = 0; i < 10; i++) { pass += chars[array[i] % chars.length]; }
+  return pass + 'A1a*';
+};
+
 export default function CreateCustomerModal({ 
   isOpen, 
   onClose,
@@ -19,10 +28,10 @@ export default function CreateCustomerModal({
   const [error, setError] = useState('');
   const [successData, setSuccessData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const [password, setPassword] = useState(() => Math.random().toString(36).slice(-8).toUpperCase());
+  const [password, setPassword] = useState(() => generateSecurePassword());
   
   const generatePassword = () => {
-    setPassword(Math.random().toString(36).slice(-8).toUpperCase() + Math.floor(Math.random() * 10));
+    setPassword(generateSecurePassword());
   };
   
 
