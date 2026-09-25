@@ -343,6 +343,43 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [showHoverImg, setShowHoverImg] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.5 }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    // Si la tarjeta est visible y tiene imagen secundaria, rotamos cada 3s
+    if (isVisible && !isHovered && product.hoverImageUrl) {
+      interval = setInterval(() => {
+        setShowHoverImg(prev => !prev);
+      }, 3000);
+    } else if (!isVisible) {
+      // Si ya no es visible, apagamos la segunda imagen para ahorrar recursos
+      setShowHoverImg(false);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isVisible, isHovered, product.hoverImageUrl]);
 
   if (!product.imageUrl || imageError) {
     return null;
@@ -354,7 +391,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const handleAdd = () => {
     const stockDisponible = product.physicalStock - product.reservedStock;
     if (quantity + currentCartQuantity > stockDisponible) {
-      addToast('Límite de inventario alcanzado ( unidades disponibles)');
+      addToast('Lmite de inventario alcanzado ( unidades disponibles)');
       return;
     }
     addToCart(product, quantity);
@@ -365,7 +402,16 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   };
 
   return (
-    <div className="bg-rio-surface rounded-2xl overflow-hidden border border-rio-border shadow-sm flex flex-col group hover:shadow-md transition-shadow">
+    <div 
+      ref={cardRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        // Si no est visible, devolvemos al estado inicial inmediatamente
+        if (!isVisible) setShowHoverImg(false);
+      }}
+      className="bg-rio-surface rounded-2xl overflow-hidden border border-rio-border shadow-sm flex flex-col group hover:shadow-md transition-shadow"
+    >
       <button
         onClick={onExpand}
         className="relative aspect-square md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
@@ -376,14 +422,14 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
           alt={product.name}
           loading="lazy"
           onError={() => setImageError(true)}
-          className={`object-cover w-full h-full transition-opacity duration-300 ease-in-out ${product.hoverImageUrl ? 'group-hover:opacity-0' : ''}`}
+          className={`object-cover w-full h-full transition-opacity duration-500 ease-in-out ${showHoverImg || (isHovered && product.hoverImageUrl) ? 'opacity-0' : 'opacity-100'}`}
         />
         {product.hoverImageUrl && (
           <img
             src={product.hoverImageUrl || undefined}
             alt={`${product.name} alternate view`}
             loading="lazy"
-            className="absolute inset-0 object-cover w-full h-full transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"
+            className={`absolute inset-0 object-cover w-full h-full transition-opacity duration-500 ease-in-out ${showHoverImg || (isHovered && product.hoverImageUrl) ? 'opacity-100' : 'opacity-0'}`}
           />
         )}
         {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) && (
