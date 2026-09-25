@@ -25,6 +25,9 @@ export default function NuevaVentaPage() {
   
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [scanQuantity, setScanQuantity] = useState(1);
+  const [scanSizes, setScanSizes] = useState<{size: string, quantity: number}[]>([]);
+  const [scanSizeInput, setScanSizeInput] = useState('');
+  const [scanSizeQtyInput, setScanSizeQtyInput] = useState(1);
   const [manualSku, setManualSku] = useState("");
   
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
@@ -120,6 +123,9 @@ export default function NuevaVentaPage() {
       if (product) {
         setScannedProduct(product);
         setScanQuantity(1);
+        setScanSizes([]);
+        setScanSizeInput('');
+        setScanSizeQtyInput(1);
         try {
           const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
           audio.volume = 0.5;
@@ -135,18 +141,50 @@ export default function NuevaVentaPage() {
     }
   };
 
-
   const confirmScan = () => {
     if (!scannedProduct) return;
+    
+    const isAnillo = scannedProduct.category === 'Anillos';
+    const totalAnilloQty = scanSizes.reduce((acc, s) => acc + s.quantity, 0);
+    const sumOfSizes = isAnillo ? totalAnilloQty : scanQuantity;
+
+    if (isAnillo && sumOfSizes === 0) {
+      addToast('Debes agregar al menos una talla');
+      return;
+    }
     
     setCartItems(prev => {
       const existing = prev.find(item => item.product.id === scannedProduct.id);
       if (existing) {
-        return prev.map(item => item.product.id === scannedProduct.id 
-          ? { ...item, quantity: Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), item.quantity + scanQuantity) } 
-          : item);
+        return prev.map(item => {
+          if (item.product.id === scannedProduct.id) {
+            let updatedSizes = item.sizes || [];
+            if (isAnillo && scanSizes.length > 0) {
+              const combinedSizes = [...updatedSizes];
+              scanSizes.forEach(newSize => {
+                const existingSizeIndex = combinedSizes.findIndex(s => s.size === newSize.size);
+                if (existingSizeIndex >= 0) {
+                  combinedSizes[existingSizeIndex] = { ...combinedSizes[existingSizeIndex], quantity: combinedSizes[existingSizeIndex].quantity + newSize.quantity };
+                } else {
+                  combinedSizes.push(newSize);
+                }
+              });
+              updatedSizes = combinedSizes;
+            }
+            return { 
+              ...item, 
+              quantity: Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), item.quantity + sumOfSizes),
+              sizes: isAnillo ? updatedSizes : item.sizes
+            };
+          }
+          return item;
+        });
       }
-      return [...prev, { product: scannedProduct, quantity: Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), scanQuantity) }];
+      return [...prev, { 
+        product: scannedProduct, 
+        quantity: Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), sumOfSizes),
+        sizes: isAnillo ? scanSizes : undefined
+      }];
     });
     
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
@@ -360,33 +398,96 @@ export default function NuevaVentaPage() {
                         </span>
                       </div>
 
-                      <p className="text-xs font-bold text-rio-ink mb-2 text-center uppercase tracking-wider">Cantidad Solicitada</p>
-                      <div className="flex items-center justify-center gap-4 mb-6">
-                        <button onClick={() => setScanQuantity(Math.max(1, scanQuantity - 1))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink disabled:opacity-50" disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
-                          <Minus className="w-5 h-5"/>
-                        </button>
-                        <input 
-                          type="number"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={scanQuantity === 0 ? '' : scanQuantity}
-                          disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            let newQuantity = isNaN(val) ? 0 : val;
-                            if (newQuantity > (scannedProduct.physicalStock - scannedProduct.reservedStock)) newQuantity = (scannedProduct.physicalStock - scannedProduct.reservedStock);
-                            setScanQuantity(newQuantity);
-                          }}
-                          onBlur={() => {
-                            if (scanQuantity < 1 && (scannedProduct.physicalStock - scannedProduct.reservedStock) > 0) setScanQuantity(1);
-                            if (scanQuantity > (scannedProduct.physicalStock - scannedProduct.reservedStock)) setScanQuantity((scannedProduct.physicalStock - scannedProduct.reservedStock));
-                          }}
-                          className="text-3xl font-black w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0 text-rio-ink disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <button onClick={() => setScanQuantity(Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), scanQuantity + 1))} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md disabled:bg-rio-border disabled:text-rio-muted disabled:shadow-none" disabled={scanQuantity >= (scannedProduct.physicalStock - scannedProduct.reservedStock) || (scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
-                          <Plus className="w-5 h-5"/>
-                        </button>
-                      </div>
+                      {scannedProduct.category === 'Anillos' ? (
+                        <div className="mb-4 space-y-3">
+                          <p className="text-xs font-bold text-rio-ink mb-1 text-center uppercase tracking-wider">Tallas Solicitadas</p>
+                          <div className="bg-rio-warning/10 border border-rio-warning/20 p-2 rounded-lg">
+                            <p className="text-[11px] text-rio-warning font-semibold text-center">Sujetas a confirmación por bodega.</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="Talla (ej. 6)"
+                              value={scanSizeInput}
+                              onChange={(e) => setScanSizeInput(e.target.value)}
+                              className="w-16 h-10 px-2 border border-rio-border rounded-xl text-sm bg-rio-surface focus:outline-none focus:ring-1 focus:ring-rio-ink text-center"
+                            />
+                            <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 w-20 shrink-0">
+                              <button onClick={() => setScanSizeQtyInput(Math.max(1, scanSizeQtyInput - 1))} className="w-6 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="text-sm font-bold flex-1 text-center text-rio-ink">{scanSizeQtyInput}</span>
+                              <button onClick={() => setScanSizeQtyInput(scanSizeQtyInput + 1)} className="w-6 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                if (!scanSizeInput) return;
+                                const existingSize = scanSizes.find(s => s.size === scanSizeInput);
+                                if (existingSize) {
+                                  setScanSizes(scanSizes.map(s => s.size === scanSizeInput ? { ...s, quantity: s.quantity + scanSizeQtyInput } : s));
+                                } else {
+                                  setScanSizes([...scanSizes, { size: scanSizeInput, quantity: scanSizeQtyInput }]);
+                                }
+                                setScanSizeInput('');
+                                setScanSizeQtyInput(1);
+                              }}
+                              disabled={!scanSizeInput}
+                              className="h-10 px-3 flex-1 bg-black text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-1"
+                            >
+                              <Plus className="w-4 h-4" /> Add
+                            </button>
+                          </div>
+
+                          {scanSizes.length > 0 && (
+                            <div className="space-y-1.5 mt-2 max-h-24 overflow-y-auto">
+                              <div className="flex flex-wrap gap-1.5">
+                                {scanSizes.map((s, idx) => (
+                                  <div key={idx} className="flex items-center gap-1 bg-rio-surface-muted border border-rio-border px-2 py-1 rounded-lg text-xs">
+                                    <span className="font-medium text-rio-ink">T{s.size}</span>
+                                    <span className="text-rio-muted">x{s.quantity}</span>
+                                    <button onClick={() => setScanSizes(scanSizes.filter(ss => ss.size !== s.size))} className="ml-0.5 text-rio-danger hover:opacity-80">
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xs font-bold text-rio-ink mb-2 text-center uppercase tracking-wider">Cantidad Solicitada</p>
+                          <div className="flex items-center justify-center gap-4 mb-6">
+                            <button onClick={() => setScanQuantity(Math.max(1, scanQuantity - 1))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink disabled:opacity-50" disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
+                              <Minus className="w-5 h-5"/>
+                            </button>
+                            <input 
+                              type="number"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={scanQuantity === 0 ? '' : scanQuantity}
+                              disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                let newQuantity = isNaN(val) ? 0 : val;
+                                if (newQuantity > (scannedProduct.physicalStock - scannedProduct.reservedStock)) newQuantity = (scannedProduct.physicalStock - scannedProduct.reservedStock);
+                                setScanQuantity(newQuantity);
+                              }}
+                              onBlur={() => {
+                                if (scanQuantity < 1 && (scannedProduct.physicalStock - scannedProduct.reservedStock) > 0) setScanQuantity(1);
+                                if (scanQuantity > (scannedProduct.physicalStock - scannedProduct.reservedStock)) setScanQuantity((scannedProduct.physicalStock - scannedProduct.reservedStock));
+                              }}
+                              className="text-3xl font-black w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0 text-rio-ink disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <button onClick={() => setScanQuantity(Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), scanQuantity + 1))} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md disabled:bg-rio-border disabled:text-rio-muted disabled:shadow-none" disabled={scanQuantity >= (scannedProduct.physicalStock - scannedProduct.reservedStock) || (scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
+                              <Plus className="w-5 h-5"/>
+                            </button>
+                          </div>
+                        </>
+                      )}
 
                       <button 
                         onClick={confirmScan} 
@@ -426,7 +527,10 @@ export default function NuevaVentaPage() {
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="text-[10px] text-rio-muted font-mono">{item.product.sku}</p>
                     <p className="text-xs font-bold text-rio-ink truncate">{item.product.name}</p>
-                    <p className="text-xs font-bold text-rio-gold-dark">{formatPrice(item.product.price)} x {item.quantity}</p>
+                    {item.sizes && item.sizes.length > 0 && (
+                      <p className="text-[10px] text-rio-muted mt-0.5">Tallas: {item.sizes.map(s => `${s.size}x${s.quantity}`).join(', ')}</p>
+                    )}
+                    <p className="text-xs font-bold text-rio-gold-dark mt-0.5">{formatPrice(item.product.price)} x {item.quantity}</p>
                   </div>
                 </div>
               ))

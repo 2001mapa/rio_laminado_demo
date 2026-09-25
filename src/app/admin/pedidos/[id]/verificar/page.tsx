@@ -128,6 +128,15 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
                       )}
                     </div>
                     <p className="text-sm font-semibold text-rio-ink leading-tight">{product.name}</p>
+                    {item.sizeDetails && item.sizeDetails.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {item.sizeDetails.map(s => (
+                           <span key={s.size} className="text-[10px] font-bold text-rio-ink bg-rio-gold-light/20 border border-rio-gold-light/50 px-1.5 py-0.5 rounded">
+                             Talla {s.size}: {s.quantity}
+                           </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right ml-4">
                     <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider">Solicitado</p>

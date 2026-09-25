@@ -110,6 +110,11 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
                   </td>
                   <td className="py-2 px-1 text-xs font-medium leading-tight text-gray-800">
                     {product.name}
+                    {item.sizeDetails && item.sizeDetails.length > 0 && (
+                      <div className="mt-1 text-[10px] font-bold text-black bg-gray-100 p-1 rounded inline-block">
+                        Tallas: {item.sizeDetails.map(s => `${s.size} x ${s.quantity}`).join(' | ')}
+                      </div>
+                    )}
                   </td>
                   <td className="py-2 px-1 text-center align-middle">
                     <div className="w-6 h-6 border-2 border-black rounded-sm mx-auto"></div>

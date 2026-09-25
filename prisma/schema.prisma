@@ -83,6 +83,7 @@ model OrderItem {
   materialGroupId  String?
   group            OrderMaterialGroup? @relation(fields: [materialGroupId], references: [id], onDelete: SetNull)
   materialSnapshot String?
+  sizeDetails      Json?
 }
 
 model OrderStatusHistory {

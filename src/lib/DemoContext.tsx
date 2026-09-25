@@ -12,6 +12,7 @@ import { OrderTransitionAction } from '@/lib/order-status';
 export type CartItem = {
   product: Product;
   quantity: number;
+  sizes?: { size: string; quantity: number }[];
 };
 
 type DemoContextType = {
@@ -24,11 +25,11 @@ type DemoContextType = {
   currentSeller: Seller | null;
   setCurrentSeller: (s: Seller | null) => void;
   cart: CartItem[];
-  addToCart: (product: Product, quantity: number) => void;
+  addToCart: (product: Product, quantity: number, sizes?: { size: string; quantity: number }[]) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number }[] }) => Promise<any>;
+  addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number, sizeDetails?: {size:string,quantity:number}[] }[] }) => Promise<any>;
   updateOrder: (order: Order) => void;
   transitionOrder: (orderId: string, action: OrderTransitionAction, trackingInfo?: {carrier: string, trackingNumber: string}) => Promise<any>;
   acknowledgeAdjustment: (orderId: string) => Promise<any>;
@@ -194,16 +195,32 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isLoaded, currentUserAuthId]);
 
-  const addToCart = (product: Product, quantity: number) => {
+  const addToCart = (product: Product, quantity: number, sizes?: { size: string; quantity: number }[]) => {
     setCart(prev => {
       const stockDisponible = product.physicalStock - product.reservedStock;
       const existing = prev.find(item => item.product.id === product.id);
       
+      let newSizes = sizes || [];
+      
       if (existing) {
-        const newQuantity = Math.min(stockDisponible, existing.quantity + quantity);
-        return prev.map(item => item.product.id === product.id ? { ...item, quantity: newQuantity } : item);
+        if (existing.sizes && sizes) {
+          // Merge sizes
+          const sizeMap = new Map<string, number>();
+          existing.sizes.forEach(s => sizeMap.set(s.size, s.quantity));
+          sizes.forEach(s => {
+            sizeMap.set(s.size, (sizeMap.get(s.size) || 0) + s.quantity);
+          });
+          newSizes = Array.from(sizeMap.entries()).map(([size, quantity]) => ({ size, quantity }));
+        } else if (existing.sizes) {
+          newSizes = existing.sizes;
+        }
+
+        return prev.map(item => item.product.id === product.id
+          ? { ...item, quantity: Math.min(stockDisponible, item.quantity + quantity), sizes: newSizes.length > 0 ? newSizes : undefined }
+          : item);
       }
-      return [...prev, { product, quantity: Math.min(stockDisponible, quantity) }];
+      
+      return [...prev, { product, quantity: Math.min(stockDisponible, quantity), sizes: newSizes.length > 0 ? newSizes : undefined }];
     });
   };
 
@@ -315,9 +332,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     const orderData = {
       customerId,
       items: cartItems.map((item) => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-      })),
+          productId: item.product.id,
+          quantity: item.quantity,
+          sizeDetails: item.sizes,
+        })),
     };
     
     const result = await addOrder(orderData);

@@ -447,6 +447,9 @@ function ProductModal({
 }) {
   const { addToCart, cart } = useDemo();
   const [quantity, setQuantity] = useState(1);
+  const [sizes, setSizes] = useState<{size: string, quantity: number}[]>([]);
+  const [sizeInput, setSizeInput] = useState('');
+  const [sizeQtyInput, setSizeQtyInput] = useState(1);
   const [added, setAdded] = useState(false);
   const [zoomState, setZoomState] = useState({ scale: 1, x: 0, y: 0 });
   const [initialPinch, setInitialPinch] = useState<{ dist: number, centerX: number, centerY: number } | null>(null);
@@ -456,8 +459,14 @@ function ProductModal({
   if (product.hoverImageUrl) images.push(product.hoverImageUrl);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  const isAnillo = product.category === 'Anillos';
+  const totalAnilloQty = sizes.reduce((acc, s) => acc + s.quantity, 0);
+
   useEffect(() => {
     setQuantity(1);
+    setSizes([]);
+    setSizeInput('');
+    setSizeQtyInput(1);
     setAdded(false);
     setZoomState({ scale: 1, x: 0, y: 0 });
     setInitialPinch(null);
@@ -469,16 +478,39 @@ function ProductModal({
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = () => {
-    const stockDisponible = product.physicalStock - product.reservedStock;
-    if (quantity + currentCartQuantity > stockDisponible) {
-      addToast('Límite de inventario alcanzado ( unidades disponibles)');
+    const sumOfSizes = isAnillo ? totalAnilloQty : quantity;
+    if (isAnillo && sumOfSizes === 0) {
+      addToast('Debes agregar al menos una talla');
       return;
     }
-    addToCart(product, quantity);
-    setQuantity(1);
+    const stockDisponible = product.physicalStock - product.reservedStock;
+    if (sumOfSizes + currentCartQuantity > stockDisponible) {
+      addToast(`Límite de inventario alcanzado (${stockDisponible} unidades disponibles)`);
+      return;
+    }
+    addToCart(product, sumOfSizes, isAnillo ? sizes : undefined);
+    if (!isAnillo) setQuantity(1);
+    else setSizes([]);
+    
     setAdded(true);
     addToast(`${product.name} agregado al carrito`);
     setTimeout(() => setAdded(false), 1500);
+  };
+
+  const handleAddSize = () => {
+    if (!sizeInput) return;
+    const existingSize = sizes.find(s => s.size === sizeInput);
+    if (existingSize) {
+      setSizes(sizes.map(s => s.size === sizeInput ? { ...s, quantity: s.quantity + sizeQtyInput } : s));
+    } else {
+      setSizes([...sizes, { size: sizeInput, quantity: sizeQtyInput }]);
+    }
+    setSizeInput('');
+    setSizeQtyInput(1);
+  };
+
+  const handleRemoveSize = (sizeToRemove: string) => {
+    setSizes(sizes.filter(s => s.size !== sizeToRemove));
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -672,28 +704,92 @@ function ProductModal({
             </div>
           )}
 
-          <div className="flex items-center gap-2 pt-0.5">
-            <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 flex-1">
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="text-sm font-bold flex-1 text-center text-rio-ink">{quantity}</span>
-              <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
-                <Plus className="w-4 h-4" />
+          {isAnillo ? (
+            <div className="space-y-3 pt-2">
+              <div className="bg-rio-warning/10 border border-rio-warning/20 p-2 rounded-lg">
+                <p className="text-[11px] text-rio-warning font-semibold text-center">Tallas solicitadas, sujetas a confirmación por bodega.</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Talla (ej. 6)"
+                  value={sizeInput}
+                  onChange={(e) => setSizeInput(e.target.value)}
+                  className="flex-1 h-10 px-3 border border-rio-border rounded-xl text-sm bg-rio-surface focus:outline-none focus:ring-1 focus:ring-rio-ink"
+                />
+                <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 w-24 shrink-0">
+                  <button onClick={() => setSizeQtyInput(Math.max(1, sizeQtyInput - 1))} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+                    <Minus className="w-3 h-3" />
+                  </button>
+                  <span className="text-sm font-bold flex-1 text-center text-rio-ink">{sizeQtyInput}</span>
+                  <button onClick={() => setSizeQtyInput(sizeQtyInput + 1)} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+                <button 
+                  onClick={handleAddSize}
+                  disabled={!sizeInput}
+                  className="h-10 px-4 bg-rio-ink text-white rounded-xl text-sm font-bold disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              {sizes.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  <p className="text-xs font-semibold text-rio-ink">Tallas agregadas:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {sizes.map((s, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 bg-rio-surface-muted border border-rio-border px-2.5 py-1.5 rounded-lg text-sm">
+                        <span className="font-medium text-rio-ink">T{s.size}</span>
+                        <span className="text-rio-muted text-xs">x{s.quantity}</span>
+                        <button onClick={() => handleRemoveSize(s.size)} className="ml-1 text-rio-danger hover:opacity-80">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleAdd}
+                disabled={sizes.length === 0}
+                className={`w-full h-10 mt-2 flex items-center justify-center gap-1.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                  added
+                    ? 'bg-rio-success text-white'
+                    : 'bg-rio-ink text-white hover:bg-rio-ink/90 disabled:opacity-50'
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                {added ? '¡Agregado!' : `Agregar al pedido (${totalAnilloQty})`}
               </button>
             </div>
-            <button
-              onClick={handleAdd}
-              className={`h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-                added
-                  ? 'bg-rio-success text-white'
-                  : 'bg-rio-ink text-white hover:bg-rio-ink/90'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              {added ? '¡Agregado!' : 'Agregar'}
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 pt-0.5">
+              <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 flex-1">
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="text-sm font-bold flex-1 text-center text-rio-ink">{quantity}</span>
+                <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <button
+                onClick={handleAdd}
+                className={`h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                  added
+                    ? 'bg-rio-success text-white'
+                    : 'bg-rio-ink text-white hover:bg-rio-ink/90'
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                {added ? '¡Agregado!' : 'Agregar'}
+              </button>
+            </div>
+          )}
         </div>
         </div>
       </div>

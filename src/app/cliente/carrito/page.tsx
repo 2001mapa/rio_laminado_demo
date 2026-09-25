@@ -87,6 +87,9 @@ export default function CarritoPage() {
                     </button>
                   </div>
                   <h3 className="font-medium text-sm text-rio-ink line-clamp-1 mt-0.5">{item.product.name}</h3>
+                  {item.sizes && item.sizes.length > 0 && (
+                    <p className="text-[11px] text-rio-muted mt-0.5">Tallas: {item.sizes.map(s => `${s.size}x${s.quantity}`).join(', ')}</p>
+                  )}
                   <p className="text-[13px] font-bold text-rio-ink mt-0.5">{formatPrice(item.product.price)}</p>
                 </div>
                 <div className="flex items-center justify-between mt-2">

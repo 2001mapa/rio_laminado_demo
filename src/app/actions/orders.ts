@@ -6,7 +6,7 @@ import { requireRole } from '@/utils/auth-helpers'
 
 export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; quantity: number; sizeDetails?: { size: string, quantity: number }[] }[];
 }) {
   const { user, role } = await requireRole(['cliente', 'vendedor', 'admin']);
   
@@ -41,17 +41,17 @@ export async function createOrder(data: {
     }
 
     if (!data.items || data.items.length === 0) {
-      throw new Error('El pedido debe tener al menos un artículo.');
+      throw new Error('El pedido debe tener al menos un artculo.');
     }
 
-    // Transacción atómica
+    // Transaccin atmica
     const order = await prisma.$transaction(async (tx) => {
         let subtotal = 0;
         const orderItemsByMaterial: Record<string, any[]> = {};
 
         for (const item of data.items) {
           if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-            throw new Error('Cantidad inválida.');
+            throw new Error('Cantidad invǭlida.');
           }
 
           const product = await tx.product.findUnique({
@@ -64,6 +64,16 @@ export async function createOrder(data: {
           
           if (!product.material || product.material === 'Por revisar') {
             throw new Error(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
+          }
+
+          // Sizes validation
+          if (product.category === 'Anillos' && item.sizeDetails) {
+             const sum = item.sizeDetails.reduce((a, b) => a + b.quantity, 0);
+             if (sum !== item.quantity) {
+                throw new Error(`La suma de las tallas (${sum}) no coincide con la cantidad total (${item.quantity}) para el anillo ${product.name}.`);
+             }
+          } else if (item.sizeDetails && product.category !== 'Anillos') {
+             throw new Error(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
           }
           
           const available = product.physicalStock - product.reservedStock;
@@ -91,7 +101,8 @@ export async function createOrder(data: {
             productId: product.id,
             quantity: item.quantity,
             priceAtTime: price,
-            materialSnapshot: mat
+            materialSnapshot: mat,
+            sizeDetails: item.sizeDetails || undefined
           });
         }
         

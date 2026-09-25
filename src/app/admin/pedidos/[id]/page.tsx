@@ -16,6 +16,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
   const [adjustingItem, setAdjustingItem] = useState<string | null>(null);
   const [adjustQuantity, setAdjustQuantity] = useState<number>(0);
+  const [adjustSizes, setAdjustSizes] = useState<{size: string, quantity: number}[]>([]);
   const [adjustReason, setAdjustReason] = useState<string>('');
   const [printingSingle, setPrintingSingle] = useState<string | null>(null);
   const [showPrintSettings, setShowPrintSettings] = useState(false);
@@ -66,12 +67,22 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
   const handleSaveAdjustment = () => {
     if (!order || !adjustingItem) return;
+    
+    if (adjustSizes.length > 0) {
+      const sum = adjustSizes.reduce((acc, curr) => acc + curr.quantity, 0);
+      if (sum !== adjustQuantity) {
+        alert(`La suma de las tallas (${sum}) no coincide con la cantidad total a enviar (${adjustQuantity}). Debes ajustar las tallas para que coincidan.`);
+        return;
+      }
+    }
+
     const updatedItems = order.items.map(i => {
       if (i.id === adjustingItem) {
         return {
           ...i,
           originalQuantity: i.originalQuantity || i.quantity,
           quantity: adjustQuantity,
+          sizeDetails: adjustSizes.length > 0 ? adjustSizes.filter(s => s.quantity > 0) : undefined,
           adjustmentReason: adjustReason
         };
       }
@@ -227,10 +238,16 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                                     <span className="text-[10px] line-through text-rio-muted">Cant: {item.originalQuantity}</span>
                                   )}
                                   <span className="text-sm font-bold text-rio-ink bg-rio-background px-2 py-0.5 rounded border border-rio-border">Cant: {item.quantity}</span>
+                                    {item.sizeDetails && item.sizeDetails.length > 0 && (
+                                      <span className="text-[10px] bg-rio-surface-muted text-rio-muted px-2 py-0.5 rounded-full border border-rio-border">
+                                        Tallas: {item.sizeDetails.map(s => `${s.size}x${s.quantity}`).join(', ')}
+                                      </span>
+                                    )}
                                   <button 
                                     onClick={() => {
                                       setAdjustingItem(item.id);
                                       setAdjustQuantity(item.quantity);
+                                      setAdjustSizes(item.sizeDetails || []);
                                       setAdjustReason(item.adjustmentReason || 'Control de Calidad');
                                     }}
                                     className="p-1 text-rio-muted hover:text-rio-ink hover:bg-rio-surface-muted rounded-md transition-colors"
@@ -412,6 +429,35 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   className="w-full border border-rio-border rounded-xl p-3 text-lg font-bold bg-rio-background text-rio-ink"
                 />
               </div>
+              {adjustSizes.length > 0 && (
+                <div className="bg-rio-surface-muted p-3 rounded-xl border border-rio-border space-y-2 mt-2">
+                  <label className="block text-xs font-bold text-rio-ink uppercase tracking-wider">Ajuste de Tallas</label>
+                  {adjustSizes.map((s, idx) => (
+                    <div key={idx} className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-bold w-1/3">Talla {s.size}</span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => {
+                           const newSizes = [...adjustSizes];
+                           newSizes[idx].quantity = Math.max(0, newSizes[idx].quantity - 1);
+                           setAdjustSizes(newSizes);
+                           setAdjustQuantity(newSizes.reduce((a,b)=>a+b.quantity, 0));
+                        }} className="w-8 h-8 rounded bg-rio-background border border-rio-border font-bold">-</button>
+                        <span className="font-mono font-bold w-6 text-center">{s.quantity}</span>
+                        <button onClick={() => {
+                           const newSizes = [...adjustSizes];
+                           newSizes[idx].quantity += 1;
+                           setAdjustSizes(newSizes);
+                           setAdjustQuantity(newSizes.reduce((a,b)=>a+b.quantity, 0));
+                        }} className="w-8 h-8 rounded bg-rio-background border border-rio-border font-bold">+</button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-rio-border flex justify-between font-bold text-sm">
+                    <span>Total Tallas:</span>
+                    <span className={adjustSizes.reduce((a,b)=>a+b.quantity,0) === adjustQuantity ? 'text-rio-success' : 'text-rio-danger'}>{adjustSizes.reduce((a,b)=>a+b.quantity, 0)}</span>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Motivo del ajuste</label>
                 <select
@@ -542,6 +588,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                         <span className="font-bold text-[9px]">#{index + 1}</span>
                         <span className="font-black text-[10px] tracking-tighter truncate mx-1">{product?.sku}</span>
                         <span className="font-bold text-[9px]">C:{item.quantity}</span>
+                          {item.sizeDetails && item.sizeDetails.length > 0 && (
+                            <span className="font-bold text-[8px] bg-gray-200 px-1 rounded truncate max-w-[40px]">
+                              {item.sizeDetails.map((s: any) => `${s.size}x${s.quantity}`).join(',')}
+                            </span>
+                          )}
                       </div>
                       
                       {/* Código de barras 1D */}

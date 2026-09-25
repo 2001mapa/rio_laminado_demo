@@ -37,6 +37,11 @@ export type OrderStatus =
   | 'Despachado' 
   | 'Cancelado';
 
+export type SizeDetail = {
+  size: string;
+  quantity: number;
+};
+
 export type OrderItem = {
   id: string;
   productId: string;
@@ -46,6 +51,7 @@ export type OrderItem = {
   verified?: boolean;
   issue?: string;
   materialGroupId?: string | null;
+  sizeDetails?: SizeDetail[] | null;
 };
 
 export type Seller = {
