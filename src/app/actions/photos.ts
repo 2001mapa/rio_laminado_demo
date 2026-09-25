@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 import { requireRole } from '@/utils/auth-helpers'
+import { logAuditEvent, getAuditActor } from '@/lib/audit'
 
 export async function uploadProductPhoto(formData: FormData) {
   try {

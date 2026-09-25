@@ -1,7 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Plus, Info, X, Printer, Database, Search, MoreVertical, Image as ImageIcon, FileUp, Edit2 } from 'lucide-react';
+import { Activity, Plus, Info, X, Printer, Database, Search, MoreVertical, Image as ImageIcon, FileUp, Edit2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import CSVImporter from '@/components/CSVImporter';

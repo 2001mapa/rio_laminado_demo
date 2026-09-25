@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff } from 'lucide-react';
+import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff, History } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 import { getAdminLatestOrderIds } from '@/app/actions/queries';
@@ -183,6 +183,7 @@ export default function AdminLayout({
     { name: 'Inventario', href: '/admin/inventario', icon: PackageSearch },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },
     { name: 'Vendedores', href: '/admin/vendedores', icon: Store },
+    { name: 'Historial', href: '/admin/historial', icon: History },
   ];
 
   return (

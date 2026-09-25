@@ -3,7 +3,7 @@
 import { useDemo } from '@/lib/DemoContext';
 
 import { NEXT_ALLOWED_ACTION } from '@/lib/order-status';
-import { ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X, Settings, ChevronDown } from 'lucide-react';
+import { Activity, ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
