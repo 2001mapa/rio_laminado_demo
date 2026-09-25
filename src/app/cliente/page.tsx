@@ -203,7 +203,7 @@ export default function CatalogoPage() {
             {clientMaterials.map((mat) => (
               <button
                 key={mat}
-                onClick={() => { setActiveMaterial(mat); setActiveCategory('Todos'); }}
+                onClick={() => { setActiveMaterial(mat); }}
                 className={`px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${
                   activeMaterial === mat
                     ? 'bg-rio-ink text-white shadow-md'
@@ -286,7 +286,7 @@ export default function CatalogoPage() {
               )}
             </div>
           ) : (
-            (effectiveCategory === 'Todos' ? categories.slice(1) : [effectiveCategory]).map(category => {
+            categories.slice(1).map(category => {
               const categoryProducts = catalogProducts.filter(p => p.category === category);
               if (categoryProducts.length === 0) return null;
               

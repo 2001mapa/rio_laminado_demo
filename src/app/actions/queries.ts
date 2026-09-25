@@ -177,8 +177,12 @@ export async function getPagedCatalog({
       where.material = material;
     }
     if (category && category !== 'Todos') {
-      where.category = category;
-    }
+        if (!search) {
+          where.category = { gte: category };
+        } else {
+          where.category = category;
+        }
+      }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
