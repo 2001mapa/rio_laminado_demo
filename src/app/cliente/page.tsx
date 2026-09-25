@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
 import { Plus, Minus, ShoppingBag, X, MapPin, Tag, Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
@@ -9,115 +9,104 @@ import { addToast } from '@/lib/toast';
 import { ProductCardSkeleton, WelcomeBannerSkeleton } from '@/components/Skeletons';
 import Link from 'next/link';
 import { OFFICIAL_PRODUCT_TYPES } from '@/lib/constants';
+import { getPagedCatalog } from '@/app/actions/queries';
 
 const NEW_ARRIVAL_DAYS = 30;
 
 export default function CatalogoPage() {
-  const { products, currentCustomer, isLoaded, cart, orders } = useDemo();
+  const { currentCustomer, isLoaded, cart, orders, addToCart } = useDemo();
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  
-  // 1. Base visible products (active, photo, stock > 0, not "Por revisar")
-  const allVisibleProducts = products.filter(p => p.isActive && p.imageUrl && p.material !== 'Por revisar' && (p.physicalStock - p.reservedStock) > 0);
+  // Pagination state
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // 2. Calculate available materials
-  const rawMaterials = Array.from(new Set(allVisibleProducts.map(p => p.material))).filter(Boolean) as string[];
+  const loaderRef = useRef<HTMLDivElement>(null);
+
   const canonicalOrder = ['Laminado', 'Plata', 'Rodio'];
-  const allAvailableMaterials = canonicalOrder.filter(m => rawMaterials.includes(m));
-
-  // Determine effective material
-  let effectiveMaterial = activeMaterial;
-  if (allAvailableMaterials.length === 1) {
-    effectiveMaterial = allAvailableMaterials[0];
-  } else if (!allAvailableMaterials.includes(activeMaterial) && activeMaterial !== 'Todos') {
-    effectiveMaterial = allAvailableMaterials.length > 0 ? allAvailableMaterials[0] : 'Todos';
-  }
-
+  const allAvailableMaterials = canonicalOrder;
   const showMaterialTabs = allAvailableMaterials.length > 1;
   const clientMaterials = showMaterialTabs ? ['Todos', ...allAvailableMaterials] : [];
+  const effectiveMaterial = activeMaterial;
 
-  // 3. Calculate available types based on effective material
-  const productsForMaterial = allVisibleProducts.filter(p => effectiveMaterial === 'Todos' || p.material === effectiveMaterial);
-  // Sort types according to OFFICIAL_PRODUCT_TYPES order
-  const rawTypes = Array.from(new Set(productsForMaterial.map(p => p.category))).filter(Boolean);
-  const availableTypes = OFFICIAL_PRODUCT_TYPES.filter(t => rawTypes.includes(t));
-  rawTypes.forEach(t => { if (!OFFICIAL_PRODUCT_TYPES.includes(t)) availableTypes.push(t) });
+  const categories = ['Todos', ...OFFICIAL_PRODUCT_TYPES];
+  const effectiveCategory = activeCategory;
 
-  let effectiveCategory = activeCategory;
-  if (effectiveCategory !== 'Todos' && !availableTypes.includes(effectiveCategory)) {
-    effectiveCategory = 'Todos';
-  }
+  const fetchProducts = async (reset = false) => {
+    setIsLoadingMore(true);
+    setFetchError(null);
+    try {
+      const res: any = await getPagedCatalog({
+        material: effectiveMaterial === 'Todos' ? undefined : effectiveMaterial,
+        category: effectiveCategory === 'Todos' ? undefined : effectiveCategory,
+        search: searchTerm || undefined,
+        limit: 24,
+        cursor: reset ? undefined : cursor,
+      });
+
+      if (res.success && res.products) {
+        const fetchedProducts = (res.products as any[]).map((p: any) => ({
+          ...p,
+          material: p.material ?? undefined,
+          imageUrl: p.imageUrl ?? undefined,
+          hoverImageUrl: p.hoverImageUrl ?? undefined,
+          locationCode: p.locationCode ?? undefined
+        })) as Product[];
+        setCatalogProducts((prev: Product[]) => reset ? fetchedProducts : [...prev, ...fetchedProducts]);
+        setHasMore(res.hasMore ?? false);
+        setCursor(res.cursor);
+      } else {
+        setFetchError(res.error || 'Error al cargar productos');
+      }
+    } catch (err: any) {
+      setFetchError(err.message || 'Error al cargar productos');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    if (activeMaterial !== effectiveMaterial) setActiveMaterial(effectiveMaterial);
-    if (activeCategory !== effectiveCategory) setActiveCategory(effectiveCategory);
-  }, [effectiveMaterial, effectiveCategory, activeMaterial, activeCategory]);
+    fetchProducts(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveMaterial, effectiveCategory, searchTerm]);
 
-  const availableProducts = productsForMaterial;
-  const categories = availableTypes; // Just to avoid breaking any other map if there is one
+  useEffect(() => {
+    const currentLoader = loaderRef.current;
+    if (!currentLoader || isLoading || !hasMore) return;
 
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        fetchProducts();
+      }
+    }, { threshold: 0.1 });
 
-  const discoverProducts = (() => {
-    const now = new Date().getTime();
-    
-    // Group by category
-    const byCategory: Record<string, Product[]> = {};
-    availableProducts.forEach(p => {
-      if (!byCategory[p.category]) byCategory[p.category] = [];
-      byCategory[p.category].push(p);
-    });
+    observer.observe(currentLoader);
 
-    // Sort and limit per category
-    const topPerCategory: Record<string, Product[]> = {};
-    Object.keys(byCategory).forEach(cat => {
-      const sorted = byCategory[cat].sort((a, b) => {
-        const aDate = new Date(a.createdAt || 0).getTime();
-        const bDate = new Date(b.createdAt || 0).getTime();
-        const aIsNew = (now - aDate) <= NEW_ARRIVAL_DAYS * 24 * 3600 * 1000 ? 1 : 0;
-        const bIsNew = (now - bDate) <= NEW_ARRIVAL_DAYS * 24 * 3600 * 1000 ? 1 : 0;
-        
-        if (aIsNew !== bIsNew) return bIsNew - aIsNew;
-        if (bDate !== aDate) return bDate - aDate;
-        return a.sku.localeCompare(b.sku); // Stable tie-breaker
-      });
-      topPerCategory[cat] = sorted.slice(0, 2);
-    });
+    return () => {
+      observer.unobserve(currentLoader);
+    };
+  }, [isLoading, hasMore, cursor, effectiveMaterial, effectiveCategory, searchTerm]);
 
-    // Interleave
-    const interleaved: Product[] = [];
-    const catKeys = Object.keys(topPerCategory);
-    for (let i = 0; i < 2; i++) {
-      catKeys.forEach(cat => {
-        if (topPerCategory[cat][i]) {
-          interleaved.push(topPerCategory[cat][i]);
-        }
-      });
-    }
-
-    return interleaved.slice(0, 8);
-  })();
-
-  const filteredProducts = availableProducts.filter(p => {
-    if (activeCategory !== 'Todos' && p.category !== activeCategory) return false;
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const discoverProducts = catalogProducts.slice(0, 8);
 
   const adjustedOrders = orders.filter(
     o => o.customerId === currentCustomer?.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
   );
 
-  const selectedProductIndex = selectedProduct ? filteredProducts.findIndex(p => p.id === selectedProduct.id) : -1;
+  const selectedProductIndex = selectedProduct ? catalogProducts.findIndex(p => p.id === selectedProduct.id) : -1;
   
   const handlePrevProduct = () => {
-    if (selectedProductIndex > 0) setSelectedProduct(filteredProducts[selectedProductIndex - 1]);
+    if (selectedProductIndex > 0) setSelectedProduct(catalogProducts[selectedProductIndex - 1]);
   };
   
   const handleNextProduct = () => {
-    if (selectedProductIndex < filteredProducts.length - 1) setSelectedProduct(filteredProducts[selectedProductIndex + 1]);
+    if (selectedProductIndex < catalogProducts.length - 1) setSelectedProduct(catalogProducts[selectedProductIndex + 1]);
   };
 
   if (!isLoaded) {
@@ -142,7 +131,6 @@ export default function CatalogoPage() {
     <>
       <div className="p-4 md:p-0 space-y-5 md:space-y-8">
         
-        {/* Descubre la colección */}
         {discoverProducts.length > 0 && (
           <div className="mb-2 relative group px-1">
             <div className="mb-4">
@@ -173,7 +161,7 @@ export default function CatalogoPage() {
                     className="snap-start shrink-0 flex items-center gap-3 w-[240px] md:w-[280px] h-[95px] md:h-[105px] bg-white rounded-xl border border-rio-border shadow-sm cursor-pointer hover:border-rio-gold/40 hover:shadow-md transition-all p-2.5"
                   >
                     <div className="w-[75px] h-[75px] md:w-[85px] md:h-[85px] shrink-0 bg-rio-surface-muted rounded-lg overflow-hidden border border-rio-border/50">
-                      <img src={product.imageUrl || undefined} className="w-full h-full object-cover mix-blend-multiply" />
+                      <img src={product.imageUrl || undefined} className="w-full h-full object-cover mix-blend-multiply" loading="lazy" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <span className="inline-block w-fit text-[9px] font-bold uppercase tracking-wider text-rio-gold-dark bg-rio-gold-light/20 px-1.5 py-0.5 rounded mb-1 truncate max-w-full">{product.category}</span>
@@ -188,7 +176,6 @@ export default function CatalogoPage() {
           </div>
         )}
 
-        {/* Notificaciones de Ajustes */}
         {adjustedOrders.length > 0 && (
           <div className="bg-rio-warning/10 border-2 border-rio-warning/30 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
             <div className="flex items-start md:items-center mb-4 md:mb-0">
@@ -211,26 +198,23 @@ export default function CatalogoPage() {
           </div>
         )}
 
-        {/* Materials, Category Tabs & Search */}
-          <div className="sticky top-14 md:top-0 z-20 bg-rio-background pt-3 -mx-4 px-4 md:mx-0 md:px-0 border-b border-rio-border/50 md:border-rio-border">
-            {/* Materials Tabs */}
-            <div className="flex space-x-2 overflow-x-auto pb-3 scrollbar-hide">
-              {clientMaterials.map((mat) => (
-                <button
-                  key={mat}
-                  onClick={() => { setActiveMaterial(mat); setActiveCategory('Todos'); }}
-                  className={`px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${
-                    activeMaterial === mat
-                      ? 'bg-rio-ink text-white shadow-md'
-                      : 'bg-white text-rio-ink border border-rio-border hover:bg-rio-surface-muted'
-                  }`}
-                >
-                  {mat}
-                </button>
-              ))}
-            </div>
+        <div className="sticky top-14 md:top-0 z-20 bg-rio-background pt-3 -mx-4 px-4 md:mx-0 md:px-0 border-b border-rio-border/50 md:border-rio-border">
+          <div className="flex space-x-2 overflow-x-auto pb-3 scrollbar-hide">
+            {clientMaterials.map((mat) => (
+              <button
+                key={mat}
+                onClick={() => { setActiveMaterial(mat); setActiveCategory('Todos'); }}
+                className={`px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${
+                  activeMaterial === mat
+                    ? 'bg-rio-ink text-white shadow-md'
+                    : 'bg-white text-rio-ink border border-rio-border hover:bg-rio-surface-muted'
+                }`}
+              >
+                {mat}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* Categories */}
             <div className="flex overflow-x-auto scrollbar-hide flex-1">
               {categories.map(cat => (
                 <button
@@ -263,7 +247,6 @@ export default function CatalogoPage() {
               ))}
             </div>
             
-            {/* Search and Novedades Badge */}
             <div className="flex flex-col md:items-end gap-3 w-full md:w-auto shrink-0 md:mb-2">
               <div className="relative w-full md:w-72">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -281,29 +264,30 @@ export default function CatalogoPage() {
           </div>
         </div>
 
-        {/* Product Grid */}
         <div id="catalog-grid" className="space-y-8 md:space-y-12 md:pt-2 scroll-mt-20">
           {searchTerm ? (
             <div className="space-y-4 md:space-y-6">
               <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
                 <h2 className="font-serif text-2xl md:text-3xl text-rio-ink font-bold">Resultados de búsqueda</h2>
-                <span className="text-[12px] text-rio-muted font-bold uppercase tracking-wider">{filteredProducts.length} ref.</span>
+                <span className="text-[12px] text-rio-muted font-bold uppercase tracking-wider">{catalogProducts.length} ref.</span>
               </div>
-              {filteredProducts.length > 0 ? (
+              {catalogProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-                  {filteredProducts.map(product => (
+                  {catalogProducts.map(product => (
                     <ProductCard key={product.id} product={product} onExpand={() => setSelectedProduct(product)} />
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20 bg-rio-surface rounded-2xl border border-rio-border shadow-sm">
-                  <p className="text-rio-muted font-medium">No se encontraron productos para "{searchTerm}"</p>
-                </div>
+                !isLoading && (
+                  <div className="text-center py-20 bg-rio-surface rounded-2xl border border-rio-border shadow-sm">
+                    <p className="text-rio-muted font-medium">No se encontraron productos para "{searchTerm}"</p>
+                  </div>
+                )
               )}
             </div>
           ) : (
-            (effectiveCategory === 'Todos' ? availableTypes : [effectiveCategory]).map(category => {
-                const categoryProducts = filteredProducts.filter(p => p.category === category);
+            (effectiveCategory === 'Todos' ? categories.slice(1) : [effectiveCategory]).map(category => {
+              const categoryProducts = catalogProducts.filter(p => p.category === category);
               if (categoryProducts.length === 0) return null;
               
               return (
@@ -326,16 +310,28 @@ export default function CatalogoPage() {
               );
             })
           )}
+
+          <div ref={loaderRef} className="py-8 flex flex-col items-center justify-center">
+            {isLoading && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rio-ink"></div>}
+            {fetchError && (
+              <div className="text-center mt-2">
+                <p className="text-red-500 mb-2">{fetchError}</p>
+                <button onClick={() => fetchProducts()} className="text-rio-ink underline font-bold">Reintentar</button>
+              </div>
+            )}
+            {!hasMore && catalogProducts.length > 0 && (
+              <p className="text-rio-muted text-sm font-medium mt-4">Has llegado al final del catálogo</p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Product Detail Modal */}
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onPrev={selectedProductIndex > 0 ? handlePrevProduct : undefined}
-          onNext={selectedProductIndex < filteredProducts.length - 1 ? handleNextProduct : undefined}
+          onNext={selectedProductIndex < catalogProducts.length - 1 ? handleNextProduct : undefined}
         />
       )}
     </>
@@ -346,17 +342,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const { addToCart, cart } = useDemo();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
-  const [showAlt, setShowAlt] = useState(false);
   const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    if (product.hoverImageUrl && !imageError) {
-      const interval = setInterval(() => {
-        setShowAlt(prev => !prev);
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [product.hoverImageUrl, imageError]);
 
   if (!product.imageUrl || imageError) {
     return null;
@@ -380,7 +366,6 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
 
   return (
     <div className="bg-rio-surface rounded-2xl overflow-hidden border border-rio-border shadow-sm flex flex-col group hover:shadow-md transition-shadow">
-      {/* Clickable image */}
       <button
         onClick={onExpand}
         className="relative aspect-square md:min-h-[220px] bg-white w-full focus:outline-none overflow-hidden"
@@ -389,14 +374,16 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         <img
           src={product.imageUrl || undefined}
           alt={product.name}
+          loading="lazy"
           onError={() => setImageError(true)}
-          className={`object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt && product.hoverImageUrl ? 'opacity-0' : 'opacity-100'}`}
+          className={`object-cover w-full h-full transition-opacity duration-300 ease-in-out ${product.hoverImageUrl ? 'group-hover:opacity-0' : ''}`}
         />
         {product.hoverImageUrl && (
           <img
             src={product.hoverImageUrl || undefined}
             alt={`${product.name} alternate view`}
-            className={`absolute inset-0 object-cover w-full h-full transition-opacity duration-[1500ms] ease-in-out ${showAlt ? 'opacity-100' : 'opacity-0'}`}
+            loading="lazy"
+            className="absolute inset-0 object-cover w-full h-full transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"
           />
         )}
         {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) && (
@@ -409,7 +396,6 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
             {currentCartQuantity} en pedido
           </div>
         )}
-        {/* Expand hint */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-end justify-end p-2">
           <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/95 text-[9px] font-bold uppercase tracking-wider text-rio-ink px-2.5 py-1.5 rounded-full shadow-sm">
             Ver detalle
@@ -525,7 +511,6 @@ function ProductModal({
   };
 
   useEffect(() => {
-    // Para cerrar con la tecla Escape en desktop
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -541,7 +526,6 @@ function ProductModal({
     setInitialPinch(null);
     setZoomState({ scale: 1, x: 0, y: 0 });
 
-    // Swipe navigation logic
     if (swipeStart && e.changedTouches.length === 1) {
       const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
       const deltaY = swipeStart.y - touchEnd.y;
@@ -549,9 +533,9 @@ function ProductModal({
 
       if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > deltaX) {
         if (deltaY > 0 && onNext) {
-          onNext(); // Swipe Up -> Next
+          onNext();
         } else if (deltaY < 0 && onPrev) {
-          onPrev(); // Swipe Down -> Prev
+          onPrev();
         }
       }
     }
@@ -559,7 +543,6 @@ function ProductModal({
   };
 
   useEffect(() => {
-    // Lock body scroll when modal is open
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -579,10 +562,8 @@ function ProductModal({
       onTouchStart={handleGlobalTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
 
-      {/* Navigation Arrows (Up / Down) */}
       <div className="absolute inset-y-2 md:inset-y-4 left-1/2 -translate-x-1/2 flex flex-col justify-between pointer-events-none z-[60]">
         <div className="pointer-events-auto flex justify-center">
           {onPrev && (
@@ -608,13 +589,11 @@ function ProductModal({
         </div>
       </div>
 
-      {/* Modal Card */}
       <div
         className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[85vh] flex flex-col z-50 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         <div key={product.id} className="animate-fade-in flex flex-col flex-1">
-          {/* Close */}
           <button
             onClick={handleCloseModal}
             className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
@@ -622,14 +601,12 @@ function ProductModal({
             <X className="w-4 h-4" />
           </button>
 
-          {/* Zoom Hint */}
           {zoomState.scale === 1 && (
             <div className="absolute top-14 left-4 z-20 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none transition-opacity">
               Pellizca para acercar
             </div>
           )}
 
-          {/* Image Container with Instagram-style Pop-out Zoom */}
         <div 
           className="relative aspect-[9/16] max-h-[55vh] w-full bg-white shrink-0 rounded-t-2xl z-30"
           onTouchStart={handleTouchStart}
@@ -672,7 +649,6 @@ function ProductModal({
           />
         </div>
 
-        {/* Info Container */}
         <div className="p-4 space-y-3 overflow-y-auto">
           <div>
             <p className="text-[10px] font-mono font-bold text-rio-muted leading-tight">{product.sku}</p>
@@ -696,7 +672,6 @@ function ProductModal({
             </div>
           )}
 
-          {/* Add to cart */}
           <div className="flex items-center gap-2 pt-0.5">
             <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 flex-1">
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">

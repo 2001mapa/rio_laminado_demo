@@ -7,6 +7,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { getPagedCatalog } from '@/app/actions/queries';
 import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
@@ -109,22 +110,31 @@ export default function NuevaVentaPage() {
     }
   };
 
-  const handleScan = (sku: string) => {
-    const product = products.find(p => p.sku === sku);
-    if (product) {
-      setScannedProduct(product);
-      setScanQuantity(1);
-      // Play a beep sound
-      try {
-        const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-        audio.volume = 0.5;
-        audio.play();
-      } catch(e) {}
-    } else {
-      addToast(`SKU no encontrado: ${sku}`);
+  
+  const handleScan = async (sku: string) => {
+    try {
+      const result = await getPagedCatalog({ search: sku, limit: 1 });
+      const rawProduct = result.products.find(p => p.sku === sku);
+      const product = rawProduct ? { ...rawProduct, material: rawProduct.material ?? undefined, imageUrl: rawProduct.imageUrl ?? undefined, hoverImageUrl: rawProduct.hoverImageUrl ?? undefined, locationCode: rawProduct.locationCode ?? undefined } : null;
+      
+      if (product) {
+        setScannedProduct(product);
+        setScanQuantity(1);
+        try {
+          const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+          audio.volume = 0.5;
+          audio.play();
+        } catch(e) {}
+      } else {
+        addToast(`SKU no encontrado: ${sku}`);
+        if (scannerRef.current) scannerRef.current.resume();
+      }
+    } catch (err) {
+      addToast('Error al buscar el producto');
       if (scannerRef.current) scannerRef.current.resume();
     }
   };
+
 
   const confirmScan = () => {
     if (!scannedProduct) return;
