@@ -60,7 +60,7 @@ export default function CatalogoPage() {
         })) as Product[];
         setCatalogProducts((prev: Product[]) => reset ? fetchedProducts : [...prev, ...fetchedProducts]);
         setHasMore(res.hasMore ?? false);
-        setCursor(res.cursor);
+        setCursor(res.nextCursor);
       } else {
         setFetchError(res.error || 'Error al cargar productos');
       }

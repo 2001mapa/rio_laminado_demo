@@ -194,6 +194,7 @@ export async function getPagedCatalog({
       where,
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       orderBy: [
         { category: 'asc' }, // To keep groups together
         { createdAt: 'desc' },
