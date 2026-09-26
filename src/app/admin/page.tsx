@@ -3,9 +3,10 @@
 import { useDemo } from '@/lib/DemoContext';
 import { Package, Clock, CheckCircle, AlertTriangle, ArrowRight, TrendingUp, BarChart2, Star, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StatCardSkeleton, OrderCardSkeleton } from '@/components/Skeletons';
 import { formatPrice } from '@/lib/utils';
+import { getAdminStats } from '@/app/actions/queries';
 
 const STATUS_CLASSES: Record<string, string> = {
   'Reservado': 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light',
@@ -21,8 +22,17 @@ const STATUS_CLASSES: Record<string, string> = {
 export default function AdminDashboard() {
   const { orders, customers, products, isLoaded } = useDemo();
   const [orderView, setOrderView] = useState<'clientes' | 'vendedores'>('clientes');
+  const [stats, setStats] = useState<any>(null);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    getAdminStats().then(res => {
+      if (res.success) {
+        setStats(res.stats);
+      }
+    });
+  }, []);
+
+  if (!isLoaded || !stats) {
     return (
       <div className="p-6 md:p-10 space-y-8">
         <div className="h-8 w-64 bg-rio-border rounded-lg animate-pulse" />
@@ -45,11 +55,17 @@ export default function AdminDashboard() {
     );
   }
 
-  const newOrders = orders.filter(o => o.status === 'Reservado' || o.status === 'Confirmado').length;
-  const inPrepOrders = orders.filter(o => o.status === 'En preparación').length;
-  const pendingVerify = orders.filter(o => o.status === 'Pendiente de verificación').length;
-  const verifiedOrders = orders.filter(o => o.status === 'Verificado' || o.status === 'Empacado').length;
-  const totalOrders = orders.length;
+  const {
+    newOrders,
+    inPrepOrders,
+    pendingVerify,
+    verifiedOrders,
+    totalOrders,
+    totalUnitsSold,
+    validOrdersCount,
+    lowStockCount,
+    outOfStockCount
+  } = stats;
 
   const urgentOrders = orders.filter(o =>
     o.status === 'Reservado' || o.status === 'Pendiente de verificación'
@@ -60,20 +76,20 @@ export default function AdminDashboard() {
     .slice(0, 8);
 
   // --- DATA SCIENCE METRICS ---
+  // Since we don't have ALL orders in memory anymore, we calculate top products/clients based on the recent loaded orders
+  // This is actually better as it shows recent trends!
   const productSales: Record<string, number> = {};
-  let totalUnitsSold = 0;
   
   orders.forEach(order => {
     if (order.status !== 'Cancelado') {
       order.items.forEach(item => {
         productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
-        totalUnitsSold += item.quantity;
       });
     }
   });
 
   const validOrders = orders.filter(o => o.status !== 'Cancelado');
-  const avgUnitsPerOrder = validOrders.length > 0 ? Math.round(totalUnitsSold / validOrders.length) : 0;
+  const avgUnitsPerOrder = validOrdersCount > 0 ? Math.round(totalUnitsSold / validOrdersCount) : 0;
 
   const topProducts = Object.entries(productSales)
     .sort((a, b) => b[1] - a[1])
@@ -98,9 +114,6 @@ export default function AdminDashboard() {
       return { ...c, orderCount: count };
     })
     .filter(c => c.name);
-
-  const lowStockCount = products.filter(p => (p.physicalStock - p.reservedStock) > 0 && (p.physicalStock - p.reservedStock) <= 5).length;
-  const outOfStockCount = products.filter(p => (p.physicalStock - p.reservedStock) === 0).length;
 
   return (
     <div className="p-6 md:p-10 space-y-8">

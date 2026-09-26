@@ -8,12 +8,13 @@ import CSVImporter from '@/components/CSVImporter';
 import BulkPhotoUploader from '@/components/BulkPhotoUploader';
 import CreateProductModal from '@/components/CreateProductModal';
 import Link from 'next/link';
+import { getPagedCatalog } from '@/app/actions/queries';
 
 export default function InventarioPage() {
-  const { products, refreshData } = useDemo();
-  const [locationFilter, setLocationFilter] = useState<string>('Todas');
-  const [search, setSearch] = useState<string>('');
-  const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
+  
+  const { refreshData } = useDemo();
+  
+  
   const [showMockModal, setShowMockModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   
@@ -23,6 +24,69 @@ export default function InventarioPage() {
   // CSV Import Modals
   const [showCSV, setShowCSV] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
+
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
+  const loaderRef = useRef<HTMLTableRowElement>(null);
+  const [totalCounts, setTotalCounts] = useState<Record<string, number>>({});
+  const [locationFilter, setLocationFilter] = useState<string>('Todas');
+  const [search, setSearch] = useState<string>('');
+  const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
+  
+  const fetchProducts = async (reset = false) => {
+    setIsLoading(true);
+    try {
+      const res: any = await getPagedCatalog({
+        material: activeMaterial === 'Todos' ? undefined : activeMaterial,
+        search: search || undefined,
+        limit: 50,
+        cursor: reset ? undefined : cursor,
+      });
+      if (res.success) {
+        setCatalogProducts(prev => reset ? res.products : [...prev, ...res.products]);
+        setHasMore(res.hasMore ?? false);
+        setCursor(res.nextCursor);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchProducts(true);
+    }, 300);
+    return () => clearTimeout(timeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMaterial, search]);
+
+  useEffect(() => {
+    const currentLoader = loaderRef.current;
+    if (!currentLoader || isLoading || !hasMore) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        fetchProducts();
+      }
+    }, { threshold: 0.1 });
+
+    observer.observe(currentLoader);
+
+    return () => observer.unobserve(currentLoader);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, hasMore, cursor, activeMaterial, search]);
+
+  const filteredProducts = catalogProducts.filter(p => {
+    if (locationFilter !== 'Todas') {
+      if (locationFilter === 'Sin ubicación' && p.locationCode) return false;
+      if (locationFilter !== 'Sin ubicación' && p.locationCode !== locationFilter) return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -41,28 +105,10 @@ export default function InventarioPage() {
     };
   }, []);
 
-  const locations = Array.from(new Set(products.map(p => p.locationCode).filter(Boolean))) as string[];
-  const filterOptions = ['Todas', ...locations, 'Sin ubicación'];
-
-  const filteredProducts = products.filter(p => {
-    if (locationFilter !== 'Todas') {
-      if (locationFilter === 'Sin ubicación' && p.locationCode) return false;
-      if (locationFilter !== 'Sin ubicación' && p.locationCode !== locationFilter) return false;
-    }
-    if (activeMaterial !== 'Todos' && p.material !== activeMaterial) return false;
-    if (search.trim()) {
-       const s = search.toLowerCase();
-       if (!p.sku.toLowerCase().includes(s) && !p.name.toLowerCase().includes(s)) return false;
-    }
-    return true;
-  });
-
-  const materials = ['Todos', 'Laminado', 'Plata', 'Rodio', 'Por revisar'];
-  const materialCounts = materials.reduce((acc, m) => {
-    if (m === 'Todos') acc[m] = products.length;
-    else acc[m] = products.filter(p => p.material === m).length;
-    return acc;
-  }, {} as Record<string, number>);
+  // Materials and locations are hardcoded or fetched separately in pagination model
+    const filterOptions = ['Todas', 'Sin ubicación']; // Static fallback for now since we paginate
+    const materials = ['Todos', 'Laminado', 'Plata', 'Rodio', 'Por revisar'];
+    const materialCounts = {} as Record<string, number>;
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-10">
@@ -288,7 +334,14 @@ export default function InventarioPage() {
                     </td>
                  </tr>
               )}
-            </tbody>
+            {hasMore && (
+        <tr ref={loaderRef}>
+          <td colSpan={6} className="px-6 py-10 text-center text-rio-muted">
+             Cargando más productos...
+          </td>
+        </tr>
+      )}
+      </tbody>
           </table>
         </div>
       </div>

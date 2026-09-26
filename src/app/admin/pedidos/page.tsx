@@ -1,10 +1,11 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { OrderCardSkeleton, OrderRowSkeleton } from '@/components/Skeletons';
+import { getPagedAdminOrders } from '@/app/actions/queries';
 
 const STATUS_CLASSES: Record<string, string> = {
   'Reservado': 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light',
@@ -18,12 +19,58 @@ const STATUS_CLASSES: Record<string, string> = {
 };
 
 export default function PedidosAdminPage() {
-  const { orders, customers, sellers, isLoaded } = useDemo();
+  const { customers, sellers, isLoaded } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [orderView, setOrderView] = useState<'todos' | 'clientes' | 'vendedores'>('todos');
 
-  if (!isLoaded) {
+  const [localOrders, setLocalOrders] = useState<any[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const loadOrders = useCallback(async (reset: boolean = false) => {
+    setIsLoading(true);
+    const currentCursor = reset ? undefined : cursor;
+    
+    const res = await getPagedAdminOrders({
+      status: statusFilter,
+      search: debouncedSearch,
+      limit: 20,
+      cursor: currentCursor
+    });
+
+    if (res.success && res.orders) {
+      if (reset) {
+        setLocalOrders(res.orders);
+      } else {
+        setLocalOrders(prev => [...prev, ...res.orders!]);
+      }
+      setHasMore(res.hasMore || false);
+      setCursor(res.nextCursor);
+    }
+    
+    setIsLoading(false);
+    if (reset) setIsInitialLoad(false);
+  }, [statusFilter, debouncedSearch, cursor]);
+
+  // When filters change, reset and load
+  useEffect(() => {
+    loadOrders(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, debouncedSearch]);
+
+  if (!isLoaded || isInitialLoad) {
     return (
       <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5 pb-10">
         <div className="h-7 w-48 bg-rio-border rounded-lg animate-pulse" />
@@ -31,11 +78,9 @@ export default function PedidosAdminPage() {
           <div className="h-10 flex-1 bg-rio-border rounded-xl animate-pulse" />
           <div className="h-10 w-48 bg-rio-border rounded-xl animate-pulse" />
         </div>
-        {/* Mobile skeletons */}
         <div className="md:hidden space-y-3">
           {[1,2,3,4].map(i => <OrderCardSkeleton key={i} />)}
         </div>
-        {/* Desktop skeleton table */}
         <div className="hidden md:block bg-rio-surface rounded-2xl border border-rio-border overflow-hidden shadow-sm">
           <table className="min-w-full divide-y divide-rio-border">
             <thead className="bg-rio-background">
@@ -54,17 +99,11 @@ export default function PedidosAdminPage() {
     );
   }
 
-  const filteredOrders = orders.filter(order => {
-    const customer = customers.find(c => c.id === order.customerId);
-    const matchesSearch =
-      order.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'Todos' || order.status === statusFilter;
+  const filteredOrders = localOrders.filter(order => {
     const matchesView = orderView === 'todos' || 
                         (orderView === 'clientes' && !order.sellerId) || 
                         (orderView === 'vendedores' && !!order.sellerId);
-    
-    return matchesSearch && matchesStatus && matchesView;
+    return matchesView;
   });
 
   return (
@@ -216,6 +255,19 @@ export default function PedidosAdminPage() {
           </table>
         </div>
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => loadOrders()}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-6 py-2.5 bg-rio-surface border border-rio-border rounded-xl text-sm font-bold text-rio-ink hover:border-rio-gold/40 hover:text-rio-gold-dark transition-colors disabled:opacity-50"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isLoading ? 'Cargando...' : 'Cargar más pedidos'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
