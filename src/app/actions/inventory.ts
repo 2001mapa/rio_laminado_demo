@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { logAuditEvent, getAuditActor } from '@/lib/audit'
 import { requireRole } from '@/utils/auth-helpers'
 import { OFFICIAL_PRODUCT_TYPES, normalizeProductType } from '@/lib/constants'
 
