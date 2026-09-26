@@ -354,10 +354,11 @@ export default function InventarioPage() {
         }}
         initialData={editingProduct}
         onComplete={() => {
-          setShowMockModal(false);
-          setEditingProduct(null);
-          refreshData();
-        }}
+            setShowMockModal(false);
+            setEditingProduct(null);
+            refreshData();
+            fetchProducts(true);
+          }}
       />
     </div>
   );
