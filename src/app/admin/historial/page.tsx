@@ -5,6 +5,81 @@ import { getAuditEvents } from '@/app/actions/audit';
 import { ChevronDown, ChevronUp, Search, Calendar, Filter, ChevronLeft, ChevronRight, Activity, FileJson } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 
+
+const ACTION_MAP: Record<string, string> = {
+  CREATE_PRODUCT: 'Creó Producto',
+  UPDATE_PRODUCT: 'Actualizó Producto',
+  DELETE_PRODUCT: 'Eliminó Producto',
+  UPDATE_ORDER: 'Actualizó Pedido',
+  CREATE_ORDER: 'Creó Pedido',
+  UPLOAD_PHOTO: 'Subió Fotografía',
+  BULK_UPLOAD: 'Importación Masiva',
+  UPDATE_INVENTORY: 'Actualizó Inventario',
+  CREATE_CUSTOMER: 'Creó Cliente',
+  UPDATE_CUSTOMER: 'Actualizó Cliente',
+  CREATE_SELLER: 'Creó Vendedor',
+  UPDATE_SELLER: 'Actualizó Vendedor'
+};
+
+const ENTITY_MAP: Record<string, string> = {
+  PRODUCT: 'Producto',
+  ORDER: 'Pedido',
+  INVOICE: 'Remisión',
+  CUSTOMER: 'Cliente',
+  SELLER: 'Vendedor',
+  PHOTO: 'Fotografía'
+};
+
+const ORIGIN_MAP: Record<string, string> = {
+  admin_dashboard: 'Panel Admin',
+  ADMIN_DASHBOARD: 'Panel Admin',
+  vendedor_app: 'App Vendedor',
+  cliente_app: 'App Cliente',
+  system: 'Sistema',
+  manual: 'Manual'
+};
+
+
+// Helper to render object diffs in a friendly way
+function ChangesViewer({ changes }: { changes: any }) {
+  if (!changes || typeof changes !== 'object') return <pre className="text-[11px] font-mono">{JSON.stringify(changes, null, 2)}</pre>;
+  
+  if (changes.before && changes.after) {
+    const keys = Array.from(new Set([...Object.keys(changes.before), ...Object.keys(changes.after)]));
+    const differences = keys.filter(k => JSON.stringify(changes.before[k]) !== JSON.stringify(changes.after[k]));
+    
+    if (differences.length === 0) return <div className="text-sm text-rio-muted italic">Sin cambios detectados (solo guardado).</div>;
+
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-rio-muted">Se detectaron modificaciones en los siguientes campos:</p>
+        <ul className="space-y-1">
+          {differences.map(k => (
+            <li key={k} className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-3 bg-white p-2 rounded border border-rio-border">
+              <span className="font-bold text-rio-ink min-w-[120px] capitalize">{k.replace(/([A-Z])/g, ' $1').trim()}:</span>
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-rio-danger bg-rio-danger/10 px-2 py-0.5 rounded truncate max-w-[200px]" title={String(changes.before[k])}>
+                  {changes.before[k] === null ? 'vacío' : String(changes.before[k])}
+                </span>
+                <span className="text-rio-muted">→</span>
+                <span className="text-rio-success bg-rio-success/10 px-2 py-0.5 rounded truncate max-w-[200px]" title={String(changes.after[k])}>
+                  {changes.after[k] === null ? 'vacío' : String(changes.after[k])}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <pre className="text-[11px] text-rio-ink font-mono bg-white p-3 border border-rio-border rounded overflow-x-auto">
+      {JSON.stringify(changes, null, 2)}
+    </pre>
+  );
+}
+
 export default function HistorialPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -136,16 +211,16 @@ export default function HistorialPage() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-rio-ink/5 text-rio-ink">
-                          {ev.action}
+                          {ACTION_MAP[ev.action] || ev.action}
                         </span>
                         {ev.origin && ev.origin !== 'manual' && (
                           <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase bg-rio-gold-light/30 text-rio-gold-dark">
-                            {ev.origin}
+                            {ORIGIN_MAP[ev.origin] || ev.origin}
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-rio-ink">
-                        <div className="font-medium">{ev.entityType}</div>
+                        <div className="font-medium">{ENTITY_MAP[ev.entityType] || ev.entityType}</div>
                         <div className="text-xs text-rio-muted font-mono truncate max-w-[150px]" title={ev.entityId}>
                           {ev.sku || ev.orderNumber || ev.entityId}
                         </div>
@@ -196,9 +271,7 @@ export default function HistorialPage() {
                             {ev.changes && (
                               <div>
                                 <div className="text-xs font-bold text-rio-muted uppercase mb-1">Cambios / Payload</div>
-                                <pre className="text-[11px] text-rio-ink font-mono bg-rio-background p-3 border border-rio-border rounded overflow-x-auto">
-                                  {JSON.stringify(ev.changes, null, 2)}
-                                </pre>
+                                <ChangesViewer changes={ev.changes} />
                               </div>
                             )}
                           </div>
