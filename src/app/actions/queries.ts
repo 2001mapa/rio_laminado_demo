@@ -360,3 +360,27 @@ export async function getAdminMaterialCounts() {
     return { success: false, error: error.message };
   }
 }
+
+export async function getPrintableProducts() {
+  noStore();
+  try {
+    const { role } = await requireRole(['admin']);
+    if (role !== 'admin') return { success: false };
+
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        category: true,
+        material: true,
+        price: true,
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    return { success: true, products };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

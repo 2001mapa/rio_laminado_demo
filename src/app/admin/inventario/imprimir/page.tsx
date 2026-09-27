@@ -1,6 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
+import { getPrintableProducts } from '@/app/actions/queries';
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Printer, AlertTriangle, Settings2, Search, CheckSquare, Square } from 'lucide-react';
@@ -8,7 +9,19 @@ import { formatPrice } from '@/lib/utils';
 import QRCode from 'react-qr-code';
 
 export default function MassPrintPage() {
-  const { products } = useDemo();
+  
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    getPrintableProducts().then(res => {
+      if (res.success && res.products) {
+        setProducts(res.products);
+      }
+      setIsLoadingProducts(false);
+    });
+  }, []);
+
   
   // -- URL PARAMS --
   const [newOnly, setNewOnly] = useState(false);
