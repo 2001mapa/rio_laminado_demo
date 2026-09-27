@@ -44,6 +44,8 @@ export default function NuevaVentaPage() {
         try {
           scannerRef.current.stop().catch(() => {});
         } catch(e) {}
+        try { scannerRef.current.clear(); } catch(e) {}
+        scannerRef.current = null;
       }
     };
   }, [isScanning]);
@@ -67,7 +69,7 @@ export default function NuevaVentaPage() {
         cameraConfig,
         {
           fps: 10,
-          aspectRatio: 1.0,
+          
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
             return { width: minEdge * 0.7, height: minEdge * 0.7 };
@@ -86,7 +88,7 @@ export default function NuevaVentaPage() {
          try {
            await scannerRef.current.start(
              { facingMode: "environment" },
-             { fps: 10, aspectRatio: 1.0, qrbox: (w, h) => { const m = Math.min(w, h); return { width: m*0.7, height: m*0.7 }; } },
+             { fps: 10,  qrbox: (w, h) => { const m = Math.min(w, h); return { width: m*0.7, height: m*0.7 }; } },
              (decodedText) => { if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} } handleScan(decodedText); },
              () => {}
            );
@@ -108,6 +110,7 @@ export default function NuevaVentaPage() {
         console.warn("Ignored error while stopping scanner:", err);
       } finally {
         try { scannerRef.current.clear(); } catch(e) {}
+        scannerRef.current = null;
         setIsScanning(false);
       }
     }
