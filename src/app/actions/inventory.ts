@@ -75,9 +75,29 @@ export async function bulkUploadInventory(items: any[]) {
       });
     });
 
-    await prisma.$transaction(operations);
     
-    return { 
+    await prisma.$transaction(operations);
+
+    try {
+      const actor = await getAuditActor();
+      await logAuditEvent(actor, {
+        action: 'BULK_UPLOAD',
+        entityType: 'PRODUCT',
+        entityId: 'multiple',
+        origin: 'admin_dashboard',
+        result: 'success',
+        changes: {
+          totalProcessed: items.length,
+          newProducts: newItems.length,
+          updatedProducts: items.length - newItems.length,
+          warnings: warnings.length
+        }
+      });
+    } catch (auditErr) {
+      console.error('Failed to log audit for bulk upload:', auditErr);
+    }
+
+      return { 
       success: true, 
       message: `Se actualizaron ${items.length} referencias. Se encontraron ${newItems.length} referencias nuevas.`,
       newProducts: newItems,
