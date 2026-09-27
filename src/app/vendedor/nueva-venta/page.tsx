@@ -556,7 +556,7 @@ export default function NuevaVentaPage() {
                             <p className="text-[10px] text-rio-muted font-mono leading-none mb-1">{item.product.sku}</p>
                             <p className="text-xs font-bold text-rio-ink truncate pr-2">{item.product.name}</p>
                           </div>
-                          <button onClick={() => removeCartItem(item.product.id)} className="text-rio-muted hover:text-rio-danger p-1 shrink-0 bg-rio-surface-muted rounded-md opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">
+                          <button onClick={() => removeCartItem(item.product.id)} className="text-rio-muted hover:text-rio-danger hover:bg-rio-danger/10 p-1.5 shrink-0 bg-rio-surface-muted rounded-md transition-all active:scale-95">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
