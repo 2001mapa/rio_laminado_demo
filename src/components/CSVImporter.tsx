@@ -22,11 +22,18 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
     let interval: NodeJS.Timeout;
     if (status === 'uploading') {
       setProgress(0);
+      
+      // Calculate a smarter progress step based on number of items
+      const itemsCount = parsedItems?.length || 1;
+      // Estimate: ~5ms per item, minimum 2s, max 20s
+      const estimatedMs = Math.max(2000, Math.min(itemsCount * 5, 20000));
+      const stepsTo80 = estimatedMs / 300;
+      const stepIncrement = 80 / stepsTo80;
+
       interval = setInterval(() => {
         setProgress(p => {
-          // Fast up to 80%, then slower
-          if (p < 80) return p + (80 - p) * 0.1;
-          if (p < 95) return p + (95 - p) * 0.02;
+          if (p < 80) return p + stepIncrement;
+          if (p < 98) return p + (98 - p) * 0.05; // very slow crawl at the end
           return p;
         });
       }, 300);
@@ -36,7 +43,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
       setProgress(0);
     }
     return () => clearInterval(interval);
-  }, [status]);
+  }, [status, parsedItems]);
 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

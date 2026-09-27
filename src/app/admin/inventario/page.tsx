@@ -193,7 +193,7 @@ export default function InventarioPage() {
                   <strong>Información:</strong> Para referencias existentes, el CSV reemplaza nombre, categoría, precio, cantidad física y ubicación. Conserva fotos, material confirmado, estado de publicación y unidades reservadas. Para referencias nuevas, crea el producto y detecta Laminado, Plata o Rodio a partir del nombre. Si no puede identificar un único material, queda Por revisar.<br/><br/>El archivo debe usar <code>;</code> o <code>,</code> como separador.
                </div>
                <div className="p-6">
-                 <CSVImporter onComplete={() => { refreshData(); fetchCounts(); }} />
+                 <CSVImporter onComplete={() => { refreshData(); fetchProducts(true); fetchCounts(); }} />
                </div>
             </div>
          </div>
@@ -207,7 +207,7 @@ export default function InventarioPage() {
                   <button onClick={() => setShowPhotos(false)}><X className="w-5 h-5" /></button>
                </div>
                <div className="p-6">
-                 <BulkPhotoUploader onComplete={() => { refreshData(); fetchCounts(); }} />
+                 <BulkPhotoUploader onComplete={() => { refreshData(); fetchProducts(true); fetchCounts(); }} />
                </div>
             </div>
          </div>
