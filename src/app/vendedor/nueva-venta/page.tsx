@@ -169,6 +169,13 @@ export default function NuevaVentaPage() {
     }
     
     const availableStock = scannedProduct.physicalStock - scannedProduct.reservedStock;
+    const existingItem = cartItems.find(item => item.product.id === scannedProduct.id);
+    const existingQty = existingItem ? existingItem.quantity : 0;
+    
+    if (existingQty + sumOfSizes > availableStock) {
+       addToast(`Supera el límite. Solo puedes agregar ${availableStock - existingQty} unidades más.`);
+       return;
+    }
     
     setCartItems(prev => {
       const existing = prev.find(item => item.product.id === scannedProduct.id);
@@ -176,11 +183,6 @@ export default function NuevaVentaPage() {
         return prev.map(item => {
           if (item.product.id === scannedProduct.id) {
             let updatedSizes = item.sizes || [];
-            let newTotalQty = item.quantity + sumOfSizes;
-            if (newTotalQty > availableStock) {
-               addToast(`No se pudo agregar todo. Stock máximo es ${availableStock}.`);
-               return item; // Do not merge if it exceeds, force them to edit it manually or add a valid amount
-            }
             
             if (isAnillo && scanSizes.length > 0) {
               const combinedSizes = [...updatedSizes];
@@ -197,7 +199,7 @@ export default function NuevaVentaPage() {
             
             return { 
               ...item, 
-              quantity: newTotalQty,
+              quantity: item.quantity + sumOfSizes,
               sizes: isAnillo ? updatedSizes : item.sizes
             };
           }
@@ -206,7 +208,7 @@ export default function NuevaVentaPage() {
       }
       return [...prev, { 
         product: scannedProduct, 
-        quantity: Math.min(availableStock, sumOfSizes),
+        quantity: sumOfSizes,
         sizes: isAnillo ? scanSizes : undefined,
         clearCart: () => {},
         addOrder: async () => {},
@@ -450,6 +452,17 @@ export default function NuevaVentaPage() {
                             <input type="number" min="1" value={scanSizeQtyInput} onChange={e => setScanSizeQtyInput(parseInt(e.target.value) || 1)} className="w-16 shrink-0 bg-rio-background border border-rio-border rounded-xl px-2 py-2 text-sm text-center focus:outline-none" />
                             <button onClick={() => {
                               if(scanSizeInput.trim() && scanSizeQtyInput > 0) {
+                                const currentTotal = scanSizes.reduce((acc, s) => acc + s.quantity, 0);
+                                const availableStock = scannedProduct.physicalStock - scannedProduct.reservedStock;
+                                const cartExisting = cartItems.find(i => i.product.id === scannedProduct.id);
+                                const inCartQty = cartExisting ? cartExisting.quantity : 0;
+                                const remainingStock = availableStock - inCartQty;
+                                
+                                if (currentTotal + scanSizeQtyInput > remainingStock) {
+                                  window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: `Solo quedan ${remainingStock} unidades disponibles.`, type: 'error' } }));
+                                  return;
+                                }
+
                                 const isDuplicate = scanSizes.some(s => s.size === scanSizeInput.trim());
                                 if (isDuplicate) {
                                   setScanSizes(prev => prev.map(s => s.size === scanSizeInput.trim() ? {...s, quantity: s.quantity + scanSizeQtyInput} : s));
