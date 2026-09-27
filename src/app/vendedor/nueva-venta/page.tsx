@@ -440,8 +440,13 @@ export default function NuevaVentaPage() {
                           <p className="text-[10px] text-rio-muted font-mono mb-1">{scannedProduct.sku}</p>
                           <h3 className="font-bold text-rio-ink text-sm leading-tight mb-1">{scannedProduct.name}</h3>
                           <p className="text-rio-gold-dark font-black">{formatPrice(scannedProduct.price)}</p>
+                            <div className="mt-1.5 flex items-center">
+                              <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase bg-rio-success/10 text-rio-success border border-rio-success/20">
+                                {scannedProduct.physicalStock - scannedProduct.reservedStock} disponibles
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
                       {scannedProduct.category === 'Anillos' ? (
                         <div className="mb-6">
