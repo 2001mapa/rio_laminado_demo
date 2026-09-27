@@ -31,8 +31,8 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
   };
 
   const sortedOrderItems = [...order.items].sort((a, b) => {
-    const pA = products.find(p => p.id === a.productId);
-    const pB = products.find(p => p.id === b.productId);
+    const pA = (a as any).product;
+    const pB = (b as any).product;
     const locA = pA?.locationCode || '';
     const locB = pB?.locationCode || '';
     if (!locA && locB) return -1;
@@ -100,7 +100,7 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
 
       <div className="space-y-4">
         {(activeTab === 'pending' ? pendingItems : verifiedItems).map(item => {
-          const product = products.find(p => p.id === item.productId);
+          const product = (item as any).product;
           if (!product) return null;
 
           return (

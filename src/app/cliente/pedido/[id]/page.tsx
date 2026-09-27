@@ -179,7 +179,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
         
         <div className="space-y-4">
           {order.items.map(item => {
-            const product = products.find(p => p.id === item.productId);
+            const product = (item as any).product;
             if (!product) return null;
             
             const isAdjusted = item.originalQuantity !== undefined && item.originalQuantity !== item.quantity;

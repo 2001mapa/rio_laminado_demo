@@ -49,8 +49,8 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const hasIssues = order.items.some(i => i.issue && !i.adjustmentReason);
 
   const sortedItems = [...order.items].sort((a, b) => {
-    const pA = products.find(p => p.id === a.productId);
-    const pB = products.find(p => p.id === b.productId);
+    const pA = (a as any).product;
+    const pB = (b as any).product;
     const catA = pA?.category || '';
     const catB = pB?.category || '';
     
@@ -215,7 +215,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     </div>
                     <div className="space-y-4">
                       {gItems.map(item => {
-                        const product = products.find(p => p.id === item.productId);
+                        const product = (item as any).product;
                         if (!product) return null;
                         return (
                           <div key={item.id} className="flex gap-4 border-b border-rio-border/50 pb-4 last:border-0 last:pb-0">
@@ -550,14 +550,14 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
              order.groups.forEach(g => {
                 const gItems = itemsToPrint.filter(i => i.materialGroupId === g.id);
                 gItems.forEach((item, index) => {
-                   const product = products.find(p => p.id === item.productId);
+                   const product = (item as any).product;
                    elements.push({ type: 'item', item, index, product });
                 });
                 
              });
           } else {
              itemsToPrint.forEach((item, index) => {
-                const product = products.find(p => p.id === item.productId);
+                const product = (item as any).product;
                 elements.push({ type: 'item', item, index, product });
              });
           }

@@ -14,8 +14,8 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
   const customer = customers.find(c => c.id === order.customerId);
 
   const sortedItems = [...order.items].sort((a, b) => {
-    const pA = products.find(p => p.id === a.productId);
-    const pB = products.find(p => p.id === b.productId);
+    const pA = (a as any).product;
+    const pB = (b as any).product;
     const locA = pA?.locationCode || '';
     const locB = pB?.locationCode || '';
     
@@ -78,7 +78,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
           </thead>
           <tbody>
             {sortedItems.map((item, index) => {
-              const product = products.find(p => p.id === item.productId);
+              const product = (item as any).product;
               if (!product) return null;
               
               const isNoLocation = !product.locationCode;
