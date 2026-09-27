@@ -185,7 +185,7 @@ export default function PedidosAdminPage() {
               className="flex items-center justify-between bg-rio-surface p-4 rounded-2xl border border-rio-border shadow-sm hover:border-rio-gold/40 transition-colors group"
             >
               <div>
-                <p className="text-[14px] font-bold text-rio-ink">{order.number}</p>
+                <p className="text-[14px] font-bold text-rio-ink">{order.orderNumber}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <p className="text-[12px] text-rio-muted font-medium">{customer?.name}</p>
                   {seller && <span className="bg-rio-gold/10 text-rio-gold-dark px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">POS</span>}
@@ -225,7 +225,7 @@ export default function PedidosAdminPage() {
                 const seller = order.sellerId ? sellers.find(s => s.id === order.sellerId) : null;
                 return (
                   <tr key={order.id} className="hover:bg-rio-surface-muted/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-rio-ink">{order.number}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-rio-ink">{order.orderNumber}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-[13px] font-medium text-rio-ink">{customer?.name || 'Desconocido'}</div>
                       {seller ? (

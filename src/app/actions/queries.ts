@@ -23,7 +23,7 @@ export async function getAppData() {
         where: { status: { notIn: ['Despachado', 'Cancelado'] } },
         include: { items: { include: { product: true } }, customer: true, seller: true, groups: { include: { items: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 100
+        take: 20
       });
     } else if (role === 'vendedor') {
       customers = await prisma.customer.findMany({ where: { status: 'active' } });

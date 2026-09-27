@@ -107,7 +107,23 @@ export async function createOrder(data: {
         }
         
         const totalAmount = subtotal * (1 - discount);
-        const orderNumber = `PED-${Math.floor(1000 + Math.random() * 9000)}-${Date.now().toString().slice(-4)}`;
+        
+        const prefix = finalSellerId ? 'VEN' : 'WEB';
+        const lastOrder = await tx.order.findFirst({
+          where: { orderNumber: { startsWith: `${prefix}-` } },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        let nextNumber = 1;
+        if (lastOrder) {
+          const parts = lastOrder.orderNumber.split('-');
+          if (parts.length === 2) {
+            const num = parseInt(parts[1], 10);
+            if (!isNaN(num)) nextNumber = num + 1;
+          }
+        }
+        
+        const orderNumber = `${prefix}-${nextNumber.toString().padStart(4, '0')}`;
 
         const newOrder = await tx.order.create({
           data: {
