@@ -8,7 +8,7 @@ import CSVImporter from '@/components/CSVImporter';
 import BulkPhotoUploader from '@/components/BulkPhotoUploader';
 import CreateProductModal from '@/components/CreateProductModal';
 import Link from 'next/link';
-import { getPagedCatalog } from '@/app/actions/queries';
+import { getPagedCatalog, getAdminMaterialCounts } from '@/app/actions/queries';
 
 export default function InventarioPage() {
   
@@ -22,6 +22,7 @@ export default function InventarioPage() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // CSV Import Modals
+  
   const [showCSV, setShowCSV] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
 
@@ -30,10 +31,24 @@ export default function InventarioPage() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const loaderRef = useRef<HTMLTableRowElement>(null);
+
   const [totalCounts, setTotalCounts] = useState<Record<string, number>>({});
+  const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({ Todos: 0, Laminado: 0, Plata: 0, Rodio: 0, 'Por revisar': 0 });
   const [locationFilter, setLocationFilter] = useState<string>('Todas');
   const [search, setSearch] = useState<string>('');
   const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
+
+  const fetchCounts = async () => {
+    const res = await getAdminMaterialCounts();
+    if (res.success && res.counts) {
+      setMaterialCounts(res.counts);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+
   
   const fetchProducts = async (reset = false) => {
     setIsLoading(true);
@@ -108,7 +123,7 @@ export default function InventarioPage() {
   // Materials and locations are hardcoded or fetched separately in pagination model
     const filterOptions = ['Todas', 'Sin ubicación']; // Static fallback for now since we paginate
     const materials = ['Todos', 'Laminado', 'Plata', 'Rodio', 'Por revisar'];
-    const materialCounts = {} as Record<string, number>;
+    
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-10">
@@ -178,7 +193,7 @@ export default function InventarioPage() {
                   <strong>Información:</strong> Para referencias existentes, el CSV reemplaza nombre, categoría, precio, cantidad física y ubicación. Conserva fotos, material confirmado, estado de publicación y unidades reservadas. Para referencias nuevas, crea el producto y detecta Laminado, Plata o Rodio a partir del nombre. Si no puede identificar un único material, queda Por revisar.<br/><br/>El archivo debe usar <code>;</code> o <code>,</code> como separador.
                </div>
                <div className="p-6">
-                 <CSVImporter onComplete={() => refreshData()} />
+                 <CSVImporter onComplete={() => { refreshData(); fetchCounts(); }} />
                </div>
             </div>
          </div>
@@ -192,7 +207,7 @@ export default function InventarioPage() {
                   <button onClick={() => setShowPhotos(false)}><X className="w-5 h-5" /></button>
                </div>
                <div className="p-6">
-                 <BulkPhotoUploader onComplete={() => refreshData()} />
+                 <BulkPhotoUploader onComplete={() => { refreshData(); fetchCounts(); }} />
                </div>
             </div>
          </div>
@@ -358,6 +373,7 @@ export default function InventarioPage() {
             setEditingProduct(null);
             refreshData();
             fetchProducts(true);
+            fetchCounts();
           }}
       />
     </div>
