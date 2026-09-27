@@ -34,7 +34,7 @@ export default function CarritoPage() {
       clearCart();
       router.push(`/cliente/pedido/${result.order.id}`);
     } else {
-      alert(`Error al crear el pedido: ${result?.error || 'Error desconocido'}`);
+      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: `Error al crear el pedido: ${result?.error || 'Error desconocido'}`, type: 'error' } }));
       setIsSubmitting(false);
     }
   };
@@ -105,7 +105,7 @@ export default function CarritoPage() {
                       onClick={() => {
                         const stockDisponible = item.product.physicalStock - item.product.reservedStock;
                         if (item.quantity >= stockDisponible) {
-                          alert(`Solo hay ${stockDisponible} unidades disponibles.`);
+                          window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: `Solo hay ${stockDisponible} unidades disponibles.`, type: 'error' } }));
                           return;
                         }
                         updateCartQuantity(item.product.id, item.quantity + 1);

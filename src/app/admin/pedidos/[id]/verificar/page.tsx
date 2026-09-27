@@ -166,7 +166,7 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
                         onClick={() => {
                           const msg = issueInputs[item.id]?.trim();
                           if (!msg) {
-                            alert('Por favor escribe una nota de incidencia antes de reportar el problema.');
+                            window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Por favor escribe una nota de incidencia antes de reportar el problema.', type: 'error' } }));
                             return;
                           }
                           handleVerify(item.id, 'issue', msg);

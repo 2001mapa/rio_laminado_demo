@@ -214,7 +214,7 @@ export default function NuevaVentaPage() {
       addToast("Venta registrada con éxito! Pedido #" + result.order.number); 
       router.push('/vendedor'); 
     } else { 
-      alert('Error: ' + (result?.error || '')); 
+      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Error: ' + (result?.error || ''), type: 'error' } })); 
       setIsCheckingOut(false);
     }
   };

@@ -36,7 +36,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       if (!res?.success) throw new Error(res?.error || 'Error al cambiar el estado');
       window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Estado actualizado correctamente' } }));
     } catch (e: any) {
-      alert(e.message);
+      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: e.message, type: 'error' } }));
     } finally {
       setIsTransitioning(false);
     }
@@ -71,7 +71,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     if (adjustSizes.length > 0) {
       const sum = adjustSizes.reduce((acc, curr) => acc + curr.quantity, 0);
       if (sum !== adjustQuantity) {
-        alert(`La suma de las tallas (${sum}) no coincide con la cantidad total a enviar (${adjustQuantity}). Debes ajustar las tallas para que coincidan.`);
+        window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: `La suma de las tallas (${sum}) no coincide con la cantidad total a enviar (${adjustQuantity}). Debes ajustar las tallas para que coincidan.`, type: 'error' } }));
         return;
       }
     }
@@ -344,7 +344,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                         <button 
                           onClick={() => {
                             if (isVerification && hasIssues) {
-                               alert('No se puede completar la verificación porque hay incidencias sin resolver.');
+                               window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'No se puede completar la verificación porque hay incidencias sin resolver.', type: 'error' } }));
                                return;
                             }
                             if (next.action === 'DISPATCH') {

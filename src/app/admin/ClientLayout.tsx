@@ -104,7 +104,7 @@ export default function AdminLayout({
         }
         playNotificationSound(true);
       } catch (err) {
-        alert('El navegador bloqueó el audio. El aviso visual seguirá funcionando.');
+        window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'El navegador bloqueó el audio. El aviso visual seguirá funcionando.', type: 'error' } }));
       }
     }
   };
