@@ -16,16 +16,7 @@ export default function PerfilPage() {
   };
 
   const { currentCustomer, orders, isLoaded, customers } = useDemo();
-  const [debugSession, setDebugSession] = useState<any>(null);
-
-  useEffect(() => {
-    if (!currentCustomer) {
-      // Usar Server Action para debug info
-      import('@/app/actions/auth').then(({ getCurrentSession }) => {
-        getCurrentSession().then(session => setDebugSession(session || 'NULL_SESSION'));
-      });
-    }
-  }, [currentCustomer]);
+  
 
   const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -37,15 +28,6 @@ export default function PerfilPage() {
   }
 
   if (!currentCustomer) {
-    const debugInfo = {
-      customersCount: customers.length,
-      availableUsernames: customers.map(c => `${c.username} (authId: ${c.authUserId})`),
-      isLoaded,
-      sessionStatus: debugSession === 'PENDING' ? 'Loading...' : (debugSession === 'NULL_SESSION' ? 'Null Session' : 'Valid Session'),
-      sessionUserEmail: debugSession?.user?.email || 'N/A',
-      sessionUserId: debugSession?.user?.id || 'N/A',
-      sessionMetadata: debugSession?.user?.user_metadata || 'N/A'
-    };
     return (
       <div className="p-8 text-center text-rio-muted font-medium flex flex-col items-center">
         <p className="mb-4">No se encontró la información del cliente. Por favor, recarga la página.</p>

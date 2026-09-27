@@ -27,6 +27,7 @@ type DemoContextType = {
   cart: CartItem[];
   addToCart: (product: Product, quantity: number, sizes?: { size: string; quantity: number }[]) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
+  updateCartItemSize: (productId: string, sizeName: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number, sizeDetails?: {size:string,quantity:number}[] }[] }) => Promise<any>;
@@ -224,6 +225,29 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const updateCartItemSize = (productId: string, sizeName: string, quantity: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product.id === productId && item.sizes) {
+        let newSizes = [...item.sizes];
+        const sizeIndex = newSizes.findIndex(s => s.size === sizeName);
+        
+        if (sizeIndex >= 0) {
+          if (quantity <= 0) {
+            newSizes = newSizes.filter(s => s.size !== sizeName);
+          } else {
+            newSizes[sizeIndex] = { ...newSizes[sizeIndex], quantity };
+          }
+        } else if (quantity > 0) {
+          newSizes.push({ size: sizeName, quantity });
+        }
+        
+        const newTotal = newSizes.reduce((a, b) => a + b.quantity, 0);
+        return { ...item, sizes: newSizes, quantity: newTotal };
+      }
+      return item;
+    }).filter(item => item.quantity > 0)); // Auto remove if total quantity drops to 0
+  };
+  
   const updateCartQuantity = (productId: string, quantity: number) => {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId) {
@@ -395,7 +419,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       cart,
       addToCart,
       updateCartQuantity,
-      removeFromCart,
+        updateCartItemSize,
+        removeFromCart,
       clearCart,
       addOrder,
       updateOrder,

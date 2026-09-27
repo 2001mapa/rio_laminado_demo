@@ -193,6 +193,13 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                   <div className="flex-1 min-w-0">
                     <span className="text-[11px] font-mono font-semibold text-rio-muted block mb-1">{product.sku}</span>
                     <p className="text-base font-semibold text-rio-ink truncate mb-1.5">{product.name}</p>
+                    {item.sizeDetails && item.sizeDetails.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {item.sizeDetails.map((s: any, idx: number) => (
+                           <span key={idx} className="bg-rio-surface border border-rio-border px-2 py-0.5 rounded-md text-[11px] font-bold text-rio-ink">T{s.size} <span className="text-rio-muted font-normal">x{s.quantity}</span></span>
+                        ))}
+                      </div>
+                    )}
                     <span className="text-sm font-bold text-rio-gold-dark block">{formatPrice(product.price)} <span className="text-xs text-rio-muted font-medium">c/u</span></span>
                   </div>
                 </div>

@@ -93,7 +93,10 @@ export default function CatalogoPage() {
     };
   }, [isLoading, hasMore, cursor, effectiveMaterial, effectiveCategory, searchTerm]);
 
-  const discoverProducts = catalogProducts.slice(0, 8);
+  // Descubre la colección (Novedades reales)
+  const discoverProducts = [...catalogProducts]
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .slice(0, 8);
 
   const adjustedOrders = orders.filter(
     o => o.customerId === currentCustomer?.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
@@ -269,7 +272,7 @@ export default function CatalogoPage() {
             <div className="space-y-4 md:space-y-6">
               <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
                 <h2 className="font-serif text-2xl md:text-3xl text-rio-ink font-bold">Resultados de búsqueda</h2>
-                <span className="text-[12px] text-rio-muted font-bold uppercase tracking-wider">{catalogProducts.length} ref.</span>
+                
               </div>
               {catalogProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
@@ -294,7 +297,7 @@ export default function CatalogoPage() {
                 <div key={category} id={`category-${category}`} className="scroll-mt-28 md:scroll-mt-36 space-y-4 md:space-y-6">
                   <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
                     <h2 className="font-serif text-2xl md:text-3xl text-rio-ink font-bold">{category}</h2>
-                    <span className="text-[12px] text-rio-muted font-bold uppercase tracking-wider">{categoryProducts.length} ref.</span>
+                    
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
