@@ -97,7 +97,7 @@ export default function VendedorPerfilPage() {
                   </div>
                   <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto">
                     <div className="text-[13px] font-bold text-rio-ink mr-4">
-                      {order.items.length} artículos
+                      {order.items.length} referencias
                     </div>
                     <span className={"text-[10px] md:text-[11px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md border " + (
                       order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :

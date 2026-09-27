@@ -384,3 +384,33 @@ export async function getPrintableProducts() {
     return { success: false, error: error.message };
   }
 }
+
+export async function getExactProductBySku(sku: string) {
+  noStore();
+  try {
+    const { role } = await requireRole(['admin', 'vendedor']);
+    
+    const normalizedSku = sku.trim().toUpperCase();
+    
+    const product = await prisma.product.findFirst({
+      where: { sku: normalizedSku }
+    });
+
+    if (!product) {
+      return { success: false, reason: 'not_found', error: 'Referencia inexistente.' };
+    }
+
+    if (!product.isActive) {
+      return { success: false, reason: 'inactive', error: 'El producto se encuentra inactivo.' };
+    }
+
+    if (product.physicalStock <= 0) {
+      return { success: false, reason: 'out_of_stock', error: 'El producto está agotado.' };
+    }
+
+    return { success: true, product };
+  } catch (error: any) {
+    console.error('Error buscando producto por SKU:', error);
+    return { success: false, reason: 'server_error', error: error.message };
+  }
+}

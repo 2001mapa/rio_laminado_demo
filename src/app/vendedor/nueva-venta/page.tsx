@@ -5,14 +5,14 @@ import { useDemo, CartItem } from '@/lib/DemoContext';
 import { Customer, Product } from '@/lib/types';
 import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
-import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check } from 'lucide-react';
+import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { getPagedCatalog } from '@/app/actions/queries';
+import { getExactProductBySku } from '@/app/actions/queries';
 import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
   const router = useRouter();
-  const { customers, products, checkoutSeller } = useDemo();
+  const { customers, checkoutSeller } = useDemo();
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -21,7 +21,6 @@ export default function NuevaVentaPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [scanQuantity, setScanQuantity] = useState(1);
@@ -29,12 +28,6 @@ export default function NuevaVentaPage() {
   const [scanSizeInput, setScanSizeInput] = useState('');
   const [scanSizeQtyInput, setScanSizeQtyInput] = useState(1);
   const [manualSku, setManualSku] = useState("");
-  
-  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
-  const [newCustomerName, setNewCustomerName] = useState("");
-  const [newCustomerEmail, setNewCustomerEmail] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
-  const [newCustomerAddress, setNewCustomerAddress] = useState("");
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerRegionId = "qr-reader";
@@ -55,7 +48,6 @@ export default function NuevaVentaPage() {
 
   const startScanner = async () => {
     try {
-      // Pedir permisos y listar cámaras primero
       const cameras = await Html5Qrcode.getCameras();
       if (!cameras || cameras.length === 0) {
         addToast("No se detectaron cámaras en el dispositivo.");
@@ -66,7 +58,6 @@ export default function NuevaVentaPage() {
         scannerRef.current = new Html5Qrcode(scannerRegionId);
       }
 
-      // Buscar la cámara trasera si existe, sino usar la por defecto
       const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera') || c.label.toLowerCase().includes('environment'));
       const cameraConfig = backCamera ? { deviceId: { exact: backCamera.id } } : { facingMode: "environment" };
       
@@ -74,27 +65,26 @@ export default function NuevaVentaPage() {
         cameraConfig,
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 }
+          aspectRatio: 1.0,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return { width: minEdge * 0.7, height: minEdge * 0.7 };
+          }
         },
         (decodedText) => {
-          if (scannerRef.current) {
-            scannerRef.current.pause();
-          }
+          if (scannerRef.current) scannerRef.current.pause();
           handleScan(decodedText);
         },
-        (error) => {
-          // Ignore background scanning errors
-        }
+        (error) => {}
       );
       setIsScanning(true);
     } catch (err: any) {
       console.error("Error starting scanner", err);
-      // Fallback para intentar con facingMode directamente si getCameras falló por alguna razón
       if (!isScanning && scannerRef.current) {
          try {
            await scannerRef.current.start(
              { facingMode: "environment" },
-             { fps: 10, qrbox: { width: 250, height: 250 } },
+             { fps: 10, aspectRatio: 1.0, qrbox: (w, h) => { const m = Math.min(w, h); return { width: m*0.7, height: m*0.7 }; } },
              (decodedText) => { if (scannerRef.current) scannerRef.current.pause(); handleScan(decodedText); },
              () => {}
            );
@@ -113,15 +103,12 @@ export default function NuevaVentaPage() {
     }
   };
 
-  
   const handleScan = async (sku: string) => {
     try {
-      const result = await getPagedCatalog({ search: sku, limit: 1 });
-      const rawProduct = result.products.find(p => p.sku === sku);
-      const product = rawProduct ? { ...rawProduct, material: rawProduct.material ?? undefined, imageUrl: rawProduct.imageUrl ?? undefined, hoverImageUrl: rawProduct.hoverImageUrl ?? undefined, locationCode: rawProduct.locationCode ?? undefined } : null;
+      const result = await getExactProductBySku(sku);
       
-      if (product) {
-        setScannedProduct(product);
+      if (result.success && result.product) {
+        setScannedProduct(result.product as Product);
         setScanQuantity(1);
         setScanSizes([]);
         setScanSizeInput('');
@@ -132,7 +119,7 @@ export default function NuevaVentaPage() {
           audio.play();
         } catch(e) {}
       } else {
-        addToast(`SKU no encontrado: ${sku}`);
+        addToast(result.error || `SKU no encontrado: ${sku}`);
         if (scannerRef.current) scannerRef.current.resume();
       }
     } catch (err) {
@@ -153,12 +140,20 @@ export default function NuevaVentaPage() {
       return;
     }
     
+    const availableStock = scannedProduct.physicalStock - scannedProduct.reservedStock;
+    
     setCartItems(prev => {
       const existing = prev.find(item => item.product.id === scannedProduct.id);
       if (existing) {
         return prev.map(item => {
           if (item.product.id === scannedProduct.id) {
             let updatedSizes = item.sizes || [];
+            let newTotalQty = item.quantity + sumOfSizes;
+            if (newTotalQty > availableStock) {
+               addToast(`No se pudo agregar todo. Stock máximo es ${availableStock}.`);
+               return item; // Do not merge if it exceeds, force them to edit it manually or add a valid amount
+            }
+            
             if (isAnillo && scanSizes.length > 0) {
               const combinedSizes = [...updatedSizes];
               scanSizes.forEach(newSize => {
@@ -171,9 +166,10 @@ export default function NuevaVentaPage() {
               });
               updatedSizes = combinedSizes;
             }
+            
             return { 
               ...item, 
-              quantity: Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), item.quantity + sumOfSizes),
+              quantity: newTotalQty,
               sizes: isAnillo ? updatedSizes : item.sizes
             };
           }
@@ -182,15 +178,23 @@ export default function NuevaVentaPage() {
       }
       return [...prev, { 
         product: scannedProduct, 
-        quantity: Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), sumOfSizes),
-        sizes: isAnillo ? scanSizes : undefined
+        quantity: Math.min(availableStock, sumOfSizes),
+        sizes: isAnillo ? scanSizes : undefined,
+        clearCart: () => {},
+        addOrder: async () => {},
+        updateOrder: () => {},
+        transitionOrder: async () => {},
+        acknowledgeAdjustment: async () => {},
+        updateCustomer: () => {},
+        addSeller: () => {},
+        checkoutSeller: async () => {},
+        refreshData: async () => {}
       }];
     });
     
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
     setScannedProduct(null);
     
-    // Resume scanner
     if (scannerRef.current) scannerRef.current.resume();
   };
 
@@ -199,151 +203,178 @@ export default function NuevaVentaPage() {
     if (scannerRef.current) scannerRef.current.resume();
   };
 
-  
-
   const handleCheckout = async () => {
-    if (!selectedCustomer || cartItems.length === 0 || isCheckingOut) return;
-    
+    if (!selectedCustomer || cartItems.length === 0) return;
     setIsCheckingOut(true);
-    if (scannerRef.current && isScanning) {
-      await scannerRef.current.stop();
-    }
     
-    const result = await checkoutSeller(selectedCustomer.id, cartItems); 
-    if (result && result.success) { 
-      addToast("Venta registrada con éxito! Pedido #" + result.order.number); 
-      router.push('/vendedor'); 
-    } else { 
-      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Error: ' + (result?.error || ''), type: 'error' } })); 
+    for (const item of cartItems) {
+      const isAnillo = item.product.category === 'Anillos';
+      const availableStock = item.product.physicalStock - item.product.reservedStock;
+      if (item.quantity > availableStock) {
+        addToast(`El producto ${item.product.name} excede el stock disponible. Máximo: ${availableStock}`);
+        setIsCheckingOut(false);
+        return;
+      }
+      if (isAnillo) {
+        const sumOfSizes = item.sizes?.reduce((a, b) => a + b.quantity, 0) || 0;
+        if (sumOfSizes !== item.quantity) {
+          addToast(`Las tallas de ${item.product.name} suman ${sumOfSizes} pero la cantidad total es ${item.quantity}. Deben coincidir.`);
+          setIsCheckingOut(false);
+          return;
+        }
+      }
+    }
+
+    try {
+      const res = await checkoutSeller(selectedCustomer.id, cartItems);
+      if (res.success) {
+        addToast("Venta registrada exitosamente");
+        setCartItems([]);
+        setStep(1);
+        setSelectedCustomer(null);
+        router.push('/vendedor');
+      } else {
+        window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Error: ' + (res.error || ''), type: 'error' } }));
+      }
+    } catch (e: any) {
+      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: e.message, type: 'error' } }));
+    } finally {
       setIsCheckingOut(false);
     }
   };
 
-  const totalAmount = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-  const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const updateCartItemQuantity = (productId: string, delta: number) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.product.id === productId) {
+        const available = item.product.physicalStock - item.product.reservedStock;
+        const newQuantity = Math.max(1, Math.min(available, item.quantity + delta));
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
+  };
+  
+  const removeCartItem = (productId: string) => {
+    setCartItems(prev => prev.filter(item => item.product.id !== productId));
+  };
+  
+  const removeCartItemSize = (productId: string, sizeName: string) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.product.id === productId && item.sizes) {
+        const removedSize = item.sizes.find(s => s.size === sizeName);
+        if (!removedSize) return item;
+        const newSizes = item.sizes.filter(s => s.size !== sizeName);
+        const newQuantity = Math.max(0, item.quantity - removedSize.quantity);
+        return { ...item, sizes: newSizes, quantity: newQuantity };
+      }
+      return item;
+    }).filter(item => item.quantity > 0)); // Auto-remove if quantity falls to 0
+  };
+
+  const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const totalItems = cartItems.length;
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-3.5rem)] md:min-h-0 bg-rio-background pb-16 relative">
-      {/* Header Progreso */}
-      <div className="bg-white px-4 py-3 border-b border-rio-border flex items-center justify-between z-20">
-        <div className="flex items-center space-x-2">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 1 ? 'bg-black text-white' : 'bg-rio-success text-white'}`}>
-            {step === 2 ? <Check className="w-3 h-3" /> : '1'}
+    <div className="min-h-screen bg-rio-background md:h-screen md:overflow-hidden flex flex-col pt-4">
+      {step === 1 && (
+        <div className="flex-1 max-w-md w-full mx-auto px-4 pb-24 space-y-6 animate-fade-in overflow-y-auto">
+          <div className="text-center space-y-2 mb-8">
+            <h1 className="text-2xl font-serif font-black text-rio-ink">Nueva Venta</h1>
+            <p className="text-sm text-rio-muted font-medium">Selecciona el cliente a facturar.</p>
           </div>
-          <div className="h-0.5 w-4 bg-rio-border"></div>
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 2 ? 'bg-black text-white' : 'bg-rio-surface-muted text-rio-muted'}`}>
-            2
+          
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-rio-muted" />
+            <input 
+              type="text"
+              placeholder="Buscar cliente..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-rio-border rounded-xl py-3.5 pl-12 pr-4 text-[13px] focus:outline-none focus:border-rio-gold-dark focus:ring-1 focus:ring-rio-gold-dark transition-all shadow-sm"
+            />
           </div>
-        </div>
-        <div className="text-xs font-bold text-rio-ink">
-          {step === 1 ? 'Seleccionar Cliente' : 'Escanear Artículos'}
-        </div>
-      </div>
 
-      <div className="flex-1 p-4 md:p-6 bg-white flex flex-col md:flex-row gap-6">
-        
-        {/* Left Column (Steps) */}
-        <div className="flex-1 max-w-xl">
-          {step === 1 && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="w-4 h-4 text-rio-muted" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre o documento..."
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-rio-border bg-rio-surface-muted text-sm focus:outline-none focus:border-rio-ink focus:ring-1 focus:ring-rio-ink"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-rio-muted uppercase tracking-wider px-2">Clientes Disponibles</p>
+            {filteredCustomers.length === 0 ? (
+              <div className="text-center py-8 bg-rio-surface-muted rounded-2xl border border-rio-border border-dashed">
+                <p className="text-[13px] text-rio-muted font-medium">No se encontraron clientes.</p>
               </div>
-
-              <button 
-                  onClick={() => addToast('La creación de clientes por vendedores requiere configuración de permisos. Solicita la creación al administrador.')}
-                  className="w-full py-3 border-2 border-dashed border-rio-border rounded-xl text-rio-muted hover:bg-rio-surface-muted transition-colors flex items-center justify-center font-semibold text-sm cursor-not-allowed"
+            ) : (
+              filteredCustomers.map(customer => (
+                <button
+                  key={customer.id}
+                  onClick={() => { setSelectedCustomer(customer); setStep(2); }}
+                  className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
                 >
-                  <UserPlus className="w-4 h-4 mr-2 opacity-50" />
-                  <span className="opacity-50">Crear Cliente Rápido</span>
-                </button>
-
-              <div className="space-y-2 mt-4">
-                <h3 className="text-xs font-bold text-rio-muted uppercase tracking-wider mb-2">Resultados ({filteredCustomers.length})</h3>
-                {filteredCustomers.map(customer => (
-                  <div 
-                    key={customer.id}
-                    onClick={() => {
-                      setSelectedCustomer(customer);
-                      setStep(2);
-                    }}
-                    className="p-4 rounded-xl border border-rio-border cursor-pointer hover:border-rio-ink transition-colors flex justify-between items-center bg-white shadow-sm"
-                  >
-                    <div>
-                      <p className="font-bold text-rio-ink text-sm">{customer.name}</p>
-                      <p className="text-[11px] text-rio-muted font-mono mt-0.5">{customer.email}</p>
-                    </div>
-                    <div className="w-6 h-6 rounded-full border border-rio-border flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-transparent group-hover:bg-rio-surface-muted"></div>
-                    </div>
+                  <div>
+                    <p className="font-bold text-rio-ink text-sm group-hover:text-rio-gold-dark transition-colors">{customer.name}</p>
+                    <p className="text-xs text-rio-muted mt-1">{customer.email}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="flex flex-col h-[500px] md:h-[600px] animate-fade-in">
-              {/* Customer Info Mini */}
-              <div className="flex items-center justify-between mb-4 bg-rio-surface-muted px-3 py-2 rounded-lg border border-rio-border">
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-rio-muted">Cliente Seleccionado</p>
-                  <p className="font-bold text-sm text-rio-ink truncate max-w-[200px]">{selectedCustomer?.name}</p>
-                </div>
-                <button onClick={() => { stopScanner(); setStep(1); }} className="text-[11px] font-bold text-rio-gold-dark hover:underline">
-                  Cambiar
+                  <div className="w-8 h-8 rounded-full bg-rio-background flex items-center justify-center group-hover:bg-rio-gold-light/20 transition-colors">
+                    <Plus className="w-4 h-4 text-rio-gold-dark" />
+                  </div>
                 </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="flex-1 w-full max-w-6xl mx-auto px-4 pb-24 md:pb-6 flex flex-col md:flex-row gap-6 h-full animate-fade-in overflow-hidden">
+          
+          <div className="w-full md:flex-1 flex flex-col min-h-[500px]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-serif font-bold text-lg text-rio-ink">Escáner de Productos</h2>
+              <button onClick={() => { stopScanner(); setStep(1); }} className="text-xs font-bold text-rio-gold-dark hover:underline">
+                Cambiar Cliente
+              </button>
+            </div>
+
+            <div className="flex-1 bg-white border border-rio-border rounded-2xl overflow-hidden relative shadow-sm flex flex-col">
+              <div className="p-4 border-b border-rio-border bg-rio-surface flex items-center justify-between z-20 shrink-0">
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase font-bold text-rio-muted">Cliente Seleccionado</p>
+                  <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name}</p>
+                </div>
               </div>
 
-              {/* Manual Input */}
-              <div className="mb-4">
+              <div className="p-4 border-b border-rio-border bg-white z-20 shrink-0">
                 <form 
                   onSubmit={(e) => { 
                     e.preventDefault(); 
                     if (manualSku.trim()) {
-                      handleScan(manualSku.trim()); 
-                      setManualSku(""); 
+                      handleScan(manualSku);
+                      setManualSku("");
                     }
-                  }} 
+                  }}
                   className="flex gap-2"
                 >
-                  <input
+                  <input 
                     type="text"
-                    placeholder="Escribir SKU manual (Ej. ANI-001)"
+                    placeholder="Ingresar SKU manualmente"
                     value={manualSku}
-                    onChange={(e) => setManualSku(e.target.value.toUpperCase())}
-                    className="flex-1 px-4 py-3 border border-rio-border rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink bg-rio-surface-muted"
+                    onChange={e => setManualSku(e.target.value)}
+                    className="flex-1 bg-rio-background border border-rio-border rounded-xl px-4 py-2.5 text-[13px] focus:outline-none focus:border-rio-gold-dark"
                   />
-                  <button 
-                    type="submit" 
-                    className="bg-rio-ink hover:bg-rio-ink/90 transition-colors text-white px-6 py-3 rounded-xl font-bold text-sm"
-                  >
+                  <button type="submit" className="bg-rio-ink text-white px-4 py-2.5 rounded-xl font-bold text-[13px] hover:bg-rio-ink/80 transition-colors">
                     Buscar
                   </button>
                 </form>
               </div>
 
-              {/* Scanner Area */}
-              <div className="flex-1 rounded-2xl overflow-hidden border-2 border-rio-ink/10 relative bg-black flex flex-col items-center justify-center">
-                <style jsx global>{`
+              <div className="flex-1 relative bg-black flex flex-col">
+                <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
-                  #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+                  #qr-reader video { width: 100% !important; height: 100% !important; object-fit: contain !important; }
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>
                 
-                <div id={scannerRegionId} className="w-full h-full bg-black absolute inset-0 z-0"></div>
+                <div id={scannerRegionId} className="w-full h-full absolute inset-0 z-0"></div>
                 
                 {!isScanning ? (
-                  <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white z-10 p-6 text-center">
+                  <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white z-10 p-6 text-center">
                     <Camera className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="font-semibold text-sm mb-4">Cámara lista para escanear</p>
                     <button 
@@ -354,98 +385,61 @@ export default function NuevaVentaPage() {
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40 z-10"></div>
-                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
-                      <div className="w-48 h-48 border-2 border-white/50 rounded-lg">
-                        <div className="w-4 h-4 border-t-2 border-l-2 border-white absolute top-0 left-0"></div>
-                        <div className="w-4 h-4 border-t-2 border-r-2 border-white absolute top-0 right-0"></div>
-                        <div className="w-4 h-4 border-b-2 border-l-2 border-white absolute bottom-0 left-0"></div>
-                        <div className="w-4 h-4 border-b-2 border-r-2 border-white absolute bottom-0 right-0"></div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={stopScanner}
-                      className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-4 py-2 rounded-full z-20 border border-white/20"
-                    >
-                      Pausar Cámara
-                    </button>
-                  </>
+                  <button 
+                    onClick={stopScanner}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-4 py-2 rounded-full z-20 border border-white/20"
+                  >
+                    Pausar Cámara
+                  </button>
                 )}
 
-                {/* Scanned Item Modal overlay */}
                 {scannedProduct && (
                   <div className="absolute inset-0 bg-black/80 z-30 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-5 w-full max-w-[280px] shadow-2xl animate-scale-in">
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-bold text-rio-ink">¡Referencia Escaneada!</h4>
-                        <button onClick={cancelScan} className="text-rio-muted hover:text-rio-ink"><X className="w-5 h-5"/></button>
-                      </div>
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative animate-zoom-in shadow-2xl">
+                      <button onClick={cancelScan} className="absolute top-4 right-4 text-rio-muted hover:text-rio-ink p-1">
+                        <X className="w-5 h-5"/>
+                      </button>
                       
-                      <div className="flex items-center gap-3 bg-rio-surface-muted p-2 rounded-xl mb-3 border border-rio-border">
-                        <img src={scannedProduct.imageUrl || undefined} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      <div className="flex gap-4 items-center mb-6 border-b border-rio-border pb-4 pt-2">
+                        {scannedProduct.imageUrl ? (
+                           <img src={scannedProduct.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover border border-rio-border shrink-0" />
+                        ) : (
+                           <div className="w-16 h-16 rounded-xl bg-rio-background flex items-center justify-center border border-rio-border shrink-0 text-rio-muted font-medium text-xs">Sin Foto</div>
+                        )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] text-rio-muted font-mono">{scannedProduct.sku}</p>
-                          <p className="text-[13px] font-bold leading-tight truncate">{scannedProduct.name}</p>
-                          <p className="text-rio-gold-dark font-bold text-sm mt-0.5">{formatPrice(scannedProduct.price)}</p>
+                          <p className="text-[10px] text-rio-muted font-mono mb-1">{scannedProduct.sku}</p>
+                          <h3 className="font-bold text-rio-ink text-sm leading-tight mb-1">{scannedProduct.name}</h3>
+                          <p className="text-rio-gold-dark font-black">{formatPrice(scannedProduct.price)}</p>
                         </div>
                       </div>
 
-                      <div className="bg-rio-background p-2 rounded-lg mb-4 text-center border border-rio-border flex flex-col items-center justify-center">
-                        <span className="text-[10px] text-rio-muted font-bold uppercase tracking-wider mb-0.5">Inventario Disponible</span>
-                        <span className={`text-sm font-black ${(scannedProduct.physicalStock - scannedProduct.reservedStock) > 10 ? 'text-rio-success' : (scannedProduct.physicalStock - scannedProduct.reservedStock) > 0 ? 'text-rio-warning' : 'text-rio-danger'}`}>
-                          {(scannedProduct.physicalStock - scannedProduct.reservedStock)} unidades
-                        </span>
-                      </div>
-
                       {scannedProduct.category === 'Anillos' ? (
-                        <div className="mb-4 space-y-3">
-                          <p className="text-xs font-bold text-rio-ink mb-1 text-center uppercase tracking-wider">Tallas Solicitadas</p>
-                          <div className="bg-rio-warning/10 border border-rio-warning/20 p-2 rounded-lg">
-                            <p className="text-[11px] text-rio-warning font-semibold text-center">Sujetas a confirmación por bodega.</p>
-                          </div>
+                        <div className="mb-6">
+                          <p className="text-xs font-bold text-rio-ink mb-3 text-center uppercase tracking-wider">Tallas Solicitadas</p>
                           
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="text" 
-                              placeholder="Talla (ej. 6)"
-                              value={scanSizeInput}
-                              onChange={(e) => setScanSizeInput(e.target.value)}
-                              className="w-16 h-10 px-2 border border-rio-border rounded-xl text-sm bg-rio-surface focus:outline-none focus:ring-1 focus:ring-rio-ink text-center"
-                            />
-                            <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background h-10 w-20 shrink-0">
-                              <button onClick={() => setScanSizeQtyInput(Math.max(1, scanSizeQtyInput - 1))} className="w-6 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="text-sm font-bold flex-1 text-center text-rio-ink">{scanSizeQtyInput}</span>
-                              <button onClick={() => setScanSizeQtyInput(scanSizeQtyInput + 1)} className="w-6 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <button 
-                              onClick={() => {
-                                if (!scanSizeInput) return;
-                                const existingSize = scanSizes.find(s => s.size === scanSizeInput);
-                                if (existingSize) {
-                                  setScanSizes(scanSizes.map(s => s.size === scanSizeInput ? { ...s, quantity: s.quantity + scanSizeQtyInput } : s));
+                          <div className="flex gap-2 mb-4">
+                            <input type="text" placeholder="Talla" value={scanSizeInput} onChange={e => setScanSizeInput(e.target.value)} className="flex-1 min-w-0 bg-rio-background border border-rio-border rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                            <input type="number" min="1" value={scanSizeQtyInput} onChange={e => setScanSizeQtyInput(parseInt(e.target.value) || 1)} className="w-16 shrink-0 bg-rio-background border border-rio-border rounded-xl px-2 py-2 text-sm text-center focus:outline-none" />
+                            <button onClick={() => {
+                              if(scanSizeInput.trim() && scanSizeQtyInput > 0) {
+                                const isDuplicate = scanSizes.some(s => s.size === scanSizeInput.trim());
+                                if (isDuplicate) {
+                                  setScanSizes(prev => prev.map(s => s.size === scanSizeInput.trim() ? {...s, quantity: s.quantity + scanSizeQtyInput} : s));
                                 } else {
-                                  setScanSizes([...scanSizes, { size: scanSizeInput, quantity: scanSizeQtyInput }]);
+                                  setScanSizes([...scanSizes, {size: scanSizeInput.trim(), quantity: scanSizeQtyInput}]);
                                 }
-                                setScanSizeInput('');
-                                setScanSizeQtyInput(1);
-                              }}
-                              disabled={!scanSizeInput}
-                              className="h-10 px-3 flex-1 bg-black text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-1"
-                            >
-                              <Plus className="w-4 h-4" /> Add
+                                setScanSizeInput(''); setScanSizeQtyInput(1);
+                              }
+                            }} className="bg-rio-ink text-white p-2 rounded-xl">
+                              <Plus className="w-5 h-5"/>
                             </button>
                           </div>
 
                           {scanSizes.length > 0 && (
-                            <div className="space-y-1.5 mt-2 max-h-24 overflow-y-auto">
-                              <div className="flex flex-wrap gap-1.5">
+                            <div className="bg-rio-surface-muted rounded-xl p-3 border border-rio-border max-h-[120px] overflow-y-auto">
+                              <div className="flex flex-wrap gap-2">
                                 {scanSizes.map((s, idx) => (
-                                  <div key={idx} className="flex items-center gap-1 bg-rio-surface-muted border border-rio-border px-2 py-1 rounded-lg text-xs">
+                                  <div key={idx} className="flex items-center gap-1 bg-white border border-rio-border px-2 py-1 rounded-lg text-xs">
                                     <span className="font-medium text-rio-ink">T{s.size}</span>
                                     <span className="text-rio-muted">x{s.quantity}</span>
                                     <button onClick={() => setScanSizes(scanSizes.filter(ss => ss.size !== s.size))} className="ml-0.5 text-rio-danger hover:opacity-80">
@@ -501,64 +495,94 @@ export default function NuevaVentaPage() {
                 )}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Right Column (Cart) */}
-        <div className="w-full md:w-[400px] shrink-0 md:pl-6 md:border-l md:border-rio-border flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-rio-gold-dark"/>
-              <h2 className="font-serif font-bold text-lg text-rio-ink">Pedido Actual</h2>
-            </div>
-            <span className="bg-rio-surface-muted px-2 py-1 rounded-full text-[11px] font-bold text-rio-ink">{totalItems} refs</span>
           </div>
-          
-          <div className="flex-1 overflow-y-auto min-h-[150px] md:min-h-[400px] border border-rio-border rounded-xl bg-rio-background/50 p-2 space-y-2 mb-4">
-            {cartItems.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-rio-muted p-6 text-center">
-                <ShoppingBag className="w-8 h-8 mb-2 opacity-20" />
-                <p className="text-xs font-medium">El pedido está vacío.<br/>Escanea prendas para comenzar.</p>
+
+          <div className="w-full md:w-[450px] shrink-0 md:pl-6 md:border-l md:border-rio-border flex flex-col h-[50vh] md:h-full">
+            <div className="flex items-center justify-between mb-4 shrink-0">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-rio-gold-dark"/>
+                <h2 className="font-serif font-bold text-lg text-rio-ink">Pedido Actual</h2>
               </div>
-            ) : (
-              cartItems.map((item, index) => (
-                <div key={index} className="flex gap-3 bg-white p-2 rounded-lg border border-rio-border shadow-sm">
-                  <img src={item.product.imageUrl || undefined} alt="" className="w-12 h-12 rounded-md object-cover border border-rio-border" />
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <p className="text-[10px] text-rio-muted font-mono">{item.product.sku}</p>
-                    <p className="text-xs font-bold text-rio-ink truncate">{item.product.name}</p>
-                    {item.sizes && item.sizes.length > 0 && (
-                      <p className="text-[10px] text-rio-muted mt-0.5">Tallas: {item.sizes.map(s => `${s.size}x${s.quantity}`).join(', ')}</p>
-                    )}
-                    <p className="text-xs font-bold text-rio-gold-dark mt-0.5">{formatPrice(item.product.price)} x {item.quantity}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="border border-rio-border rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-rio-muted font-bold uppercase tracking-wider">Total</span>
-              <span className="text-2xl font-black text-rio-ink">{formatPrice(totalAmount)}</span>
+              <span className="bg-rio-surface-muted px-2 py-1 rounded-full text-[11px] font-bold text-rio-ink">{totalItems} refs</span>
             </div>
-            <button 
-              onClick={handleCheckout}
-              disabled={cartItems.length === 0 || !selectedCustomer || isCheckingOut}
-              className="w-full bg-rio-gold-dark disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-rio-gold active:scale-[0.98] transition-all flex items-center justify-center"
-            >
-              {isCheckingOut ? "Procesando..." : "Finalizar Venta"} <Check className="w-5 h-5 ml-2"/>
-            </button>
-            {(!selectedCustomer && cartItems.length > 0) && (
-              <p className="text-[10px] text-center text-rio-danger mt-2">Selecciona un cliente para finalizar.</p>
-            )}
+            
+            <div className="flex-1 overflow-y-auto border border-rio-border rounded-xl bg-rio-background/50 p-2 space-y-2 mb-4">
+              {cartItems.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-rio-muted p-6 text-center">
+                  <ShoppingBag className="w-8 h-8 mb-2 opacity-20" />
+                  <p className="text-xs font-medium">El pedido está vacío.<br/>Escanea prendas para comenzar.</p>
+                </div>
+              ) : (
+                cartItems.map((item, index) => (
+                  <div key={index} className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-rio-border shadow-sm group">
+                    <div className="flex gap-3 items-start">
+                      {item.product.imageUrl ? (
+                        <img src={item.product.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover border border-rio-border shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-rio-background flex items-center justify-center border border-rio-border shrink-0 text-rio-muted font-medium text-[10px]">Sin foto</div>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-[10px] text-rio-muted font-mono leading-none mb-1">{item.product.sku}</p>
+                            <p className="text-xs font-bold text-rio-ink truncate pr-2">{item.product.name}</p>
+                          </div>
+                          <button onClick={() => removeCartItem(item.product.id)} className="text-rio-muted hover:text-rio-danger p-1 shrink-0 bg-rio-surface-muted rounded-md opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs font-bold text-rio-gold-dark">{formatPrice(item.product.price * item.quantity)}</p>
+                          
+                          {item.product.category !== 'Anillos' && (
+                            <div className="flex items-center bg-rio-background border border-rio-border rounded-lg overflow-hidden">
+                              <button onClick={() => updateCartItemQuantity(item.product.id, -1)} className="px-2 py-1 text-rio-ink hover:bg-rio-border transition-colors"><Minus className="w-3 h-3" /></button>
+                              <span className="text-[11px] font-bold w-6 text-center">{item.quantity}</span>
+                              <button onClick={() => updateCartItemQuantity(item.product.id, 1)} className="px-2 py-1 text-rio-ink hover:bg-rio-border transition-colors"><Plus className="w-3 h-3" /></button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {item.product.category === 'Anillos' && item.sizes && (
+                      <div className="mt-2 pt-2 border-t border-rio-border/50">
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.sizes.map((s, idx) => (
+                            <div key={idx} className="flex items-center gap-1 bg-rio-background border border-rio-border px-1.5 py-1 rounded-md text-[10px]">
+                              <span className="font-bold text-rio-ink">T{s.size}</span>
+                              <span className="text-rio-muted">x{s.quantity}</span>
+                              <button onClick={() => removeCartItemSize(item.product.id, s.size)} className="ml-0.5 text-rio-danger hover:opacity-80">
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="border border-rio-border rounded-xl bg-white p-4 shadow-sm shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-rio-muted font-bold uppercase tracking-wider">Total ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds)</span>
+                <span className="text-2xl font-black text-rio-ink">{formatPrice(totalAmount)}</span>
+              </div>
+              <button 
+                onClick={handleCheckout}
+                disabled={cartItems.length === 0 || !selectedCustomer || isCheckingOut}
+                className="w-full bg-rio-gold-dark disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-rio-gold active:scale-[0.98] transition-all flex items-center justify-center"
+              >
+                {isCheckingOut ? "Procesando..." : "Finalizar Venta"} <Check className="w-5 h-5 ml-2"/>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* New Customer Modal */}
-      
+      )}
     </div>
   );
 }
-
