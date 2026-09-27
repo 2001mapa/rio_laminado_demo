@@ -255,8 +255,12 @@ export async function getPagedCatalog({
     const where: any = {};
     if (role !== 'admin') {
       where.isActive = true;
-      where.imageUrl = { not: null };
-      where.material = { not: 'Por revisar' };
+      
+      // Los vendedores pueden ver productos sin foto (para vender en mostrador). Los clientes no.
+      if (role === 'cliente') {
+        where.imageUrl = { not: null };
+        where.material = { not: 'Por revisar' };
+      }
       // physicalStock - reservedStock > 0 is tricky in Prisma count/where directly without raw query or separate fields, 
       // wait! We can just fetch them and filter, but that breaks cursor pagination.
       // Actually, if we just check physicalStock > 0 or reservedStock < physicalStock... Prisma doesn't support comparing two columns directly in where unless we use where: { physicalStock: { gt: prisma.product.fields.reservedStock } } in Prisma 5? 
