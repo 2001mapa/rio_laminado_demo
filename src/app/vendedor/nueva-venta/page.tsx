@@ -7,7 +7,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { getExactProductBySku } from '@/app/actions/queries';
+import { getExactProductBySku, getPagedCatalog } from '@/app/actions/queries';
 import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
@@ -28,6 +28,26 @@ export default function NuevaVentaPage() {
   const [scanSizeInput, setScanSizeInput] = useState('');
   const [scanSizeQtyInput, setScanSizeQtyInput] = useState(1);
   const [manualSku, setManualSku] = useState("");
+  const [skuSuggestions, setSkuSuggestions] = useState<Product[]>([]);
+  const [isSearchingSku, setIsSearchingSku] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (manualSku.trim().length >= 1 && !scannedProduct) {
+        setIsSearchingSku(true);
+        try {
+          const res = await getPagedCatalog({ search: manualSku, limit: 5 });
+          if (res.success && res.products) {
+            setSkuSuggestions(res.products as any);
+          }
+        } catch(e) {}
+        setIsSearchingSku(false);
+      } else {
+        setSkuSuggestions([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [manualSku, scannedProduct]);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isStartingRef = useRef(false);
@@ -424,13 +444,12 @@ export default function NuevaVentaPage() {
                 )}
 
                 {scannedProduct && (
-                  <div className="absolute inset-0 bg-black/80 z-30 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative animate-zoom-in shadow-2xl">
-                      <button onClick={cancelScan} className="absolute top-4 right-4 text-rio-muted hover:text-rio-ink p-1">
-                        <X className="w-5 h-5"/>
-                      </button>
-                      
-                      <div className="flex gap-4 items-center mb-6 border-b border-rio-border pb-4 pt-2">
+                  <div className="absolute inset-0 bg-white z-40 flex flex-col p-4 sm:p-6 overflow-y-auto animate-zoom-in">
+                    <button onClick={cancelScan} className="absolute top-3 right-3 text-rio-muted hover:text-rio-ink p-2 bg-rio-background rounded-full transition-colors">
+                      <X className="w-5 h-5"/>
+                    </button>
+                    
+                    <div className="flex gap-4 items-center mb-6 border-b border-rio-border pb-4 pr-10">
                         {scannedProduct.imageUrl ? (
                            <img src={scannedProduct.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover border border-rio-border shrink-0" />
                         ) : (
@@ -529,14 +548,15 @@ export default function NuevaVentaPage() {
                         </>
                       )}
 
-                      <button 
-                        onClick={confirmScan} 
-                        disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}
-                        className="w-full bg-black disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
-                      >
-                        {(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0 ? 'Sin Inventario' : 'Agregar a la Orden'}
-                      </button>
-                    </div>
+                      <div className="mt-auto pt-2">
+                        <button 
+                          onClick={confirmScan} 
+                          disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}
+                          className="w-full bg-rio-ink disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl flex items-center justify-center shadow-md active:scale-95 transition-all"
+                        >
+                          {(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0 ? 'Sin Inventario' : 'Agregar a la Orden'}
+                        </button>
+                      </div>
                   </div>
                 )}
               </div>
