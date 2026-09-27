@@ -1,11 +1,11 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/app/actions/inventory.ts', 'utf8');
 
-if (!code.includes('import { logAuditEvent')) {
-  code = code.replace(
-    /import \{ prisma \} from '@\/lib\/prisma'/,
-    `import { prisma } from '@/lib/prisma'\nimport { logAuditEvent, getAuditActor } from '@/lib/audit'`
-  );
-  fs.writeFileSync('src/app/actions/inventory.ts', code);
-  console.log('Added imports to inventory.ts');
-}
+let code = fs.readFileSync('src/components/CSVImporter.tsx', 'utf8');
+
+code = code.replace(
+  /import \{ useState \} from 'react';/,
+  `import { useState, useEffect } from 'react';`
+);
+
+fs.writeFileSync('src/components/CSVImporter.tsx', code);
+console.log('Fixed imports');

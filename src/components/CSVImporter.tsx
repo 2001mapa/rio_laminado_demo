@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { Upload, FileSpreadsheet, X, CheckCircle, AlertTriangle, Printer, ArrowRight } from 'lucide-react';
 import { bulkUploadInventory, previewCSVUpload } from '@/app/actions/inventory';
@@ -10,11 +10,34 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<'idle' | 'parsing' | 'staging' | 'uploading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [previewData, setPreviewData] = useState<any>(null);
   const [parsedItems, setParsedItems] = useState<any[]>([]);
   const [nuevosProductos, setNuevosProductos] = useState<any[]>([]);
+
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (status === 'uploading') {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress(p => {
+          // Fast up to 80%, then slower
+          if (p < 80) return p + (80 - p) * 0.1;
+          if (p < 95) return p + (95 - p) * 0.02;
+          return p;
+        });
+      }, 300);
+    } else if (status === 'success') {
+      setProgress(100);
+    } else {
+      setProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [status]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -192,12 +215,24 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
                 </div>
               )}
 
+              
               {status === 'uploading' && (
-                <div className="py-10 flex flex-col items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-rio-ink/30 border-t-rio-ink rounded-full animate-spin mb-3"></div>
-                  <p className="text-sm font-bold text-rio-ink">Aplicando cambios en la base de datos...</p>
+                <div className="py-8 px-6 flex flex-col items-center justify-center space-y-4">
+                  <div className="w-12 h-12 border-4 border-rio-ink/20 border-t-rio-ink rounded-full animate-spin"></div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-rio-ink">Sincronizando {parsedItems.length} referencias...</p>
+                    <p className="text-xs text-rio-muted mt-1">Por favor no cierres esta ventana. Esto puede tomar unos segundos.</p>
+                  </div>
+                  <div className="w-full bg-rio-surface-muted rounded-full h-2.5 mt-4 overflow-hidden border border-rio-border">
+                    <div 
+                      className="bg-rio-gold h-2.5 rounded-full transition-all duration-300 ease-out" 
+                      style={{ width: `${Math.round(progress)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-[10px] font-bold text-rio-muted">{Math.round(progress)}%</p>
                 </div>
               )}
+
               
               {status === 'error' && (
                 <div className="bg-rio-danger/10 p-4 rounded-xl border border-rio-danger/20 flex flex-col items-center text-center gap-2 text-rio-danger">
