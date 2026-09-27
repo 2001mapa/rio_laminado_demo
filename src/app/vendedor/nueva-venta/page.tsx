@@ -50,30 +50,18 @@ export default function NuevaVentaPage() {
     };
   }, [isScanning]);
 
-  const startScanner = async () => {
+    const startScanner = async () => {
     try {
-      const cameras = await Html5Qrcode.getCameras();
-      if (!cameras || cameras.length === 0) {
-        addToast("No se detectaron cámaras en el dispositivo.");
-        return;
-      }
-      
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(scannerRegionId);
       }
-
-      const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera') || c.label.toLowerCase().includes('environment'));
-      const cameraConfig = backCamera ? { deviceId: { exact: backCamera.id } } : { facingMode: "environment" };
       
-      await scannerRef.current.start(
-        cameraConfig,
+      // Intentar primero con facingMode environment (estándar y más compatible con iOS/Safari)
+      if(scannerRef.current) await scannerRef.current.start(
+        { facingMode: "environment" },
         {
           fps: 10,
-          
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            return { width: minEdge * 0.7, height: minEdge * 0.7 };
-          }
+          qrbox: 250 // Tamaño fijo para evitar fallos de cálculo de layout que generen un marco de 0x0 (pantalla negra)
         },
         (decodedText) => {
           if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
@@ -83,18 +71,28 @@ export default function NuevaVentaPage() {
       );
       setIsScanning(true);
     } catch (err: any) {
-      console.error("Error starting scanner", err);
-      if (!isScanning && scannerRef.current) {
-         try {
-           await scannerRef.current.start(
-             { facingMode: "environment" },
-             { fps: 10,  qrbox: (w, h) => { const m = Math.min(w, h); return { width: m*0.7, height: m*0.7 }; } },
-             (decodedText) => { if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} } handleScan(decodedText); },
-             () => {}
-           );
-           setIsScanning(true);
-           return;
-         } catch (fallbackErr) {}
+      console.error("Error starting scanner with environment", err);
+      // Fallback: listar cámaras e intentar con el primer deviceId disponible
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera') || c.label.toLowerCase().includes('environment'));
+          const cameraId = backCamera ? backCamera.id : cameras[0].id;
+          
+          if(scannerRef.current) await scannerRef.current.start(
+            { deviceId: { exact: cameraId } },
+            { fps: 10, qrbox: 250 },
+            (decodedText) => {
+              if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
+              handleScan(decodedText);
+            },
+            (error) => {}
+          );
+          setIsScanning(true);
+          return;
+        }
+      } catch (fallbackErr) {
+        console.error("Fallback error", fallbackErr);
       }
       addToast("Error de cámara: Asegúrate de dar permisos en el navegador.");
     }
