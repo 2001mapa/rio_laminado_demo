@@ -391,15 +391,17 @@ export default function NuevaVentaPage() {
               </div>
 
               <div className="p-4 border-b border-rio-border bg-white z-20 shrink-0">
+                <div className="relative">
                 <form 
                   onSubmit={(e) => { 
                     e.preventDefault(); 
                     if (manualSku.trim()) {
+                      setSkuSuggestions([]);
                       handleScan(manualSku);
                       setManualSku("");
                     }
                   }}
-                  className="flex gap-2"
+                  className="flex gap-2 relative z-50"
                 >
                   <input 
                     type="text"
@@ -412,6 +414,40 @@ export default function NuevaVentaPage() {
                     Buscar
                   </button>
                 </form>
+
+                {(isSearchingSku || skuSuggestions.length > 0) && manualSku.trim().length > 0 && !scannedProduct && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-rio-border z-[100] max-h-60 overflow-y-auto animate-fade-in">
+                    {isSearchingSku && skuSuggestions.length === 0 && (
+                      <div className="p-4 text-center text-sm text-rio-muted font-medium">
+                        Buscando referencias...
+                      </div>
+                    )}
+                    {!isSearchingSku && skuSuggestions.length === 0 && manualSku.trim().length > 2 && (
+                      <div className="p-4 text-center text-sm text-rio-muted font-medium">
+                        No se encontraron coincidencias
+                      </div>
+                    )}
+                    {skuSuggestions.map(p => (
+                      <button 
+                        key={p.id} 
+                        type="button"
+                        onClick={() => {
+                           setManualSku("");
+                           setSkuSuggestions([]);
+                           handleScan(p.sku);
+                        }}
+                        className="w-full text-left px-4 py-3 border-b border-rio-border/50 hover:bg-rio-surface transition-colors flex items-center justify-between last:border-0"
+                      >
+                        <div className="min-w-0 flex-1 pr-4">
+                          <p className="text-[10px] text-rio-muted font-mono mb-0.5">{p.sku}</p>
+                          <p className="text-xs font-bold text-rio-ink truncate">{p.name}</p>
+                        </div>
+                        <span className="text-xs font-bold text-rio-gold-dark shrink-0">{formatPrice(p.price)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                </div>
               </div>
 
               <div className="flex-1 relative bg-black flex flex-col">
