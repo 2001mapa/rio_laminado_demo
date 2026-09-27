@@ -49,7 +49,19 @@ export async function uploadProductPhoto(formData: FormData) {
       if (error.message.includes('row-level security')) {
         return { success: false, message: 'Permiso denegado: Revisa las políticas RLS del bucket "productos".' };
       }
+      
+      const actor = await getAuditActor().catch(() => ({ id: 'unknown', name: 'Unknown', role: 'system' as any }));
+      await logAuditEvent(actor, {
+        action: 'UPLOAD_PHOTO',
+        entityType: 'PHOTO',
+        entityId: product.id,
+        sku: product.sku,
+        origin: 'admin_dashboard',
+        result: 'error',
+        changes: { error: error.message }
+      });
       return { success: false, message: `Error Storage: ${error.message}` };
+
     }
 
     // 5. Obtener URL Pública
@@ -69,7 +81,24 @@ export async function uploadProductPhoto(formData: FormData) {
       });
     }
 
+    
+    const actor = await getAuditActor();
+    await logAuditEvent(actor, {
+      action: 'UPLOAD_PHOTO',
+      entityType: 'PHOTO',
+      entityId: product.id,
+      sku: product.sku,
+      origin: 'admin_dashboard',
+      result: 'success',
+      changes: {
+        type: type === '1' ? 'Foto Principal' : 'Foto Hover',
+        filename,
+        publicUrl
+      }
+    });
+
     return { success: true, message: `Foto de ${sku} guardada exitosamente.` };
+
   } catch (error: any) {
     console.error('Error interno en uploadProductPhoto:', error);
     return { success: false, message: error.message || 'Error interno al guardar la foto.' };

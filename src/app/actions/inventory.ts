@@ -85,7 +85,16 @@ export async function bulkUploadInventory(items: any[]) {
     };
   } catch (error: any) {
     console.error('Error during bulk upload:', error);
-    return { success: false, message: `Ocurrió un error al guardar el inventario: ${error.message}` };
+    const actor = await getAuditActor().catch(() => ({ id: 'unknown', name: 'Unknown', role: 'admin' as any }));
+      await logAuditEvent(actor, {
+        action: 'BULK_UPLOAD',
+        entityType: 'PRODUCT',
+        entityId: 'multiple',
+        origin: 'admin_dashboard',
+        result: 'error',
+        changes: { error: error.message }
+      });
+      return { success: false, message: `Ocurrió un error al guardar el inventario: ${error.message}` };
   }
 }
 
