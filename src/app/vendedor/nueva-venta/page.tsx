@@ -40,8 +40,10 @@ export default function NuevaVentaPage() {
   // Stop scanner when unmounting or leaving step 2
   useEffect(() => {
     return () => {
-      if (scannerRef.current && isScanning) {
-        scannerRef.current.stop().catch(console.error);
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop().catch(() => {});
+        } catch(e) {}
       }
     };
   }, [isScanning]);
@@ -72,7 +74,7 @@ export default function NuevaVentaPage() {
           }
         },
         (decodedText) => {
-          if (scannerRef.current) scannerRef.current.pause();
+          if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
           handleScan(decodedText);
         },
         (error) => {}
@@ -85,7 +87,7 @@ export default function NuevaVentaPage() {
            await scannerRef.current.start(
              { facingMode: "environment" },
              { fps: 10, aspectRatio: 1.0, qrbox: (w, h) => { const m = Math.min(w, h); return { width: m*0.7, height: m*0.7 }; } },
-             (decodedText) => { if (scannerRef.current) scannerRef.current.pause(); handleScan(decodedText); },
+             (decodedText) => { if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} } handleScan(decodedText); },
              () => {}
            );
            setIsScanning(true);
@@ -98,8 +100,16 @@ export default function NuevaVentaPage() {
 
   const stopScanner = async () => {
     if (scannerRef.current && isScanning) {
-      await scannerRef.current.stop();
-      setIsScanning(false);
+      try {
+        if (scannerRef.current.getState() === 2 /* SCANNING */ || scannerRef.current.getState() === 3 /* PAUSED */) {
+           await scannerRef.current.stop();
+        }
+      } catch (err) {
+        console.warn("Ignored error while stopping scanner:", err);
+      } finally {
+        try { scannerRef.current.clear(); } catch(e) {}
+        setIsScanning(false);
+      }
     }
   };
 
@@ -120,11 +130,11 @@ export default function NuevaVentaPage() {
         } catch(e) {}
       } else {
         addToast(result.error || `SKU no encontrado: ${sku}`);
-        if (scannerRef.current) scannerRef.current.resume();
+        if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
       }
     } catch (err) {
       addToast('Error al buscar el producto');
-      if (scannerRef.current) scannerRef.current.resume();
+      if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
     }
   };
 
@@ -195,12 +205,12 @@ export default function NuevaVentaPage() {
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
     setScannedProduct(null);
     
-    if (scannerRef.current) scannerRef.current.resume();
+    if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
   };
 
   const cancelScan = () => {
     setScannedProduct(null);
-    if (scannerRef.current) scannerRef.current.resume();
+    if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
   };
 
   const handleCheckout = async () => {
