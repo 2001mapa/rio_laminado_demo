@@ -30,6 +30,7 @@ export default function NuevaVentaPage() {
   const [manualSku, setManualSku] = useState("");
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
 
   const filteredCustomers = customers.filter(c => 
@@ -41,28 +42,40 @@ export default function NuevaVentaPage() {
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
-        try {
-          scannerRef.current.stop().catch(() => {});
-        } catch(e) {}
-        try { scannerRef.current.clear(); } catch(e) {}
-        scannerRef.current = null;
+        const cleanup = async () => {
+          try {
+             if (scannerRef.current && (scannerRef.current.getState() === 2 || scannerRef.current.getState() === 3)) {
+                await scannerRef.current.stop();
+             }
+          } catch(e) {}
+          try { if (scannerRef.current) scannerRef.current.clear(); } catch(e) {}
+          scannerRef.current = null;
+        };
+        cleanup();
       }
     };
-  }, [isScanning]);
+  }, []); // <-- Empty array is critical! Only runs on unmount.
 
     const startScanner = async () => {
+    if (isStartingRef.current) return;
+    isStartingRef.current = true;
+    
+    const safeQrbox = (w: number, h: number) => {
+      const minEdge = Math.min(w, h);
+      if (minEdge === 0) return { width: 250, height: 250 };
+      const size = Math.max(150, Math.min(250, minEdge * 0.7));
+      return { width: size, height: size };
+    };
+
     try {
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(scannerRegionId);
       }
-      
+
       // Intentar primero con facingMode environment (estándar y más compatible con iOS/Safari)
-      if(scannerRef.current) await scannerRef.current.start(
+      await scannerRef.current.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: 250 // Tamaño fijo para evitar fallos de cálculo de layout que generen un marco de 0x0 (pantalla negra)
-        },
+        { fps: 10, qrbox: safeQrbox },
         (decodedText) => {
           if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
           handleScan(decodedText);
@@ -81,7 +94,7 @@ export default function NuevaVentaPage() {
           
           if(scannerRef.current) await scannerRef.current.start(
             { deviceId: { exact: cameraId } },
-            { fps: 10, qrbox: 250 },
+            { fps: 10, qrbox: safeQrbox },
             (decodedText) => {
               if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
               handleScan(decodedText);
@@ -89,12 +102,16 @@ export default function NuevaVentaPage() {
             (error) => {}
           );
           setIsScanning(true);
+          isStartingRef.current = false;
           return;
         }
       } catch (fallbackErr) {
         console.error("Fallback error", fallbackErr);
       }
       addToast("Error de cámara: Asegúrate de dar permisos en el navegador.");
+      setIsScanning(false);
+    } finally {
+      isStartingRef.current = false;
     }
   };
 
