@@ -301,7 +301,29 @@ export async function getPagedCatalog({
     });
 
     const where: any = { ...baseWhere };
-    if (material && material !== 'Todos') {
+    if (material === 'Por revisar' && role === 'admin') {
+      // "Por revisar" en admin funciona como filtro integral de revisión:
+      // Material desconocido, ubicaciones duplicadas, o sin ubicación
+      const duplicates = await prisma.product.groupBy({
+        by: ['locationCode'],
+        where: { locationCode: { not: '' }, NOT: { locationCode: null } },
+        having: { locationCode: { _count: { gt: 1 } } }
+      });
+      const dupCodes = duplicates.map(d => d.locationCode).filter(Boolean) as string[];
+
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { material: 'Por revisar' },
+            { locationCode: null },
+            { locationCode: '' },
+            { imageUrl: null },
+            ...(dupCodes.length > 0 ? [{ locationCode: { in: dupCodes } }] : [])
+          ]
+        }
+      ];
+    } else if (material && material !== 'Todos') {
       where.material = material;
     }
 
