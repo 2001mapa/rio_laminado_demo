@@ -218,7 +218,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
                     )}
                     {previewData.warnings && previewData.warnings.length > 0 && (
                       <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <p className="text-xs font-bold text-yellow-800 mb-2 flex items-center"><AlertTriangle className="w-4 h-4 mr-1" /> Advertencias de Ubicación (No bloquea la subida):</p>
+                        <p className="text-xs font-bold text-yellow-800 mb-2 flex items-center"><AlertTriangle className="w-4 h-4 mr-1" /> Advertencias (No bloquea la subida):</p>
                         <ul className="text-[11px] text-yellow-700 space-y-1">
                           {previewData.warnings.map((w: string, idx: number) => (
                             <li key={idx}>- {w}</li>

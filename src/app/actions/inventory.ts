@@ -230,6 +230,8 @@ export async function previewCSVUpload(items: any[]) {
     let toCreate = 0;
     let toUpdate = 0;
     let errors: { row: number, error: string }[] = [];
+    let warnings: string[] = [];
+    const csvLocations = new Map<string, string[]>();
     
     let stats = {
        laminado: 0,
@@ -283,13 +285,58 @@ export async function previewCSVUpload(items: any[]) {
            samples.push({ sku: item.sku, name: item.name, material: suggestedMaterial });
         }
       }
+
+      if (item.locationCode && typeof item.locationCode === 'string' && item.locationCode.trim() !== '') {
+          const loc = item.locationCode.trim();
+          if (!csvLocations.has(loc)) csvLocations.set(loc, []);
+          csvLocations.get(loc)!.push(item.sku);
+      }
     });
+
+    const duplicateLocationsInCsv = Array.from(csvLocations.entries()).filter(([loc, skus]) => skus.length > 1);
+    if (duplicateLocationsInCsv.length > 0) {
+       warnings.push(`El archivo CSV contiene ${duplicateLocationsInCsv.length} ubicación(es) asignadas a múltiples productos (ej. "${duplicateLocationsInCsv[0][0]}").`);
+    }
+
+    const activeLocationsInCsv = Array.from(csvLocations.keys());
+    if (activeLocationsInCsv.length > 0) {
+       const dbConflicts = await prisma.product.findMany({
+          where: {
+             locationCode: { in: activeLocationsInCsv },
+             sku: { notIn: skus }
+          },
+          select: { locationCode: true, sku: true }
+       });
+       if (dbConflicts.length > 0) {
+          warnings.push(`Hay ${dbConflicts.length} producto(s) en el CSV cuya ubicación ya está ocupada por OTRA referencia en el sistema (ej. "${dbConflicts[0].locationCode}").`);
+       }
+    }
+
+    // DUPLICATE REFERENCES (SKUS) WARNING:
+    const csvSkus = new Set<string>();
+    let duplicateSkusCount = 0;
+    let sampleDupSku = '';
+    items.forEach(item => {
+        if (item.sku) {
+            if (csvSkus.has(item.sku)) {
+                duplicateSkusCount++;
+                if (!sampleDupSku) sampleDupSku = item.sku;
+            } else {
+                csvSkus.add(item.sku);
+            }
+        }
+    });
+
+    if (duplicateSkusCount > 0) {
+        warnings.push(`El archivo CSV contiene ${duplicateSkusCount} fila(s) con un SKU repetido (ej. "${sampleDupSku}"). Se guardará solo la última fila leída.`);
+    }
     
     return { 
       success: true, 
       toCreate, 
       toUpdate, 
-      errors, 
+      errors,
+      warnings,
       stats,
       samples,
       message: undefined 
