@@ -295,7 +295,7 @@ export async function previewCSVUpload(items: any[]) {
 
     const duplicateLocationsInCsv = Array.from(csvLocations.entries()).filter(([loc, skus]) => skus.length > 1);
     if (duplicateLocationsInCsv.length > 0) {
-       warnings.push(`El archivo CSV contiene ${duplicateLocationsInCsv.length} ubicación(es) asignadas a múltiples productos (ej. "${duplicateLocationsInCsv[0][0]}").`);
+       warnings.push(`El archivo CSV contiene ${duplicateLocationsInCsv.length} ubicación(es) asignadas a múltiples productos. (Ej. La ubicación "${duplicateLocationsInCsv[0][0]}" es compartida por: ${duplicateLocationsInCsv[0][1].slice(0, 3).join(", ")}).`);
     }
 
     const activeLocationsInCsv = Array.from(csvLocations.keys());
@@ -308,7 +308,7 @@ export async function previewCSVUpload(items: any[]) {
           select: { locationCode: true, sku: true }
        });
        if (dbConflicts.length > 0) {
-          warnings.push(`Hay ${dbConflicts.length} producto(s) en el CSV cuya ubicación ya está ocupada por OTRA referencia en el sistema (ej. "${dbConflicts[0].locationCode}").`);
+          warnings.push(`Hay ${dbConflicts.length} producto(s) en el CSV cuya ubicación ya está ocupada por OTRA referencia en el sistema. (Ej. El producto con SKU "${dbConflicts[0].sku}" en sistema ya usa la ubicación "${dbConflicts[0].locationCode}").`);
        }
     }
 

@@ -35,6 +35,7 @@ export default function InventarioPage() {
   const [totalCounts, setTotalCounts] = useState<Record<string, number>>({});
   const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({ Todos: 0, Laminado: 0, Plata: 0, Rodio: 0, 'Por revisar': 0 });
   const [locationFilter, setLocationFilter] = useState<string>('Todas');
+  const [duplicateLocationCodes, setDuplicateLocationCodes] = useState<string[]>([]);
   const [search, setSearch] = useState<string>('');
   const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
 
@@ -42,6 +43,10 @@ export default function InventarioPage() {
     const res = await getAdminMaterialCounts();
     if (res.success && res.counts) {
       setMaterialCounts(res.counts);
+    }
+    const dupRes = await getDuplicateLocationsCount();
+    if (dupRes.success && dupRes.locations) {
+      setDuplicateLocationCodes(dupRes.locations);
     }
   };
 
@@ -297,6 +302,15 @@ export default function InventarioPage() {
                         <div className="text-[13px] font-bold text-rio-ink leading-none mb-1">{product.name}</div>
                         <div className="text-[11px] font-mono font-medium text-rio-muted flex items-center gap-2">
                           {product.sku}
+                          <span className="text-rio-muted/50 px-1">•</span>
+                          {product.locationCode ? (
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${duplicateLocationCodes.includes(product.locationCode) ? 'bg-rio-danger/10 text-rio-danger font-bold border border-rio-danger/20' : 'bg-rio-surface-muted border border-rio-border/50'}`}>
+                              {duplicateLocationCodes.includes(product.locationCode) && <AlertTriangle className="w-3 h-3" />}
+                              Ubicación: {product.locationCode}
+                            </span>
+                          ) : (
+                            <span className="italic text-rio-muted/70">Sin ubicación</span>
+                          )}
                           {!product.isActive && (
                             <span className="bg-rio-danger/10 text-rio-danger px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold tracking-wider">Inactivo</span>
                           )}

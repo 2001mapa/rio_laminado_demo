@@ -473,7 +473,7 @@ export async function getDuplicateLocationsCount() {
   noStore();
   try {
     const { role } = await requireRole(['admin']);
-    if (role !== 'admin') return { success: false, count: 0 };
+    if (role !== 'admin') return { success: false, count: 0, locations: [] };
     
     const duplicates = await prisma.product.groupBy({
       by: ['locationCode'],
