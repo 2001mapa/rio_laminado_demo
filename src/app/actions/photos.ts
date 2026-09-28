@@ -120,56 +120,65 @@ export async function syncOrphanedPhotos() {
       }
     });
 
+    if (products.length === 0) return { success: true, updated: 0 };
+
+    // Bajar lista completa del bucket
+    let allFiles: string[] = [];
+    let hasMore = true;
+    let offset = 0;
+    while (hasMore) {
+        const { data, error } = await supabase.storage.from('productos').list('', { limit: 1000, offset });
+        if (error) break;
+        if (!data || data.length === 0) {
+            hasMore = false;
+        } else {
+            allFiles.push(...data.map(f => f.name));
+            if (data.length < 1000) hasMore = false;
+            else offset += 1000;
+        }
+    }
+
+    const fileSet = new Set(allFiles);
     let updated = 0;
-    
-    // Check in batches to avoid overwhelming the network
-    const batchSize = 10;
-    for (let i = 0; i < products.length; i += batchSize) {
-      const batch = products.slice(i, i + batchSize);
-      
-      await Promise.all(batch.map(async (p) => {
+    const updates = [];
+
+    for (const p of products) {
         let changed = false;
         let newImageUrl = p.imageUrl;
         let newHoverImageUrl = p.hoverImageUrl;
 
-        // Comprobar foto 1
         if (!p.imageUrl) {
-          const filename = `${p.sku.toUpperCase()}_1.webp`;
-          const { data } = supabase.storage.from('productos').getPublicUrl(filename);
-          try {
-            const res = await fetch(data.publicUrl, { method: 'HEAD' });
-            if (res.ok) {
-              newImageUrl = data.publicUrl;
-              changed = true;
+            const filename = `${p.sku.toUpperCase()}_1.webp`;
+            if (fileSet.has(filename)) {
+                const { data } = supabase.storage.from('productos').getPublicUrl(filename);
+                newImageUrl = data.publicUrl;
+                changed = true;
             }
-          } catch (e) {
-            // Ignorar
-          }
         }
 
-        // Comprobar foto 2
         if (!p.hoverImageUrl) {
-          const filename = `${p.sku.toUpperCase()}_2.webp`;
-          const { data } = supabase.storage.from('productos').getPublicUrl(filename);
-          try {
-            const res = await fetch(data.publicUrl, { method: 'HEAD' });
-            if (res.ok) {
-              newHoverImageUrl = data.publicUrl;
-              changed = true;
+            const filename = `${p.sku.toUpperCase()}_2.webp`;
+            if (fileSet.has(filename)) {
+                const { data } = supabase.storage.from('productos').getPublicUrl(filename);
+                newHoverImageUrl = data.publicUrl;
+                changed = true;
             }
-          } catch (e) {
-            // Ignorar
-          }
         }
 
         if (changed) {
-          await prisma.product.update({
-            where: { id: p.id },
-            data: { imageUrl: newImageUrl, hoverImageUrl: newHoverImageUrl }
-          });
-          updated++;
+            updates.push(prisma.product.update({
+                where: { id: p.id },
+                data: { imageUrl: newImageUrl, hoverImageUrl: newHoverImageUrl }
+            }));
+            updated++;
         }
-      }));
+    }
+
+    if (updates.length > 0) {
+        const chunkSize = 50;
+        for (let i = 0; i < updates.length; i += chunkSize) {
+            await prisma.$transaction(updates.slice(i, i + chunkSize));
+        }
     }
 
     return { success: true, updated };
