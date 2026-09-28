@@ -10,6 +10,7 @@ export async function uploadProductPhoto(formData: FormData) {
     // 1. Validar autorización de seguridad
     await requireRole(['admin']);
 
+    const skipAudit = formData.get('skipAudit') === 'true';
     const file = formData.get('file') as File;
     const sku = formData.get('sku') as string;
     const type = formData.get('type') as '1' | '2'; // 1 = main, 2 = hover
@@ -185,5 +186,24 @@ export async function syncOrphanedPhotos() {
   } catch (error: any) {
     console.error('Error in syncOrphanedPhotos:', error);
     return { success: false, message: error.message };
+  }
+}
+
+export async function logBulkPhotoUpload(count: number) {
+  try {
+    await requireRole(['admin']);
+    const actor = await getAuditActor();
+    await logAuditEvent(actor, {
+      action: 'BULK_PHOTO_UPLOAD',
+      entityType: 'PRODUCT',
+      entityId: 'multiple',
+      sku: 'multiple',
+      origin: 'admin_dashboard',
+      changes: { message: `Se subieron ${count} fotos de forma masiva.` }
+    });
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error logging bulk upload:', error);
+    return { success: false };
   }
 }

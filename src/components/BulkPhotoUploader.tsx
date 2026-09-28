@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Upload, X, CheckCircle, Image as ImageIcon, AlertTriangle, Loader2, Database } from 'lucide-react';
-import { uploadProductPhoto, syncOrphanedPhotos } from '@/app/actions/photos';
+import { uploadProductPhoto, syncOrphanedPhotos, logBulkPhotoUpload } from '@/app/actions/photos';
 import { compressImage } from '@/lib/imageCompression';
 
 export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => void }) {
@@ -45,6 +45,7 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
     if (files.length === 0) return;
     
     setIsUploading(true);
+    let successCount = 0;
     // Preserve existing "not image" errors in the list
     setProgress(p => ({ total: files.length, current: 0, success: 0, failed: 0, errors: p.errors }));
 
@@ -74,11 +75,13 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
         formData.append('file', compressedFile);
         formData.append('sku', sku);
         formData.append('type', type);
+        formData.append('skipAudit', 'true');
 
         const response = await uploadProductPhoto(formData);
 
         if (response.success) {
           setProgress(p => ({ ...p, success: p.success + 1 }));
+          successCount++;
         } else {
           setProgress(p => ({ 
             ...p, 
@@ -95,6 +98,9 @@ export default function BulkPhotoUploader({ onComplete }: { onComplete?: () => v
       }
     }
 
+    if (successCount > 0) {
+      await logBulkPhotoUpload(successCount);
+    }
     setIsUploading(false);
     if (onComplete) onComplete();
   };
