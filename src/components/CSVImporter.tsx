@@ -82,12 +82,13 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
             
             if (previewResponse.success) {
               setPreviewData({
-                toCreate: previewResponse.toCreate || 0,
-                toUpdate: previewResponse.toUpdate || 0,
-                errors: previewResponse.errors || [],
-                stats: previewResponse.stats || { laminado: 0, plata: 0, rodio: 0, revisar: 0 },
-                samples: previewResponse.samples || []
-              });
+                  toCreate: previewResponse.toCreate || 0,
+                  toUpdate: previewResponse.toUpdate || 0,
+                  errors: previewResponse.errors || [],
+                  warnings: (previewResponse as any).warnings || [],
+                  stats: previewResponse.stats || { laminado: 0, plata: 0, rodio: 0, revisar: 0 },
+                  samples: previewResponse.samples || []
+                });
               setStatus('staging');
             } else {
               setStatus('error');
@@ -210,7 +211,17 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
                         <p className="text-xs font-bold text-rio-danger mb-2">Se detectaron {previewData.errors.length} errores:</p>
                         <ul className="text-[11px] text-rio-danger/80 space-y-1 max-h-24 overflow-y-auto pr-2">
                           {previewData.errors.map((e: any, idx: number) => (
-                            <li key={idx}>Fila {e.row}: {e.error}</li>
+                            <li key={idx}><span className="font-semibold">Fila {e.row}:</span> {e.error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {previewData.warnings && previewData.warnings.length > 0 && (
+                      <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-xs font-bold text-yellow-800 mb-2 flex items-center"><AlertTriangle className="w-4 h-4 mr-1" /> Advertencias de Ubicación (No bloquea la subida):</p>
+                        <ul className="text-[11px] text-yellow-700 space-y-1">
+                          {previewData.warnings.map((w: string, idx: number) => (
+                            <li key={idx}>- {w}</li>
                           ))}
                         </ul>
                       </div>

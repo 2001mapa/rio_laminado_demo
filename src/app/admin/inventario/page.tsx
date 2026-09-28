@@ -1,14 +1,14 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Activity, Plus, Info, X, Printer, Database, Search, MoreVertical, Image as ImageIcon, FileUp, Edit2 } from 'lucide-react';
+import { Activity, Plus, Info, X, Printer, Database, Search, MoreVertical, Image as ImageIcon, FileUp, Edit2, AlertTriangle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import CSVImporter from '@/components/CSVImporter';
 import BulkPhotoUploader from '@/components/BulkPhotoUploader';
 import CreateProductModal from '@/components/CreateProductModal';
 import Link from 'next/link';
-import { getPagedCatalog, getAdminMaterialCounts } from '@/app/actions/queries';
+import { getPagedCatalog, getAdminMaterialCounts, getDuplicateLocationsCount } from '@/app/actions/queries';
 
 export default function InventarioPage() {
   

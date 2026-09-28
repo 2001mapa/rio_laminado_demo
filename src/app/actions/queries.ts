@@ -467,3 +467,25 @@ export async function getExactProductBySku(sku: string) {
     return { success: false, reason: 'server_error', error: error.message };
   }
 }
+
+
+export async function getDuplicateLocationsCount() {
+  noStore();
+  try {
+    const { role } = await requireRole(['admin']);
+    if (role !== 'admin') return { success: false, count: 0 };
+    
+    const duplicates = await prisma.product.groupBy({
+      by: ['locationCode'],
+      where: { locationCode: { not: '' }, NOT: { locationCode: null } },
+      having: {
+        locationCode: { _count: { gt: 1 } }
+      }
+    });
+    
+    return { success: true, count: duplicates.length };
+  } catch (error) {
+    console.error('Error fetching duplicate locations:', error);
+    return { success: false, count: 0 };
+  }
+}
