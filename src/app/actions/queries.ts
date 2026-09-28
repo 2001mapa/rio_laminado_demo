@@ -483,7 +483,7 @@ export async function getDuplicateLocationsCount() {
       }
     });
     
-    return { success: true, count: duplicates.length };
+    return { success: true, count: duplicates.length, locations: duplicates.map(d => d.locationCode).filter(Boolean) as string[] };
   } catch (error) {
     console.error('Error fetching duplicate locations:', error);
     return { success: false, count: 0 };
