@@ -67,12 +67,15 @@ export async function createOrder(data: {
           }
 
           // Sizes validation
-          if (product.category === 'Anillos' && item.sizeDetails) {
+          if (product.category === 'Anillos') {
+             if (!item.sizeDetails || item.sizeDetails.length === 0) {
+                throw new Error(`El anillo ${product.name} requiere al menos una talla.`);
+             }
              const sum = item.sizeDetails.reduce((a, b) => a + b.quantity, 0);
              if (sum !== item.quantity) {
                 throw new Error(`La suma de las tallas (${sum}) no coincide con la cantidad total (${item.quantity}) para el anillo ${product.name}.`);
              }
-          } else if (item.sizeDetails && product.category !== 'Anillos') {
+          } else if (item.sizeDetails && item.sizeDetails.length > 0 && product.category !== 'Anillos') {
              throw new Error(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
           }
           

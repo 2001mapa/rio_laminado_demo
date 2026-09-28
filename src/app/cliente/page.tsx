@@ -22,6 +22,7 @@ export default function CatalogoPage() {
 
   // Pagination state
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [dynamicMaterials, setDynamicMaterials] = useState<string[]>(['Laminado', 'Plata', 'Rodio']);
   const [isLoading, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -29,10 +30,11 @@ export default function CatalogoPage() {
 
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  const canonicalOrder = ['Laminado', 'Plata', 'Rodio'];
-  const allAvailableMaterials = canonicalOrder;
-  const showMaterialTabs = allAvailableMaterials.length > 1;
-  const clientMaterials = showMaterialTabs ? ['Todos', ...allAvailableMaterials] : [];
+  const clientMaterials = dynamicMaterials.length > 0 ? ['Todos', ...dynamicMaterials] : ['Todos'];
+  if (activeMaterial !== 'Todos' && !clientMaterials.includes(activeMaterial)) {
+    clientMaterials.push(activeMaterial);
+  }
+  const showMaterialTabs = clientMaterials.length > 1;
   const effectiveMaterial = activeMaterial;
 
   const categories = ['Todos', ...OFFICIAL_PRODUCT_TYPES];
@@ -60,6 +62,9 @@ export default function CatalogoPage() {
         })) as Product[];
         setCatalogProducts((prev: Product[]) => reset ? fetchedProducts : [...prev, ...fetchedProducts]);
         setHasMore(res.hasMore ?? false);
+      if (reset && res.availableMaterials) {
+        setDynamicMaterials(res.availableMaterials);
+      }
         setCursor(res.nextCursor);
       } else {
         setFetchError(res.error || 'Error al cargar productos');
@@ -392,6 +397,10 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
   const currentCartQuantity = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = () => {
+    if (product.category === 'Anillos') {
+       onExpand();
+       return;
+    }
     const stockDisponible = product.physicalStock - product.reservedStock;
     if (quantity + currentCartQuantity > stockDisponible) {
       addToast('Lmite de inventario alcanzado ( unidades disponibles)');
@@ -457,15 +466,24 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
         <h3 className="font-medium text-sm text-rio-ink leading-snug mb-2 line-clamp-2">{product.name}</h3>
         <div className="text-[15px] font-bold text-rio-ink mt-auto">{formatPrice(product.price)}</div>
         <div className="mt-3.5 flex items-center gap-2">
-          <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background flex-1 h-9">
-            <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
-              <Minus className="w-3.5 h-3.5" />
+          {product.category === 'Anillos' ? (
+            <button
+              onClick={onExpand}
+              className="flex-1 h-9 rounded-xl border border-rio-border bg-rio-surface text-rio-ink font-bold text-[13px] hover:border-rio-gold hover:text-rio-gold transition-colors"
+            >
+              Seleccionar tallas
             </button>
-            <span className="text-sm font-semibold flex-1 text-center text-rio-ink">{quantity}</span>
-            <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center border border-rio-border rounded-xl overflow-hidden bg-rio-background flex-1 h-9">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-sm font-semibold flex-1 text-center text-rio-ink">{quantity}</span>
+              <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           <button
             onClick={handleAdd}
             className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
