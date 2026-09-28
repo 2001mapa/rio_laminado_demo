@@ -69,12 +69,18 @@ export default function ClienteLayout({
          localStorage.setItem('rio_notified_orders', JSON.stringify(notifiedCache));
       }
 
-      setKnownProductIds(new Set(products.map(p => p.id)));
-      const initialStocks: Record<string, {p: number, r: number}> = {};
-      products.forEach(p => { initialStocks[p.id] = { p: p.physicalStock, r: p.reservedStock }; });
-      setProductStocks(initialStocks);
+      // Fetch product baseline silently
+      getClientActiveProductsDigest().then(resProd => {
+         if (resProd.success && resProd.products) {
+            const fetchedP = resProd.products as {id: string, physicalStock: number, reservedStock: number}[];
+            setKnownProductIds(new Set(fetchedP.map(p => p.id)));
+            const initialStocks: Record<string, {p: number, r: number}> = {};
+            fetchedP.forEach(p => { initialStocks[p.id] = { p: p.physicalStock, r: p.reservedStock }; });
+            setProductStocks(initialStocks);
+         }
+      });
     }
-  }, [isLoaded, orders, products, currentCustomer, knownStatuses]);
+  }, [isLoaded, orders, currentCustomer, knownStatuses]);
 
   useEffect(() => {
     if (knownStatuses === null || knownProductIds === null || productStocks === null || !isAuthorized) return;
@@ -204,7 +210,7 @@ export default function ClienteLayout({
     <div className="min-h-screen bg-rio-background pb-20 md:pb-0 relative font-sans">
       
       {/* Status Alerts */}
-      <div className="fixed bottom-24 left-4 right-4 md:left-auto md:bottom-8 md:right-8 z-[100] flex flex-col gap-3 pointer-events-none md:w-80">
+      <div className="fixed top-20 left-4 right-4 md:top-auto md:left-auto md:bottom-8 md:right-8 z-[100] flex flex-col gap-3 pointer-events-none md:w-80">
         {statusAlerts.map(alert => (
           <div key={alert.id} className="bg-rio-ink border border-rio-surface-muted shadow-2xl rounded-2xl p-4 flex items-start justify-between pointer-events-auto animate-slide-up relative overflow-hidden">
              <div className="absolute top-0 left-0 bottom-0 w-1 bg-rio-gold-light"></div>

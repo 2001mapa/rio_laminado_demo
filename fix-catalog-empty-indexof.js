@@ -1,0 +1,52 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/app/cliente/page.tsx', 'utf8');
+
+const regex = /categories\.slice\(1\)\.map\(category => \{[\s\S]*?const categoryProducts = catalogProducts\.filter\(p => p\.category === category\);[\s\S]*?if \(categoryProducts\.length === 0\) return null;[\s\S]*?return \([\s\S]*?\}\)[\s\S]*?\}\)[\s\S]*?\n          \)\}/;
+
+const start = code.indexOf('categories.slice(1).map(category => {');
+const endSnippet = `                  </div>
+                </div>
+              );
+            })
+          )}`;
+
+const end = code.indexOf(endSnippet);
+
+if (start !== -1 && end !== -1) {
+  const replacement = `catalogProducts.length > 0 ? (
+            categories.slice(1).map(category => {
+              const categoryProducts = catalogProducts.filter(p => p.category === category);
+              if (categoryProducts.length === 0) return null;
+              
+              return (
+                <div key={category} id={\`category-\${category}\`} className="scroll-mt-28 md:scroll-mt-36 space-y-4 md:space-y-6">
+                  <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
+                    <h2 className="font-serif text-2xl md:text-3xl text-rio-ink font-bold">{category}</h2>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
+                    {categoryProducts.map(product => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onExpand={() => setSelectedProduct(product)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            !isLoading && (
+              <div className="text-center py-20 bg-rio-surface rounded-2xl border border-rio-border shadow-sm">
+                <p className="text-rio-muted font-medium">No hay productos disponibles con los filtros actuales.</p>
+              </div>
+            )
+          )}`;
+  
+  code = code.substring(0, start) + replacement + code.substring(end + endSnippet.length - 3);
+  fs.writeFileSync('src/app/cliente/page.tsx', code);
+  console.log('Fixed catalog empty state');
+} else {
+  console.log('Failed to match empty state bounds');
+}
