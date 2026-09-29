@@ -692,7 +692,7 @@ function ProductModal({
         className="relative bg-rio-surface w-full max-w-md rounded-2xl shadow-2xl border border-rio-border animate-slide-up max-h-[85vh] flex flex-col z-50 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div key={product.id} className="animate-fade-in flex flex-col flex-1">
+        <div key={product.id} className="animate-fade-in flex flex-col flex-1 min-h-0">
           <button
             onClick={handleCloseModal}
             className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
@@ -748,7 +748,7 @@ function ProductModal({
           />
         </div>
 
-        <div className="p-4 space-y-3 overflow-y-auto" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
+        <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
           <div>
             <p className="text-[10px] font-mono font-bold text-rio-muted leading-tight">{product.sku}</p>
             <h2 className="text-lg md:text-xl font-serif font-bold text-rio-ink mt-0.5 leading-snug">{product.name}</h2>
