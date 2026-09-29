@@ -1,4 +1,5 @@
-'use server'
+'use server';
+import { logAuditEvent, getAuditActor } from '@/lib/audit';
 import crypto from 'crypto';
 
 
@@ -32,35 +33,32 @@ export async function createSeller(data: {
     });
     
     if (existing) {
-      return { success: false, message: 'Ya existe un vendedor con este correo electrónico.' };
+      return { success: false, message: 'Ya existe un perfil de vendedor con este correo electrónico.' };
     }
 
     const adminAuthClient = getAdminClient();
     
-    // Check if auth user already exists by email
-    const { data: usersData, error: usersError } = await adminAuthClient.auth.admin.listUsers();
-    let authUser = usersData?.users.find(u => u.email === normalizedEmail);
-
     const tempPassword = 'V-' + crypto.randomBytes(6).toString('hex').toUpperCase() + '*Ab1';
+    let authUser = null;
+    let newlyCreated = false;
 
-    if (!authUser) {
-      // Create user
-      const { data: createdUser, error: createError } = await adminAuthClient.auth.admin.createUser({
-        email: normalizedEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { name: data.name, role: 'vendedor' },
-        app_metadata: { role: 'vendedor' }
-      });
-      if (createError) throw new Error(`Error en Auth: ${createError.message}`);
-      authUser = createdUser.user;
-    } else {
-      // Update existing user role
-      await adminAuthClient.auth.admin.updateUserById(authUser.id, {
-        app_metadata: { role: 'vendedor' },
-        user_metadata: { name: data.name, role: 'vendedor' }
-      });
+    // We do NOT use listUsers() to search across potentially 10k users.
+    // Instead we try to create the user directly.
+    const { data: createdUser, error: createError } = await adminAuthClient.auth.admin.createUser({
+      email: normalizedEmail,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { name: data.name, role: 'vendedor' },
+      app_metadata: { role: 'vendedor' }
+    });
+
+    if (createError) {
+      // Supabase typically throws 422 "Email address already registered by another user"
+      return { success: false, message: `La cuenta ya existe en autenticación o hubo un error: ${createError.message}` };
     }
+    
+    authUser = createdUser.user;
+    newlyCreated = true;
 
     // Now create in Prisma
     try {
@@ -72,16 +70,19 @@ export async function createSeller(data: {
           status: 'active'
         }
       });
+      const actor = await getAuditActor();
+      await logAuditEvent(actor, { action: 'CREATE_SELLER', entityType: 'SELLER', entityId: seller.id, changes: { email: seller.email } });
       return { 
         success: true, 
-        message: 'Vendedor creado exitosamente.',
-        seller: seller,
-        tempPassword: tempPassword
+        seller,
+        tempPassword
       };
     } catch (dbError: any) {
-      // Rollback Auth if Prisma fails
-      await adminAuthClient.auth.admin.deleteUser(authUser!.id);
-      throw new Error(`Error en DB: ${dbError.message}`);
+      // ONLY rollback if we created the user
+      if (newlyCreated && authUser) {
+        await adminAuthClient.auth.admin.deleteUser(authUser.id);
+      }
+      return { success: false, message: `Error en base de datos: ${dbError.message}` };
     }
 
   } catch (error: any) {

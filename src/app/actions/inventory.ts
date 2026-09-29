@@ -209,7 +209,7 @@ export async function updateProductAction(id: string, data: {
       changes: { before, after }
     });
 
-    return { success: true, message: 'Producto actualizado exitosamente.' };
+    return { success: true, product: after, message: 'Producto actualizado exitosamente.' };
   } catch (error: any) {
     console.error('Error updating product:', error);
     return { success: false, message: error.message || 'Error interno al actualizar el producto.' };

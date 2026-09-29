@@ -14,7 +14,7 @@ export default function CreateProductModal({
 }: { 
   isOpen: boolean; 
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (product?: any) => void;
   initialData?: any;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,13 +75,17 @@ export default function CreateProductModal({
                return;
             }
          }
-         const updateRes = await updateProductAction(initialData.id, productData);
+         let finalProduct = null;
+          const updateRes = await updateProductAction(initialData.id, productData);
+           if (updateRes.success) finalProduct = updateRes.product;
+          if (updateRes.success) finalProduct = updateRes.product;
          if (!updateRes.success) {
            setError(updateRes.message);
            return;
          }
       } else {
         const createRes = await createSingleProduct({
+
           ...productData,
           locationCode: productData.locationCode || undefined
         });

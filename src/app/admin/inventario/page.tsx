@@ -82,7 +82,7 @@ export default function InventarioPage() {
     }, 300);
     return () => clearTimeout(timeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeMaterial, search]);
+  }, [activeMaterial, search, locationFilter]);
 
   useEffect(() => {
     const currentLoader = loaderRef.current;
@@ -250,15 +250,19 @@ export default function InventarioPage() {
                className="w-full pl-9 pr-4 py-2.5 border border-rio-border rounded-xl text-[13px] focus:ring-1 focus:ring-rio-gold focus:border-rio-gold outline-none"
             />
          </div>
-         <select
-            className="block px-4 py-2.5 border border-rio-border rounded-xl text-[13px] font-medium focus:ring-1 focus:ring-rio-gold focus:border-rio-gold appearance-none bg-white text-rio-ink"
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-          >
-            {filterOptions.map(loc => (
-              <option key={loc} value={loc}>{loc === 'Todas' ? 'Todas las ubicaciones' : loc}</option>
-            ))}
-          </select>
+         <div>
+            <input
+              type="text"
+              list="location-list"
+              placeholder="Filtro ubicación..."
+              className="block w-48 px-4 py-2.5 border border-rio-border rounded-xl text-[13px] font-medium focus:ring-1 focus:ring-rio-gold focus:border-rio-gold bg-white text-rio-ink"
+              value={locationFilter === 'Todas' ? '' : locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value || 'Todas')}
+            />
+            <datalist id="location-list">
+              <option value="Sin ubicación" />
+            </datalist>
+          </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-rio-border overflow-hidden">
@@ -287,7 +291,7 @@ export default function InventarioPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-rio-border">
-              {filteredProducts.map((product) => (
+              {catalogProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-rio-surface/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -356,7 +360,7 @@ export default function InventarioPage() {
                   </td>
                 </tr>
               ))}
-              {filteredProducts.length === 0 && (
+              {catalogProducts.length === 0 && (
                  <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-rio-muted text-sm font-medium">
                        No se encontraron productos con los filtros seleccionados.

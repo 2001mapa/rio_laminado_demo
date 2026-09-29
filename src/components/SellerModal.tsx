@@ -57,7 +57,7 @@ export default function SellerModal({
         // Modo Edición
         const res = await updateSeller(sellerToEdit.id, { name, email, status });
         if (!res.success) {
-          setError(res.message);
+          setError(res.message || 'Error desconocido');
         } else {
           onComplete(); // Cerramos directo tras editar
         }
@@ -65,7 +65,7 @@ export default function SellerModal({
         // Modo Creación
         const res = await createSeller({ name, email });
         if (!res.success) {
-          setError(res.message);
+          setError(res.message || 'Error desconocido');
         } else {
           setSuccessData({ ...(res.seller as Seller), tempPassword: (res as any).tempPassword });
         }

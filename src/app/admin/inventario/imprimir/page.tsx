@@ -31,6 +31,12 @@ export default function MassPrintPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [materialFilter, setMaterialFilter] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentDisplayPage, setCurrentDisplayPage] = useState(1);
+  const displayItemsPerPage = 50;
+  
+  useEffect(() => {
+    setCurrentDisplayPage(1);
+  }, [categoryFilter, materialFilter, searchQuery, newOnly]);
   
   // -- SELECTION & QUANTITIES --
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -148,6 +154,9 @@ export default function MassPrintPage() {
   };
 
   const allFilteredAreSelected = filteredReferences.length > 0 && filteredReferences.every(p => selectedIds.has(p.id));
+  
+  const displayTotalPages = Math.ceil(filteredReferences.length / displayItemsPerPage);
+  const visibleReferences = filteredReferences.slice((currentDisplayPage - 1) * displayItemsPerPage, currentDisplayPage * displayItemsPerPage);
 
   return (
     <>
@@ -299,7 +308,7 @@ export default function MassPrintPage() {
                 {filteredReferences.length === 0 ? (
                   <p className="text-center text-sm text-rio-muted p-8">No hay resultados para el filtro actual.</p>
                 ) : (
-                  filteredReferences.map(ref => {
+                  visibleReferences.map(ref => {
                     const isSelected = selectedIds.has(ref.id);
                     return (
                       <label 

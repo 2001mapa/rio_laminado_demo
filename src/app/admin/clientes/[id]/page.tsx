@@ -157,12 +157,9 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
                 <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Teléfono</p>
                 <p className="font-medium text-rio-ink">{customer.phone}</p>
               </div>
+              
               <div>
-                <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Ciudad</p>
-                <p className="font-medium text-rio-ink">No registrada</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Dirección de Envío</p>
+                <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Dirección / Ciudad de Envío</p>
                 <p className="font-medium text-rio-ink">{customer.address}</p>
               </div>
             </div>
