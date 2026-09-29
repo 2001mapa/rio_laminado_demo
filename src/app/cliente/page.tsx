@@ -748,7 +748,7 @@ function ProductModal({
           />
         </div>
 
-        <div className="p-4 space-y-3 overflow-y-auto">
+        <div className="p-4 space-y-3 overflow-y-auto" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
           <div>
             <p className="text-[10px] font-mono font-bold text-rio-muted leading-tight">{product.sku}</p>
             <h2 className="text-lg md:text-xl font-serif font-bold text-rio-ink mt-0.5 leading-snug">{product.name}</h2>
