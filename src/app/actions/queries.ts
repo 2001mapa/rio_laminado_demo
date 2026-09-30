@@ -238,12 +238,14 @@ export async function getPagedCatalog({
   material, 
   category, 
   search, 
+  location, 
   limit = 24, 
   cursor 
 }: { 
   material?: string;
   category?: string;
   search?: string;
+  location?: string;
   limit?: number;
   cursor?: string;
 }) {
@@ -274,6 +276,12 @@ export async function getPagedCatalog({
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } }
       ];
+    }
+
+    if (location && location !== 'Todas' && location !== 'Sin ubicación') {
+      baseWhere.locationCode = location;
+    } else if (location === 'Sin ubicación') {
+      baseWhere.locationCode = { in: [null, ''] };
     }
 
     // Materiales con stock real disponible para los filtros actuales (sin incluir material)
@@ -310,6 +318,18 @@ export async function getPagedCatalog({
         having: { locationCode: { _count: { gt: 1 } } }
       });
       const dupCodes = duplicates.map(d => d.locationCode).filter(Boolean) as string[];
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { material: 'Por revisar' },
+            { locationCode: null },
+            { locationCode: '' },
+            { imageUrl: null },
+            ...(dupCodes.length > 0 ? [{ locationCode: { in: dupCodes } }] : [])
+          ]
+        }
+      ];
 
       where.AND = [
         ...(where.AND || []),

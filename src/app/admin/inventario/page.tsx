@@ -63,6 +63,7 @@ export default function InventarioPage() {
         search: search || undefined,
         limit: 50,
         cursor: reset ? undefined : cursor,
+        location: locationFilter === 'Todas' ? undefined : locationFilter,
       });
       if (res.success) {
         setCatalogProducts(prev => reset ? res.products : [...prev, ...res.products]);
@@ -100,15 +101,7 @@ export default function InventarioPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, hasMore, cursor, activeMaterial, search]);
 
-  const filteredProducts = catalogProducts.filter(p => {
-    if (locationFilter !== 'Todas') {
-      if (locationFilter === 'Sin ubicación' && p.locationCode) return false;
-      if (locationFilter !== 'Sin ubicación' && p.locationCode !== locationFilter) return false;
-    }
-    return true;
-  });
-
-  useEffect(() => {
+    useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowActionsMenu(false);
@@ -326,9 +319,32 @@ export default function InventarioPage() {
                     {product.category}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-[13px] font-medium hidden md:table-cell">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${product.material === 'Por revisar' ? 'bg-rio-danger/10 text-rio-danger border border-rio-danger/20' : 'bg-rio-surface-muted text-rio-ink border border-rio-border'}`}>
-                      {product.material || 'Por revisar'}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                      {product.material && product.material !== 'Por revisar' ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rio-surface-muted text-rio-ink border border-rio-border">
+                          {product.material}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rio-danger/10 text-rio-danger border border-rio-danger/20">
+                          Mat. Pendiente
+                        </span>
+                      )}
+                      {!product.imageUrl && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rio-warning/10 text-rio-warning border border-rio-warning/20">
+                          Falta Foto
+                        </span>
+                      )}
+                      {!product.locationCode && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rio-warning/10 text-rio-warning border border-rio-warning/20">
+                          Sin Ubic.
+                        </span>
+                      )}
+                      {product.locationCode && duplicateLocationCodes.includes(product.locationCode) && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rio-danger/10 text-rio-danger border border-rio-danger/20">
+                          Ubic. Duplicada
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-rio-ink">
                     {formatPrice(product.price)}
@@ -386,11 +402,15 @@ export default function InventarioPage() {
           setEditingProduct(null);
         }}
         initialData={editingProduct}
-        onComplete={() => {
+        onComplete={(updatedProduct: any) => {
             setShowMockModal(false);
             setEditingProduct(null);
-            refreshData();
-            fetchProducts(true);
+            if (updatedProduct) {
+               setCatalogProducts(prev => prev.map(p => p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p));
+            } else {
+               refreshData();
+               fetchProducts(true);
+            }
             fetchCounts();
           }}
       />

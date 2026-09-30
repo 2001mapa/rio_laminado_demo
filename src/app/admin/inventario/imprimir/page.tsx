@@ -291,7 +291,7 @@ export default function MassPrintPage() {
                     className="flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wider text-rio-ink bg-white border border-rio-border rounded-lg hover:bg-rio-surface flex items-center justify-center gap-1.5"
                   >
                     {allFilteredAreSelected ? <Square className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
-                    {allFilteredAreSelected ? 'Quitar Filtradas' : 'Marcar Filtradas'}
+                    {allFilteredAreSelected ? 'Quitar TODAS las filtradas' : 'Marcar TODAS las filtradas'}
                   </button>
                   {selectedIds.size > 0 && (
                     <button 
@@ -333,6 +333,27 @@ export default function MassPrintPage() {
                   })
                 )}
               </div>
+              {/* Pagination Controls for References */}
+              {displayTotalPages > 1 && (
+                <div className="p-3 border-t border-rio-border bg-white flex items-center justify-between">
+                  <button 
+                    onClick={() => setCurrentDisplayPage(p => Math.max(1, p - 1))} 
+                    disabled={currentDisplayPage <= 1}
+                    className="px-3 py-1.5 text-xs font-bold border border-rio-border rounded-lg disabled:opacity-50 hover:bg-rio-surface"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-xs font-bold text-rio-muted">Página {currentDisplayPage} de {displayTotalPages}</span>
+                  <button 
+                    onClick={() => setCurrentDisplayPage(p => Math.min(displayTotalPages, p + 1))} 
+                    disabled={currentDisplayPage >= displayTotalPages}
+                    className="px-3 py-1.5 text-xs font-bold border border-rio-border rounded-lg disabled:opacity-50 hover:bg-rio-surface"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+
             </div>
           </div>
 
