@@ -5,7 +5,7 @@ import { useDemo } from '@/lib/DemoContext';
 import { getOrderById } from '@/app/actions/orders';
 
 import { NEXT_ALLOWED_ACTION } from '@/lib/order-status';
-import { Activity, ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X, Settings, ChevronDown } from 'lucide-react';
+import { Activity, ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X, Settings, ChevronDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [fetchedOrder, setFetchedOrder] = useState<any>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState('');
+  
+  const [offsetX, setOffsetX] = useState<number>(3.2);
+  const [offsetY, setOffsetY] = useState<number>(1.6);
+  const [gapY, setGapY] = useState<number>(3.0);
+  const [gapX, setGapX] = useState<number>(3.0);
   
   useEffect(() => {
     getOrderById(resolvedParams.id).then((res: any) => {
