@@ -21,12 +21,12 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
 
     // Usamos exclusivamente app_metadata por seguridad
     let role = (user.app_metadata?.role as Role) || null;
-    let status = 'active';
 
     if (role === 'admin') {
       return { user, role, status: 'active' };
     }
 
+    let status = 'suspended'; // Default to closed
     try {
       // Centralizar la verificación de estado y resolución
       const seller = await prisma.seller.findUnique({ where: { authUserId: user.id } });
@@ -44,7 +44,9 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
         }
       }
     } catch (dbError) {
-      console.error('[ServerAction] Database fallback error');
+      console.error('[ServerAction] Database fallback error', dbError);
+      role = null as any;
+      status = 'suspended';
     }
 
     return { user, role, status };

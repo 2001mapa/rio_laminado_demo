@@ -51,7 +51,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   
   
   const contextOrder = orders.find(o => o.id === resolvedParams.id);
-  const order = contextOrder || fetchedOrder;
+  const order = contextOrder && fetchedOrder ? { ...contextOrder, statusHistory: fetchedOrder.statusHistory || (contextOrder as any).statusHistory } : (contextOrder || fetchedOrder);
 
   const handleTransition = async (action: any, trackingInfo?: {carrier: string, trackingNumber: string}) => {
     try {

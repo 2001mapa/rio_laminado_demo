@@ -42,8 +42,6 @@ export async function createSeller(data: {
     let authUser = null;
     let newlyCreated = false;
 
-    // We do NOT use listUsers() to search across potentially 10k users.
-    // Instead we try to create the user directly.
     const { data: createdUser, error: createError } = await adminAuthClient.auth.admin.createUser({
       email: normalizedEmail,
       password: tempPassword,
@@ -53,7 +51,6 @@ export async function createSeller(data: {
     });
 
     if (createError) {
-      // Supabase typically throws 422 "Email address already registered by another user"
       return { success: false, message: `La cuenta ya existe en autenticación o hubo un error: ${createError.message}` };
     }
     
@@ -62,16 +59,20 @@ export async function createSeller(data: {
 
     // Now create in Prisma
     try {
-      const seller = await prisma.seller.create({
-        data: {
-          name: data.name,
-          email: normalizedEmail,
-          authUserId: authUser!.id,
-          status: 'active'
-        }
-      });
       const actor = await getAuditActor();
-      await logAuditEvent(actor, { action: 'CREATE_SELLER', entityType: 'SELLER', entityId: seller.id, changes: { email: seller.email } });
+      const seller = await prisma.$transaction(async (tx) => {
+        const createdSeller = await tx.seller.create({
+          data: {
+            name: data.name,
+            email: normalizedEmail,
+            authUserId: authUser!.id,
+            status: 'active'
+          }
+        });
+        await logAuditEvent(actor, { action: 'CREATE_SELLER', entityType: 'SELLER', entityId: createdSeller.id, changes: { email: createdSeller.email } }, tx);
+        return createdSeller;
+      });
+
       return { 
         success: true, 
         seller,
