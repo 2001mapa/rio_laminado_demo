@@ -115,11 +115,6 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     setAdjustingItem(null);
   };
 
-  const [offsetX, setOffsetX] = useState<number>(3.2);
-  const [offsetY, setOffsetY] = useState<number>(1.6);
-  const [gapY, setGapY] = useState<number>(3.0);
-  const [gapX, setGapX] = useState<number>(3.0);
-
   return (
     <>
       {/* Screen Layout - Hidden on Print */}
