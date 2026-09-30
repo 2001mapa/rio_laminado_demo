@@ -28,7 +28,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
   const contextOrder = orders.find(o => o.id === resolvedParams.id);
   const order = contextOrder || fetchedOrder;
   
-  if (isLoadingOrder && !order) return <div className="p-4 text-rio-muted">Cargando pedido...</div>;
+  if (isLoadingOrder && !order) return <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 text-rio-muted print:hidden"><Loader2 className="w-10 h-10 animate-spin" /><p className="font-bold uppercase tracking-widest text-sm">Cargando pedido...</p></div>;
   if (orderError && !order) return <div className="p-4 text-red-500">{orderError}</div>;
   
 
