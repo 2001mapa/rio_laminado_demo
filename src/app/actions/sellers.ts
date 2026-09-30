@@ -128,6 +128,17 @@ export async function updateSeller(id: string, data: {
       });
     }
 
+    const actor = await getAuditActor();
+    await logAuditEvent(actor, {
+      action: 'UPDATE_SELLER',
+      entityType: 'SELLER',
+      entityId: id,
+      changes: {
+        before: { name: existingSeller.name, email: existingSeller.email, status: existingSeller.status },
+        after: { name: seller.name, email: seller.email, status: seller.status }
+      }
+    });
+
     return { 
       success: true, 
       message: 'Vendedor actualizado exitosamente.',

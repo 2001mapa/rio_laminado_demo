@@ -179,6 +179,7 @@ export async function createOrder(data: {
 
 export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string, trackingInfo?: {carrier: string, trackingNumber: string}) {
   const { user, role } = await requireRole(['admin', 'vendedor', 'cliente']);
+  const actor = await getAuditActor();
   
   try {
     const order = await prisma.$transaction(async (tx) => {
@@ -222,18 +223,14 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
         }
       }
 
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId,
-          previousStatus: existingOrder.status,
-          nextStatus,
-          action,
-          actorAuthUserId: user.id,
-          actorRole: role,
-          reason
-        }
-      });
-      
+            await logAuditEvent(actor, {
+        action: 'STATUS_CHANGE',
+        entityType: 'ORDER',
+        entityId: orderId,
+        orderNumber: existingOrder.orderNumber,
+        origin: role === 'admin' ? 'admin_dashboard' : 'cliente_dashboard',
+        changes: { previousStatus: existingOrder.status, nextStatus, action, reason }
+      }, tx);
       const updateData: any = { status: nextStatus };
       if (action === 'DISPATCH' && trackingInfo) {
         updateData.carrier = trackingInfo.carrier;
@@ -396,7 +393,7 @@ export async function getOrderById(id: string) {
         customer: true, 
         seller: true, 
         groups: { include: { items: true } },
-        statusHistory: { orderBy: { createdAt: 'desc' } }
+        // statusHistory is fetched manually via AuditEvent
       }
     });
 
@@ -415,7 +412,26 @@ export async function getOrderById(id: string) {
        }
     }
 
-    return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
+    // Fetch timeline from AuditEvent
+    const auditEvents = await prisma.auditEvent.findMany({
+      where: { entityType: 'ORDER', entityId: id, action: 'STATUS_CHANGE' },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    const mappedStatusHistory = auditEvents.map(e => ({
+       id: e.id,
+       orderId: e.entityId,
+       previousStatus: (e.changes as any)?.previousStatus,
+       nextStatus: (e.changes as any)?.nextStatus,
+       action: (e.changes as any)?.action,
+       actorAuthUserId: e.actorId,
+       actorRole: e.actorRole,
+       actorName: e.actorName,
+       reason: (e.changes as any)?.reason,
+       createdAt: e.createdAt
+    }));
+
+    return { success: true, order: order ? { ...order, number: order.orderNumber, statusHistory: mappedStatusHistory } : null };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
