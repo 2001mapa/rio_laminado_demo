@@ -46,6 +46,9 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const { updateGroupInvoice } = useDemo();
   
   
+  const contextOrder = orders.find(o => o.id === resolvedParams.id);
+  const order = contextOrder || fetchedOrder;
+
   const handleTransition = async (action: any, trackingInfo?: {carrier: string, trackingNumber: string}) => {
     try {
       setIsTransitioning(true);
@@ -59,13 +62,10 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     }
   };
   
-  const contextOrder = orders.find(o => o.id === resolvedParams.id);
-  const order = contextOrder || fetchedOrder;
-  
+
+
   if (isLoadingOrder && !order) return <div className="p-4 text-rio-muted">Cargando pedido...</div>;
   if (orderError && !order) return <div className="p-4 text-red-500">{orderError}</div>;
-  
-
   if (!order) return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;
 
   const customer = customers.find(c => c.id === order.customerId);
