@@ -548,6 +548,45 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       )}
 
       {/* Print Layout: Thermal Labels (Stickers) */}
+      
+        {/* Timeline */}
+        <div className="mt-8 bg-rio-surface rounded-2xl border border-rio-border shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-rio-border flex justify-between items-center bg-rio-surface-muted">
+            <h2 className="text-lg font-bold text-rio-ink flex items-center gap-2">
+              <Activity className="w-5 h-5 text-rio-gold-dark" />
+              Historial de Estados
+            </h2>
+          </div>
+          <div className="p-6">
+            {!order.statusHistory || order.statusHistory.length === 0 ? (
+              <div className="text-center py-8 text-rio-muted">
+                <p className="italic text-sm">No hay eventos registrados en el historial.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {order.statusHistory.map((h: any, i: number) => (
+                  <div key={h.id || i} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-3 h-3 rounded-full bg-rio-gold" />
+                      {i !== order.statusHistory.length - 1 && <div className="w-px h-full bg-rio-border mt-2" />}
+                    </div>
+                    <div className="flex-1 pb-6">
+                      <p className="text-sm font-bold text-rio-ink">
+                        {h.previousStatus} ➔ {h.nextStatus}
+                      </p>
+                      <div className="text-xs text-rio-muted mt-1 space-y-1">
+                        <p>Actor: <span className="font-semibold text-rio-ink">{h.actorName || h.actorAuthUserId || 'Desconocido'}</span> ({h.actorRole || 'N/A'})</p>
+                        <p>Fecha: {new Date(h.createdAt).toLocaleString('es-CO')}</p>
+                        {h.reason && <p>Motivo: {h.reason}</p>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       <div className="hidden print:block bg-white w-max">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {

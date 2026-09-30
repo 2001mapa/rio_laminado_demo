@@ -24,6 +24,7 @@ export async function createSeller(data: {
   email: string;
 }) {
   await requireRole(['admin']);
+  if (!data.name || !data.email) return { success: false, message: 'Datos incompletos.' };
   
   const normalizedEmail = data.email.trim().toLowerCase();
 
@@ -79,11 +80,11 @@ export async function createSeller(data: {
         tempPassword
       };
     } catch (dbError: any) {
-      // ONLY rollback if we created the user
+      // Compensación manual si falla la base de datos
       if (newlyCreated && authUser) {
         await adminAuthClient.auth.admin.deleteUser(authUser.id);
       }
-      return { success: false, message: `Error en base de datos: ${dbError.message}` };
+      return { success: false, message: `Error en base de datos al guardar perfil, cuenta de auth revertida: ${dbError.message}` };
     }
 
   } catch (error: any) {

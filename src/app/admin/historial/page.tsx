@@ -11,6 +11,7 @@ const ACTION_MAP: Record<string, string> = {
   UPDATE_PRODUCT: 'Actualizó Producto',
   DELETE_PRODUCT: 'Eliminó Producto',
   UPDATE_ORDER: 'Actualizó Pedido',
+  STATUS_CHANGE: 'Cambio de Estado',
   CREATE_ORDER: 'Creó Pedido',
   UPLOAD_PHOTO: 'Subió Fotografía',
   BULK_UPLOAD: 'Importación Masiva',
