@@ -1,14 +1,14 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { updateCustomerStatusAction } from '@/app/actions/clients';
+import { updateCustomerStatusAction, getCustomerProfile } from '@/app/actions/clients';
 import EditCustomerModal from '@/components/EditCustomerModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import { useState } from 'react';
 import { addToast } from '@/lib/toast';
 import { ArrowLeft, Edit2, Mail, ShieldAlert, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +17,17 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
   const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+
+  useEffect(() => {
+    getCustomerProfile(resolvedParams.id).then(res => {
+      if (res.success && res.orders) {
+        setCustomerOrders(res.orders);
+      }
+      setIsLoadingOrders(false);
+    });
+  }, [resolvedParams.id]);
 
   const customer = customers.find(c => c.id === resolvedParams.id);
 
@@ -38,7 +49,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
     }
   };
 
-  const customerOrders = orders.filter(o => o.customerId === customer.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  
   const activeOrders = customerOrders.filter(o => !['Cancelado', 'Despachado'].includes(o.status));
   const totalOrders = customerOrders.length;
 

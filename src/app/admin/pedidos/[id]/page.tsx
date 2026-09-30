@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
@@ -74,7 +73,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   if (!order) return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;
 
   const customer = customers.find(c => c.id === order.customerId);
-  const hasIssues = order.items.some(i => i.issue && !i.adjustmentReason);
+  const hasIssues = order.items.some((i: any) => i.issue && !i.adjustmentReason);
 
   const sortedItems = [...order.items].sort((a, b) => {
     const pA = (a as any).product;
@@ -104,13 +103,13 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       }
     }
 
-    const updatedItems = order.items.map(i => {
+    const updatedItems = order.items.map((i: any) => {
       if (i.id === adjustingItem) {
         return {
           ...i,
           originalQuantity: i.originalQuantity || i.quantity,
           quantity: adjustQuantity,
-          sizeDetails: adjustSizes.length > 0 ? adjustSizes.filter(s => s.quantity > 0) : undefined,
+          sizeDetails: adjustSizes.length > 0 ? adjustSizes.filter((s: any) => s.quantity > 0) : undefined,
           adjustmentReason: adjustReason
         };
       }
@@ -222,9 +221,9 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 ? order.groups
                 : [{ id: 'main', material: 'General', groupNumber: order.number, isVerified: true, items: [] as any[], externalInvoice: null }];
                 
-              return groups.map((group, groupIdx) => {
+              return groups.map((group: any, groupIdx: number) => {
                 const gItems = order.groups && order.groups.length > 0 
-                  ? sortedItems.filter(i => i.materialGroupId === group.id)
+                  ? sortedItems.filter((i: any) => i.materialGroupId === group.id)
                   : sortedItems;
                   
                 return (
@@ -263,7 +262,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                                   <span className="text-sm font-bold text-rio-ink bg-rio-background px-2 py-0.5 rounded border border-rio-border">Cant: {item.quantity}</span>
                                     {item.sizeDetails && item.sizeDetails.length > 0 && (
                                       <span className="text-[10px] bg-rio-surface-muted text-rio-muted px-2 py-0.5 rounded-full border border-rio-border">
-                                        Tallas: {item.sizeDetails.map(s => `${s.size}x${s.quantity}`).join(', ')}
+                                        Tallas: {item.sizeDetails.map((s: any) => `${s.size}x${s.quantity}`).join(', ')}
                                       </span>
                                     )}
                                   <button 
@@ -357,7 +356,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                       const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
                       if (!next) return null;
                       
-                      const isChecklistComplete = order.items.length > 0 && order.items.every(i => i.verified || i.adjustmentReason);
+                      const isChecklistComplete = order.items.length > 0 && order.items.every((i: any) => i.verified || i.adjustmentReason);
                       const isVerification = next.action === 'COMPLETE_VERIFICATION';
                       
                       // Si estamos en pendiente de verificación y el checklist NO está completo, Ocultamos el botón principal.
@@ -390,7 +389,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     })()}
 
                   {(() => {
-                    const isChecklistComplete = order.items.length > 0 && order.items.every(i => i.verified || i.adjustmentReason);
+                    const isChecklistComplete = order.items.length > 0 && order.items.every((i: any) => i.verified || i.adjustmentReason);
                     // Solo mostramos el checklist en "Pendiente de verificación" y SI NO está completo
                     if (order.status === 'Pendiente de verificación' && !isChecklistComplete) {
                       return (
@@ -570,8 +569,8 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           let elements: any[] = [];
           
           if (order.groups && order.groups.length > 0 && !printingSingle) {
-             order.groups.forEach(g => {
-                const gItems = itemsToPrint.filter(i => i.materialGroupId === g.id);
+             order.groups.forEach((g: any) => {
+                const gItems = itemsToPrint.filter((i: any) => i.materialGroupId === g.id);
                 gItems.forEach((item, index) => {
                    const product = (item as any).product;
                    elements.push({ type: 'item', item, index, product });

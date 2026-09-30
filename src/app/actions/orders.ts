@@ -169,7 +169,7 @@ export async function createOrder(data: {
         timeout: 10000 
       });
     
-    return { success: true, order };
+    return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error creating order:', error);
     return { success: false, error: error.message };
@@ -246,7 +246,7 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
       });
     }, { maxWait: 5000, timeout: 10000 });
     
-    return { success: true, order };
+    return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error transitioning order:', error);
     return { success: false, error: error.message };
@@ -267,7 +267,7 @@ export async function acknowledgeOrderAdjustment(orderId: string) {
       where: { id: orderId },
       data: { adjustmentAcknowledged: true }
     });
-    return { success: true, order };
+    return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error acknowledging adjustment:', error);
     return { success: false, error: error.message };
@@ -338,7 +338,7 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
       });
     });
 
-    return { success: true, order };
+    return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error updating order checklist:', error);
     return { success: false, error: error.message };
@@ -415,7 +415,7 @@ export async function getOrderById(id: string) {
        }
     }
 
-    return { success: true, order };
+    return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

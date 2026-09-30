@@ -1,11 +1,38 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/app/cliente/perfil/page.tsx', 'utf8');
+let c = fs.readFileSync('src/app/admin/clientes/[id]/page.tsx', 'utf8');
 
-const regex1 = /const \[debugSession, setDebugSession\] = useState<any>\(null\);[\s\S]*?\}, \[currentCustomer\]\);/;
-code = code.replace(regex1, '');
+c = c.replace(
+  "import { updateCustomerStatusAction } from '@/app/actions/clients';",
+  "import { updateCustomerStatusAction, getCustomerProfile } from '@/app/actions/clients';"
+);
 
-const regex2 = /const debugInfo = \{[\s\S]*?\};\n\s*return \(/;
-code = code.replace(regex2, `return (`);
+c = c.replace(
+  "import { use } from 'react';",
+  "import { use, useEffect } from 'react';"
+);
 
-fs.writeFileSync('src/app/cliente/perfil/page.tsx', code);
-console.log('Removed diagnostic info from profile');
+const hooksInject = `  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+
+  useEffect(() => {
+    getCustomerProfile(resolvedParams.id).then(res => {
+      if (res.success) {
+        setCustomerOrders(res.orders);
+      }
+      setIsLoadingOrders(false);
+    });
+  }, [resolvedParams.id]);`;
+
+c = c.replace(
+  "  const [isResetModalOpen, setIsResetModalOpen] = useState(false);",
+  hooksInject
+);
+
+c = c.replace(
+  /  let customerOrders = \[\];\r?\n  customerOrders = orders\.filter[^\n]+\n/,
+  ""
+);
+
+fs.writeFileSync('src/app/admin/clientes/[id]/page.tsx', c);
+console.log('Fixed profile');

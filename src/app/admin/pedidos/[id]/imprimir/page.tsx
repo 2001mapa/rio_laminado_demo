@@ -1,5 +1,5 @@
-// @ts-nocheck
 'use client';
+import { Loader2 } from 'lucide-react';
 
 import { useDemo } from '@/lib/DemoContext';
 import { getOrderById } from '@/app/actions/orders';
@@ -135,7 +135,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
                     {product.name}
                     {item.sizeDetails && item.sizeDetails.length > 0 && (
                       <div className="mt-1 text-[10px] font-bold text-black bg-gray-100 p-1 rounded inline-block">
-                        Tallas: {item.sizeDetails.map(s => `${s.size} x ${s.quantity}`).join(' | ')}
+                        Tallas: {item.sizeDetails.map((s: any) => `${s.size} x ${s.quantity}`).join(' | ')}
                       </div>
                     )}
                   </td>
@@ -152,7 +152,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
         <div className="mt-4 pt-2 flex justify-between items-end">
           <div className="text-xs">
             <p><strong>REFS:</strong> {order.items.length}</p>
-            <p><strong>UNIDADES:</strong> {order.items.reduce((acc, item) => acc + item.quantity, 0)}</p>
+            <p><strong>UNIDADES:</strong> {order.items.reduce((acc: any, item: any) => acc + item.quantity, 0)}</p>
           </div>
           <div className="w-48 border-b-2 border-black text-center pb-0.5 text-[10px] font-bold uppercase">
             Preparado por

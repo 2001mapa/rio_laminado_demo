@@ -1,11 +1,6 @@
 const fs = require('fs');
-
-let code = fs.readFileSync('src/components/CSVImporter.tsx', 'utf8');
-
-code = code.replace(
-  /import \{ useState \} from 'react';/,
-  `import { useState, useEffect } from 'react';`
-);
-
-fs.writeFileSync('src/components/CSVImporter.tsx', code);
-console.log('Fixed imports');
+['src/app/admin/pedidos/[id]/imprimir/page.tsx', 'src/app/admin/pedidos/[id]/verificar/page.tsx'].forEach(f => {
+  let c = fs.readFileSync(f, 'utf8');
+  c = c.replace(/import \{([^}]+)\} from 'lucide-react'/g, (m, g1) => m.includes('Loader2') ? m : `import { ${g1}, Loader2 } from 'lucide-react'`);
+  fs.writeFileSync(f, c);
+});

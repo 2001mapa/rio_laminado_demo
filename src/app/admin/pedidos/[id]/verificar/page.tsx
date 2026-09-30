@@ -1,9 +1,9 @@
-// @ts-nocheck
 'use client';
+import { Loader2 } from 'lucide-react';
 
 import { useDemo } from '@/lib/DemoContext';
 import { getOrderById } from '@/app/actions/orders';
-import { ArrowLeft, Check, X, AlertTriangle, MessageSquare } from 'lucide-react';
+import {  ArrowLeft, Check, X, AlertTriangle, MessageSquare } from 'lucide-react';
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -40,7 +40,7 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
   if (!order) return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;
 
   const handleVerify = (itemId: string, status: 'ok' | 'issue', issueMsg?: string) => {
-    const newItems = order.items.map(i => {
+    const newItems = order.items.map((i: any) => {
       if (i.id === itemId) {
         if (status === 'ok') {
           return { ...i, verified: true, issue: undefined };
@@ -63,12 +63,12 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
     return locA.localeCompare(locB);
   });
 
-  const pendingItems = sortedOrderItems.filter(i => !i.verified && !i.issue);
-  const verifiedItems = sortedOrderItems.filter(i => i.verified || i.issue);
+  const pendingItems = sortedOrderItems.filter((i: any) => !i.verified && !i.issue);
+  const verifiedItems = sortedOrderItems.filter((i: any) => i.verified || i.issue);
 
   const totalLines = order.items.length;
-  const verifiedLines = order.items.filter(i => i.verified).length;
-  const issueLines = order.items.filter(i => i.issue).length;
+  const verifiedLines = order.items.filter((i: any) => i.verified).length;
+  const issueLines = order.items.filter((i: any) => i.issue).length;
   const okLines = verifiedLines - issueLines;
 
   return (
@@ -153,7 +153,7 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
                     <p className="text-sm font-semibold text-rio-ink leading-tight">{product.name}</p>
                     {item.sizeDetails && item.sizeDetails.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
-                        {item.sizeDetails.map(s => (
+                        {item.sizeDetails.map((s: any) => (
                            <span key={s.size} className="text-[10px] font-bold text-rio-ink bg-rio-gold-light/20 border border-rio-gold-light/50 px-1.5 py-0.5 rounded">
                              Talla {s.size}: {s.quantity}
                            </span>
@@ -220,7 +220,7 @@ export default function ChecklistPage({ params }: { params: Promise<{ id: string
                   )}
                   <button 
                     onClick={() => {
-                      const newItems = order.items.map(i => i.id === item.id ? { ...i, verified: false, issue: undefined } : i);
+                      const newItems = order.items.map((i: any) => i.id === item.id ? { ...i, verified: false, issue: undefined } : i);
                       updateOrder({ ...order, items: newItems });
                     }}
                     className="mt-3 text-[11px] font-bold uppercase tracking-wider text-rio-muted hover:text-rio-ink flex items-center transition-colors"

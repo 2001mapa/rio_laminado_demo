@@ -302,8 +302,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     const result = await updateOrderChecklist(order.id, itemsData, (order as any).adjustmentAcknowledged || false);
     
     if (result.success && result.order) {
-      const mappedOrder = { ...result.order, number: result.order.orderNumber || (result.order as any).number };
-      setOrders(prev => prev.map(o => o.id === result.order.id ? { ...o, ...mappedOrder } as unknown as Order : o));
+      const mappedOrder = { ...result.order, number: (result.order as any).number || (result.order as any).orderNumber };
+      setOrders(prev => prev.map(o => o.id === result.order!.id ? { ...o, ...mappedOrder } as unknown as Order : o));
     } else {
       console.error("Failed to update order checklist:", result.error);
       await refreshData(); // Revert on failure

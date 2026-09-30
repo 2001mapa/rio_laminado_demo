@@ -184,3 +184,21 @@ export async function resetCustomerPasswordAction(customerId: string, newPasswor
     return { success: false, message: `Error interno: ${error.message}` };
   }
 }
+
+
+export async function getCustomerProfile(customerId: string) {
+  try {
+    await requireRole(['admin', 'vendedor']);
+    const orders = await prisma.order.findMany({
+      where: { customerId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // map orderNumber to number
+    const mapped = orders.map(o => ({ ...o, number: o.orderNumber }));
+    return { success: true, orders: mapped };
+  } catch (e: any) {
+    return { success: false, message: e.message };
+  }
+}
