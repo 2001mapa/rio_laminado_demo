@@ -2,7 +2,6 @@
 import { logAuditEvent, getAuditActor } from '@/lib/audit';
 import crypto from 'crypto';
 
-
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
 import { createClient } from '@supabase/supabase-js'
@@ -19,14 +18,22 @@ function getAdminClient() {
   });
 }
 
+function isValidEmail(email: string) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
+
 export async function createSeller(data: {
   name: string;
   email: string;
 }) {
   await requireRole(['admin']);
-  if (!data.name || !data.email) return { success: false, message: 'Datos incompletos.' };
   
-  const normalizedEmail = data.email.trim().toLowerCase();
+  const trimmedName = data.name?.trim();
+  const normalizedEmail = data.email?.trim().toLowerCase();
+  
+  if (!trimmedName) return { success: false, message: 'El nombre es obligatorio.' };
+  if (!normalizedEmail || !isValidEmail(normalizedEmail)) return { success: false, message: 'Correo electrónico inválido.' };
 
   try {
     const existing = await prisma.seller.findUnique({
@@ -47,7 +54,7 @@ export async function createSeller(data: {
       email: normalizedEmail,
       password: tempPassword,
       email_confirm: true,
-      user_metadata: { name: data.name, role: 'vendedor' },
+      user_metadata: { name: trimmedName, role: 'vendedor' },
       app_metadata: { role: 'vendedor' }
     });
 
@@ -64,7 +71,7 @@ export async function createSeller(data: {
       const seller = await prisma.$transaction(async (tx) => {
         const createdSeller = await tx.seller.create({
           data: {
-            name: data.name,
+            name: trimmedName,
             email: normalizedEmail,
             authUserId: authUser!.id,
             status: 'active'
@@ -82,9 +89,13 @@ export async function createSeller(data: {
     } catch (dbError: any) {
       // Compensación manual si falla la base de datos
       if (newlyCreated && authUser) {
-        const { error: deleteError } = await adminAuthClient.auth.admin.deleteUser(authUser.id);
-        if (deleteError) {
-          return { success: false, message: `ATENCIÓN: Error en base de datos al guardar perfil (${dbError.message}). Intento de eliminar cuenta en Auth también falló (${deleteError.message}). Inconsistencia detectada, cuenta huérfana en Auth.` };
+        try {
+          const { error: deleteError } = await adminAuthClient.auth.admin.deleteUser(authUser.id);
+          if (deleteError) {
+            return { success: false, message: `ATENCIÓN: Error en BD (${dbError.message}). Eliminar cuenta Auth devolvió error (${deleteError.message}). Posible inconsistencia.` };
+          }
+        } catch (compensationEx: any) {
+          return { success: false, message: `ATENCIÓN: Error en BD (${dbError.message}). Excepción al intentar eliminar cuenta Auth (${compensationEx.message}). Posible inconsistencia.` };
         }
       }
       return { success: false, message: `Error en base de datos al guardar perfil, cuenta de auth revertida exitosamente: ${dbError.message}` };
@@ -102,9 +113,14 @@ export async function updateSeller(id: string, data: {
   status: string;
 }) {
   await requireRole(['admin']);
-  if (!data.name || !data.email || !data.status) return { success: false, message: 'Faltan datos requeridos.' };
   
-  const normalizedEmail = data.email.trim().toLowerCase();
+  const trimmedName = data.name?.trim();
+  const normalizedEmail = data.email?.trim().toLowerCase();
+  const validStatuses = ['active', 'suspended'];
+  
+  if (!trimmedName) return { success: false, message: 'El nombre es obligatorio.' };
+  if (!normalizedEmail || !isValidEmail(normalizedEmail)) return { success: false, message: 'Correo electrónico inválido.' };
+  if (!validStatuses.includes(data.status)) return { success: false, message: 'Estado inválido.' };
 
   try {
     const existing = await prisma.seller.findUnique({
@@ -117,20 +133,26 @@ export async function updateSeller(id: string, data: {
 
     const existingSeller = await prisma.seller.findUnique({ where: { id } });
     if (!existingSeller) return { success: false, message: 'Vendedor no encontrado.' };
+    
+    if (!existingSeller.authUserId) {
+      return { success: false, message: 'El vendedor no tiene un usuario de autenticación vinculado (authUserId).' };
+    }
 
     const adminAuthClient = getAdminClient();
     let authUpdated = false;
 
     // 1. UPDATE AUTH FIRST
-    if (existingSeller.authUserId) {
+    try {
       const { error: authError } = await adminAuthClient.auth.admin.updateUserById(existingSeller.authUserId, {
         email: normalizedEmail,
-        user_metadata: { name: data.name }
+        user_metadata: { name: trimmedName }
       });
       if (authError) {
         return { success: false, message: `Error de Auth, actualización cancelada: ${authError.message}` };
       }
       authUpdated = true;
+    } catch (authEx: any) {
+      return { success: false, message: `Excepción de Auth, actualización cancelada: ${authEx.message}` };
     }
 
     // 2. UPDATE PRISMA + AUDIT EVENT IN TRANSACTION
@@ -140,7 +162,7 @@ export async function updateSeller(id: string, data: {
         const updated = await tx.seller.update({
           where: { id },
           data: {
-            name: data.name,
+            name: trimmedName,
             email: normalizedEmail,
             status: data.status
           }
@@ -167,13 +189,17 @@ export async function updateSeller(id: string, data: {
     } catch (dbError: any) {
       // 3. COMPENSATION IF DB/AUDIT FAILS
       if (authUpdated && existingSeller.authUserId) {
-        const { error: compensationError } = await adminAuthClient.auth.admin.updateUserById(existingSeller.authUserId, {
-          email: existingSeller.email, // rollback email
-          user_metadata: { name: existingSeller.name } // rollback name
-        });
-        
-        if (compensationError) {
-          return { success: false, message: `ATENCIÓN: Falló actualización local (${dbError.message}). Intento de reversión de Auth falló (${compensationError.message}). Inconsistencia detectada entre Auth y la base de datos local.` };
+        try {
+          const { error: compensationError } = await adminAuthClient.auth.admin.updateUserById(existingSeller.authUserId, {
+            email: existingSeller.email, // rollback email
+            user_metadata: { name: existingSeller.name } // rollback name
+          });
+          
+          if (compensationError) {
+            return { success: false, message: `ATENCIÓN: Falló actualización local (${dbError.message}). Reversión de Auth devolvió error (${compensationError.message}). Inconsistencia detectada.` };
+          }
+        } catch (compensationEx: any) {
+          return { success: false, message: `ATENCIÓN: Falló actualización local (${dbError.message}). Excepción al intentar reversión de Auth (${compensationEx.message}). Inconsistencia detectada.` };
         }
       }
       return { success: false, message: `Error interno al actualizar base de datos, cambios de Auth revertidos exitosamente: ${dbError.message}` };

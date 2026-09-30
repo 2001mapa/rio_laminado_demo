@@ -241,7 +241,7 @@ export default function HistorialPage() {
                         <div className="text-xs text-rio-muted">{new Date(ev.createdAt).toLocaleTimeString('es-ES')}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <div className="font-medium text-rio-ink">{ev.actorName}</div>
+                        <div className="font-medium text-rio-ink">{ev.actorName?.includes('Admin/Eliminado') || (!ev.actorName?.includes(' ') && ev.actorName?.length > 20) ? `Administrador histórico · ID ${(ev.actorName || ev.actorId || '').substring(0, 8)}` : (ev.actorName || 'Desconocido')}</div>
                         <div className="text-xs text-rio-muted capitalize">{ev.actorRole}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">

@@ -575,7 +575,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                         {h.previousStatus} ➔ {h.nextStatus}
                       </p>
                       <div className="text-xs text-rio-muted mt-1 space-y-1">
-                        <p>Actor: <span className="font-semibold text-rio-ink">{h.actorName?.includes('Admin/Eliminado') || (!h.actorName?.includes(' ') && h.actorName?.length > 20) ? `Administrador histórico · ID ${(h.actorName || h.actorAuthUserId || '').substring(0, 8)}` : (h.actorName || h.actorAuthUserId || 'Desconocido')}</span> ({h.actorRole || 'N/A'})</p>
+                        <p>Actor: <span className="font-semibold text-rio-ink">{h.actorName?.includes('ID Histórico') || h.actorName?.includes('Admin/Eliminado') ? (h.actorId && h.actorId !== 'system' ? `Administrador histórico · ID ${h.actorId.substring(0, 8)}` : 'Administrador histórico') : (h.actorName || h.actorId || 'Desconocido')}</span> ({h.actorRole || 'N/A'})</p>
                         <p>Fecha: {new Date(h.createdAt).toLocaleString('es-CO')}</p>
                         {h.reason && <p>Motivo: {h.reason}</p>}
                       </div>
