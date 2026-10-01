@@ -351,6 +351,41 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 }`}>{order.status}</p>
               </div>
 
+              <div className="mt-6 mb-6 pt-6 border-t border-rio-border">
+                <h3 className="text-sm font-bold text-rio-ink uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-rio-gold-dark" />
+                  Historial de Estados
+                </h3>
+                <div>
+                  {!order.statusHistory || order.statusHistory.length === 0 ? (
+                    <div className="text-center py-4 text-rio-muted">
+                      <p className="italic text-xs">No hay eventos registrados.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {order.statusHistory.map((h: any, i: number) => (
+                        <div key={h.id || i} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div className="w-2.5 h-2.5 rounded-full bg-rio-gold mt-1" />
+                            {i !== order.statusHistory.length - 1 && <div className="w-px h-full bg-rio-border mt-1" /> }
+                          </div>
+                          <div className="flex-1 pb-4">
+                            <p className="text-sm font-bold text-rio-ink leading-tight">
+                              {h.previousStatus} ➔ {h.nextStatus}
+                            </p>
+                            <div className="text-[11px] text-rio-muted mt-1 space-y-0.5">
+                              <p>Por: <span className="font-semibold text-rio-ink">{h.actorName?.includes('ID Histórico') || h.actorName?.includes('Admin/Eliminado') ? (h.actorId && h.actorId !== 'system' ? `Admin histórico · ID ${h.actorId.substring(0, 8)}` : 'Admin histórico') : (h.actorName || h.actorId || 'Desconocido')}</span></p>
+                              <p>{new Date(h.createdAt).toLocaleString('es-CO')}</p>
+                              {h.reason && <p className="italic">{h.reason}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
                   <div className="space-y-3">
                     {(() => {
                       const next = NEXT_ALLOWED_ACTION[order.status as keyof typeof NEXT_ALLOWED_ACTION];
@@ -549,43 +584,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
       {/* Print Layout: Thermal Labels (Stickers) */}
       
-        {/* Timeline */}
-        <div className="mt-8 bg-rio-surface rounded-2xl border border-rio-border shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-rio-border flex justify-between items-center bg-rio-surface-muted">
-            <h2 className="text-lg font-bold text-rio-ink flex items-center gap-2">
-              <Activity className="w-5 h-5 text-rio-gold-dark" />
-              Historial de Estados
-            </h2>
-          </div>
-          <div className="p-6">
-            {!order.statusHistory || order.statusHistory.length === 0 ? (
-              <div className="text-center py-8 text-rio-muted">
-                <p className="italic text-sm">No hay eventos registrados en el historial.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {order.statusHistory.map((h: any, i: number) => (
-                  <div key={h.id || i} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-rio-gold" />
-                      {i !== order.statusHistory.length - 1 && <div className="w-px h-full bg-rio-border mt-2" />}
-                    </div>
-                    <div className="flex-1 pb-6">
-                      <p className="text-sm font-bold text-rio-ink">
-                        {h.previousStatus} ➔ {h.nextStatus}
-                      </p>
-                      <div className="text-xs text-rio-muted mt-1 space-y-1">
-                        <p>Actor: <span className="font-semibold text-rio-ink">{h.actorName?.includes('ID Histórico') || h.actorName?.includes('Admin/Eliminado') ? (h.actorId && h.actorId !== 'system' ? `Administrador histórico · ID ${h.actorId.substring(0, 8)}` : 'Administrador histórico') : (h.actorName || h.actorId || 'Desconocido')}</span> ({h.actorRole || 'N/A'})</p>
-                        <p>Fecha: {new Date(h.createdAt).toLocaleString('es-CO')}</p>
-                        {h.reason && <p>Motivo: {h.reason}</p>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        
 
       <div className="hidden print:block bg-white w-max">
         <style dangerouslySetInnerHTML={{__html: `
