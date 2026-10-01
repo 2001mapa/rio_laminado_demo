@@ -2,7 +2,7 @@
 // Ejecución recomendada: npx tsx __tests__/test-sellers.ts
 // Este script NO utiliza credenciales reales ni base de datos de producción.
 
-import assert from 'assert';
+const assert = require('assert');
 
 // Configuramos variables de entorno simuladas para evitar errores de instanciación
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
@@ -105,9 +105,14 @@ async function runTests() {
   };
 
   const testTitle = (title: string) => console.log("\n[TEST] " + title);
+  let hasErrors = false;
   const logAssert = (condition: boolean, msg: string) => {
-    if (condition) console.log("  ✅ PASSED: " + msg);
-    else console.error("  ❌ FAILED: " + msg);
+    if (condition) {
+      console.log("  ✅ PASSED: " + msg);
+    } else {
+      console.error("  ❌ FAILED: " + msg);
+      hasErrors = true;
+    }
   };
 
   try {
@@ -175,7 +180,7 @@ async function runTests() {
   console.log("\n==================================================");
   console.log("✅ FIN DE PRUEBAS AUTOMATIZADAS");
   console.log("==================================================");
-  process.exit(0);
+  if (hasErrors) { console.error("\n❌ ALGUNAS PRUEBAS FALLARON"); process.exit(1); } else { console.log("\n✅ TODAS LAS PRUEBAS PASARON"); process.exit(0); }
 }
 
 runTests();

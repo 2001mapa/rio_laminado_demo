@@ -424,6 +424,7 @@ export async function getOrderById(id: string) {
        previousStatus: (e.changes as any)?.previousStatus,
        nextStatus: (e.changes as any)?.nextStatus,
        action: (e.changes as any)?.action,
+       actorId: e.actorId,
        actorAuthUserId: e.actorId,
        actorRole: e.actorRole,
        actorName: e.actorName,

@@ -37,6 +37,8 @@ const ORIGIN_MAP: Record<string, string> = {
   vendedor_app: 'App Vendedor',
   cliente_app: 'App Cliente',
   system: 'Sistema',
+  migration_script: 'Migración Histórica',
+  MIGRATION_SCRIPT: 'Migración Histórica',
   manual: 'Manual'
 };
 
@@ -44,7 +46,24 @@ const ORIGIN_MAP: Record<string, string> = {
 // Helper to render object diffs in a friendly way
 function ChangesViewer({ changes }: { changes: any }) {
   if (!changes || typeof changes !== 'object') return <pre className="text-[11px] font-mono">{JSON.stringify(changes, null, 2)}</pre>;
-  
+
+  if (changes.action && changes.previousStatus && changes.nextStatus) {
+    return (
+      <div className="bg-white p-3 border border-rio-border rounded-lg space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-rio-danger bg-rio-danger/10 px-2 py-0.5 rounded text-sm font-bold whitespace-nowrap">De {changes.previousStatus}</span>
+          <span className="text-rio-muted">→</span>
+          <span className="text-rio-success bg-rio-success/10 px-2 py-0.5 rounded text-sm font-bold whitespace-nowrap">a {changes.nextStatus}</span>
+        </div>
+        {changes.reason && (
+          <div className="text-sm text-rio-muted italic mt-1">
+            Motivo: {changes.reason}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (changes.before && changes.after) {
     const keys = Array.from(new Set([...Object.keys(changes.before), ...Object.keys(changes.after)]));
     const differences = keys.filter(k => JSON.stringify(changes.before[k]) !== JSON.stringify(changes.after[k]));
@@ -241,7 +260,7 @@ export default function HistorialPage() {
                         <div className="text-xs text-rio-muted">{new Date(ev.createdAt).toLocaleTimeString('es-ES')}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <div className="font-medium text-rio-ink">{ev.actorName?.includes('Admin/Eliminado') || (!ev.actorName?.includes(' ') && ev.actorName?.length > 20) ? `Administrador histórico · ID ${(ev.actorName || ev.actorId || '').substring(0, 8)}` : (ev.actorName || 'Desconocido')}</div>
+                        <div className="font-medium text-rio-ink">{ev.actorName?.includes('Admin/Eliminado') || ev.actorName?.includes('ID Histórico') ? (ev.actorId && ev.actorId !== 'system' ? `Administrador histórico · ID ${ev.actorId.substring(0, 8)}` : 'Administrador histórico') : (ev.actorName || ev.actorId || 'Desconocido')}</div>
                         <div className="text-xs text-rio-muted capitalize">{ev.actorRole}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
