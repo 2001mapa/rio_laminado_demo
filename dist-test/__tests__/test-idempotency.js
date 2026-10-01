@@ -11,8 +11,8 @@ const originalRequire = module_1.default.prototype.require;
 // Generate unique schema name for isolation
 const schemaName = 'test_schema_' + Date.now();
 // Original URLs
-const baseDbUrl = process.env.DATABASE_URL || "postgresql://postgres.zrthgldcoweydtyxiscj:Or0.Laminado18k.Supabase@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true";
-const baseDirectUrl = process.env.DIRECT_URL || "postgresql://postgres.zrthgldcoweydtyxiscj:Or0.Laminado18k.Supabase@aws-0-us-west-2.pooler.supabase.com:5432/postgres";
+const baseDbUrl = process.env.DATABASE_URL || "postgresql://***:***@***";
+const baseDirectUrl = process.env.DIRECT_URL || "postgresql://***:***@***";
 const testDbUrl = baseDbUrl.includes('?') ? baseDbUrl + '&schema=' + schemaName : baseDbUrl + '?schema=' + schemaName;
 const testDirectUrl = baseDirectUrl.includes('?') ? baseDirectUrl + '&schema=' + schemaName : baseDirectUrl + '?schema=' + schemaName;
 console.log("==================================================");

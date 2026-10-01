@@ -42,21 +42,32 @@ export async function createOrder(data: {
 
     // Helper for Idempotency Content Verification
     const verifyIdempotentContent = (existingOrder: any) => {
-      // Si existe pero es de otro usuario, rechazar SIN REVELAR INFO (parecerá un error genérico o colisión de UUID)
       if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
-        throw new Error('Identificador de solicitud inváido o colisión de petición.');
+        throw new Error('Identificador de solicitud inválido o colisión de petición.');
       }
       
-      // Validar que el contenido sea el mismo (para evitar que reusen un ID para un carrito distinto)
-      if (existingOrder.items.length !== data.items.length) {
+      const originalItems = existingOrder.originalPayload as any[] || existingOrder.items;
+      
+      if (originalItems.length !== data.items.length) {
         throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
       }
       
-      // Chequeo de productos y cantidades (ignora el orden)
       for (const sentItem of data.items) {
-        const match = existingOrder.items.find((ei: any) => ei.productId === sentItem.productId && ei.quantity === sentItem.quantity);
+        const match = originalItems.find((ei: any) => ei.productId === sentItem.productId && ei.quantity === sentItem.quantity);
         if (!match) {
            throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
+        }
+        
+        if (sentItem.sizeDetails && sentItem.sizeDetails.length > 0) {
+           if (!match.sizeDetails || match.sizeDetails.length !== sentItem.sizeDetails.length) {
+               throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distintas tallas.');
+           }
+           for (const sizeInfo of sentItem.sizeDetails) {
+               const sizeMatch = match.sizeDetails.find((s: any) => s.size === sizeInfo.size && s.quantity === sizeInfo.quantity);
+               if (!sizeMatch) throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distintas tallas.');
+           }
+        } else if (match.sizeDetails && match.sizeDetails.length > 0) {
+           throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distintas tallas.');
         }
       }
       return true;
@@ -175,7 +186,7 @@ export async function createOrder(data: {
             const newOrder = await tx.order.create({
               data: {
                 orderNumber,
-                clientRequestId: data.clientRequestId || undefined,
+                clientRequestId: data.clientRequestId || undefined,\n                originalPayload: data.items,
                 customerId: finalCustomerId,
                 sellerId: finalSellerId,
                 status: 'Reservado',
