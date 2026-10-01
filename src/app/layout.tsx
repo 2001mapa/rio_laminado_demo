@@ -21,6 +21,14 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "RIO B2B - Portal Mayoristas",
   description: "Portal exclusivo de catálogo B2B y gestión de bodega RIO.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "RIO B2B",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
