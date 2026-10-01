@@ -21,6 +21,14 @@ export default function AdminLayout({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = async () => {
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const keys = await caches.keys();
+      for (const key of keys) {
+        if (!key.includes('next-static') && !key.includes('google-fonts') && !key.includes('static-') && !key.includes('workbox')) {
+          await caches.delete(key);
+        }
+      }
+    }
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = '/login';

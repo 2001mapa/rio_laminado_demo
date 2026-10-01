@@ -9,6 +9,14 @@ import { useState, useEffect } from 'react';
 export default function PerfilPage() {
 
   const handleLogout = async () => {
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const keys = await caches.keys();
+      for (const key of keys) {
+        if (!key.includes('next-static') && !key.includes('google-fonts') && !key.includes('static-') && !key.includes('workbox')) {
+          await caches.delete(key);
+        }
+      }
+    }
     const { createClient } = await import('@/utils/supabase/client');
     const supabase = createClient();
     await supabase.auth.signOut();

@@ -11,11 +11,12 @@ const withPWA = withPWAInit({
   fallbacks: {
     document: "/offline",
   },
+  customWorkerDir: "worker", // Explicit custom worker
   workboxOptions: {
     disableDevLogs: true,
     clientsClaim: false,
     skipWaiting: false,
-    cleanupOutdatedCaches: true, // Esto borra caches viejos generados por versiones anteriores
+    cleanupOutdatedCaches: true,
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
@@ -34,11 +35,13 @@ const withPWA = withPWAInit({
         },
       },
       {
-        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+        // Cachear ÚNICAMENTE imágenes estructurales desde la raíz (iconos, SVGs del shell)
+        // Ignorar todo lo que venga de /_next/image (donde podrían haber firmas S3/Supabase)
+        urlPattern: /^\/(?:apple-icon|icon-[0-9]+|file|globe|window|next|vercel|favicon|icon)\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
         handler: 'StaleWhileRevalidate',
         options: {
           cacheName: 'static-image-assets',
-          expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
+          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
       {
@@ -50,15 +53,6 @@ const withPWA = withPWAInit({
         },
       },
       {
-        urlPattern: /\/_next\/image\?url=.*/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'next-image-cache',
-          expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
-        },
-      },
-      {
-        // Fuerza a que TODO lo demás NUNCA se guarde en caché (ni HTML, ni API, ni RSC, ni páginas privadas)
         urlPattern: /.*/i,
         handler: 'NetworkOnly',
         options: {
