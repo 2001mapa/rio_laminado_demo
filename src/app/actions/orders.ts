@@ -52,23 +52,28 @@ export async function createOrder(data: {
         throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
       }
       
+      const pool = [...originalItems];
       for (const sentItem of data.items) {
-        const match = originalItems.find((ei: any) => ei.productId === sentItem.productId && ei.quantity === sentItem.quantity);
-        if (!match) {
+        const matchIndex = pool.findIndex((ei: any) => {
+           if (ei.productId !== sentItem.productId || ei.quantity !== sentItem.quantity) return false;
+           if (sentItem.sizeDetails && sentItem.sizeDetails.length > 0) {
+               if (!ei.sizeDetails || ei.sizeDetails.length !== sentItem.sizeDetails.length) return false;
+               for (const sizeInfo of sentItem.sizeDetails) {
+                   const sizeMatch = ei.sizeDetails.find((s: any) => s.size === sizeInfo.size && s.quantity === sizeInfo.quantity);
+                   if (!sizeMatch) return false;
+               }
+           } else if (ei.sizeDetails && ei.sizeDetails.length > 0) {
+               return false;
+           }
+           return true;
+        });
+
+        if (matchIndex === -1) {
            throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
         }
         
-        if (sentItem.sizeDetails && sentItem.sizeDetails.length > 0) {
-           if (!match.sizeDetails || match.sizeDetails.length !== sentItem.sizeDetails.length) {
-               throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distintas tallas.');
-           }
-           for (const sizeInfo of sentItem.sizeDetails) {
-               const sizeMatch = match.sizeDetails.find((s: any) => s.size === sizeInfo.size && s.quantity === sizeInfo.quantity);
-               if (!sizeMatch) throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distintas tallas.');
-           }
-        } else if (match.sizeDetails && match.sizeDetails.length > 0) {
-           throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distintas tallas.');
-        }
+        // Remove matched item to handle exact duplicate instances safely
+        pool.splice(matchIndex, 1);
       }
       return true;
     };
@@ -186,7 +191,8 @@ export async function createOrder(data: {
             const newOrder = await tx.order.create({
               data: {
                 orderNumber,
-                clientRequestId: data.clientRequestId || undefined,\n                originalPayload: data.items,
+                clientRequestId: data.clientRequestId || undefined,
+                originalPayload: data.items as any,
                 customerId: finalCustomerId,
                 sellerId: finalSellerId,
                 status: 'Reservado',
