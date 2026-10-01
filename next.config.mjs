@@ -6,16 +6,65 @@ const withPWA = withPWAInit({
   register: true,
   scope: "/",
   sw: "service-worker.js",
-  cacheStartUrl: true,
-  dynamicStartUrl: true,
+  cacheStartUrl: false,
+  dynamicStartUrl: false,
+  fallbacks: {
+    document: "/offline",
+  },
   workboxOptions: {
     disableDevLogs: true,
-    exclude: [
-      /middleware-manifest\.json$/,
-      /_next\/server\/middleware\.js$/,
-      /app-build-manifest\.json$/,
-      new RegExp("/api/"),
-      new RegExp("/admin/")
+    clientsClaim: false,
+    skipWaiting: false,
+    cleanupOutdatedCaches: true, // Esto borra caches viejos generados por versiones anteriores
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'google-fonts',
+          expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: /\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'static-font-assets',
+          expiration: { maxEntries: 10, maxAgeSeconds: 7 * 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'static-image-assets',
+          expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: /\/_next\/static\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'next-static-assets',
+          expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: /\/_next\/image\?url=.*/i,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'next-image-cache',
+          expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
+      {
+        // Fuerza a que TODO lo demás NUNCA se guarde en caché (ni HTML, ni API, ni RSC, ni páginas privadas)
+        urlPattern: /.*/i,
+        handler: 'NetworkOnly',
+        options: {
+          cacheName: 'network-only-fallback',
+        }
+      }
     ]
   }
 });

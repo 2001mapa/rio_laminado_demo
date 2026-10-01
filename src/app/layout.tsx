@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "RIO B2B",
   },
+  icons: {
+    apple: '/apple-icon.png',
+  },
   formatDetection: {
     telephone: false,
   },

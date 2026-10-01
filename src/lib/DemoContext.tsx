@@ -58,6 +58,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [currentUserAuthId, setCurrentUserAuthId] = useState<string | null>(null);
   const [appDataError, setAppDataError] = useState<string | null>(null);
 
+  
+  useEffect(() => {
+    // Limpieza de cachés agresivos de la versión anterior (PWA Fase 2 inicial)
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => {
+          if (key.includes('pages') || key.includes('apis') || key.includes('cross-origin') || key.includes('start-url')) {
+            caches.delete(key);
+            console.log("Limpiado caché obsoleto/privado:", key);
+          }
+        });
+      });
+    }
+  }, []);
+
   const refreshData = async () => {
     try {
       const result = await getAppData();
