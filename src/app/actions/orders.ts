@@ -9,6 +9,7 @@ import { logAuditEvent, getAuditActor } from '@/lib/audit'
 export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
   items: { productId: string; quantity: number; sizeDetails?: { size: string, quantity: number }[] }[];
+  clientRequestId?: string;
 }) {
   const { user, role } = await requireRole(['cliente', 'vendedor', 'admin']);
   
@@ -35,6 +36,45 @@ export async function createOrder(data: {
       }
     }
 
+    if (!data.items || data.items.length === 0) {
+      throw new Error('El pedido debe tener al menos un articulo.');
+    }
+
+    // Helper for Idempotency Content Verification
+    const verifyIdempotentContent = (existingOrder: any) => {
+      // Si existe pero es de otro usuario, rechazar SIN REVELAR INFO (parecerá un error genérico o colisión de UUID)
+      if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
+        throw new Error('Identificador de solicitud inváido o colisión de petición.');
+      }
+      
+      // Validar que el contenido sea el mismo (para evitar que reusen un ID para un carrito distinto)
+      if (existingOrder.items.length !== data.items.length) {
+        throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
+      }
+      
+      // Chequeo de productos y cantidades (ignora el orden)
+      for (const sentItem of data.items) {
+        const match = existingOrder.items.find((ei: any) => ei.productId === sentItem.productId && ei.quantity === sentItem.quantity);
+        if (!match) {
+           throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
+        }
+      }
+      return true;
+    };
+
+    // 2. Verificación de Idempotencia PRE-creación
+    if (data.clientRequestId) {
+      const existingOrder = await prisma.order.findUnique({
+        where: { clientRequestId: data.clientRequestId },
+        include: { items: true, groups: { include: { items: true } } }
+      });
+      
+      if (existingOrder) {
+        verifyIdempotentContent(existingOrder);
+        return { success: true, order: { ...existingOrder, number: existingOrder.orderNumber } };
+      }
+    }
+
     // Obtener detalles del cliente para aplicar descuentos reales
     const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
     if (!targetCustomer) throw new Error('Cliente objetivo no encontrado');
@@ -42,132 +82,165 @@ export async function createOrder(data: {
       discount = targetCustomer.discount / 100;
     }
 
-    if (!data.items || data.items.length === 0) {
-      throw new Error('El pedido debe tener al menos un artculo.');
-    }
+    // Retry loop for unique constraint violations
+    const MAX_RETRIES = 3;
+    let attempt = 0;
+    let order;
 
-    // Transaccin atmica
-    const order = await prisma.$transaction(async (tx) => {
-        let subtotal = 0;
-        const orderItemsByMaterial: Record<string, any[]> = {};
+    while (attempt < MAX_RETRIES) {
+      try {
+        order = await prisma.$transaction(async (tx) => {
+            let subtotal = 0;
+            const orderItemsByMaterial: Record<string, any[]> = {};
 
-        for (const item of data.items) {
-          if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-            throw new Error('Cantidad invǭlida.');
-          }
+            for (const item of data.items) {
+              if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+                throw new Error('Cantidad inváida.');
+              }
 
-          const product = await tx.product.findUnique({
-            where: { id: item.productId }
-          });
-          
-          if (!product || !product.isActive) {
-            throw new Error(`Producto no encontrado o inactivo.`);
-          }
-          
-          if (!product.material || product.material === 'Por revisar') {
-            throw new Error(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
-          }
+              const product = await tx.product.findUnique({
+                where: { id: item.productId }
+              });
+              
+              if (!product || !product.isActive) {
+                throw new Error(`Producto no encontrado o inactivo.`);
+              }
+              
+              if (!product.material || product.material === 'Por revisar') {
+                throw new Error(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
+              }
 
-          // Sizes validation
-          if (product.category === 'Anillos') {
-             if (!item.sizeDetails || item.sizeDetails.length === 0) {
-                throw new Error(`El anillo ${product.name} requiere al menos una talla.`);
-             }
-             const sum = item.sizeDetails.reduce((a, b) => a + b.quantity, 0);
-             if (sum !== item.quantity) {
-                throw new Error(`La suma de las tallas (${sum}) no coincide con la cantidad total (${item.quantity}) para el anillo ${product.name}.`);
-             }
-          } else if (item.sizeDetails && item.sizeDetails.length > 0 && product.category !== 'Anillos') {
-             throw new Error(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
-          }
-          
-          const available = product.physicalStock - product.reservedStock;
-          if (item.quantity > available) {
-            throw new Error(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
-          }
-          
-          const updatedProduct = await tx.product.update({
-            where: { id: product.id },
-            data: {
-              reservedStock: { increment: item.quantity }
+              // Sizes validation
+              if (product.category === 'Anillos') {
+                 if (!item.sizeDetails || item.sizeDetails.length === 0) {
+                    throw new Error(`El anillo ${product.name} requiere al menos una talla.`);
+                 }
+                 const sum = item.sizeDetails.reduce((a, b) => a + b.quantity, 0);
+                 if (sum !== item.quantity) {
+                    throw new Error(`La suma de las tallas (${sum}) no coincide con la cantidad total (${item.quantity}) para el anillo ${product.name}.`);
+                 }
+              } else if (item.sizeDetails && item.sizeDetails.length > 0 && product.category !== 'Anillos') {
+                 throw new Error(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
+              }
+              
+              const available = product.physicalStock - product.reservedStock;
+              if (item.quantity > available) {
+                throw new Error(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
+              }
+              
+              const updatedProduct = await tx.product.update({
+                where: { id: product.id },
+                data: {
+                  reservedStock: { increment: item.quantity }
+                }
+              });
+
+              if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
+                throw new Error(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
+              }
+
+              const price = product.price;
+              subtotal += price * item.quantity;
+              
+              const mat = product.material;
+              if (!orderItemsByMaterial[mat]) orderItemsByMaterial[mat] = [];
+              orderItemsByMaterial[mat].push({
+                productId: product.id,
+                quantity: item.quantity,
+                priceAtTime: price,
+                materialSnapshot: mat,
+                sizeDetails: item.sizeDetails || undefined
+              });
             }
+            
+            const totalAmount = subtotal * (1 - discount);
+            
+            const prefix = finalSellerId ? 'VEN' : 'WEB';
+            const lastOrder = await tx.order.findFirst({
+              where: { orderNumber: { startsWith: `${prefix}-` } },
+              orderBy: { createdAt: 'desc' }
+            });
+            
+            let nextNumber = 1;
+            if (lastOrder) {
+              const parts = lastOrder.orderNumber.split('-');
+              if (parts.length === 2) {
+                const num = parseInt(parts[1], 10);
+                if (!isNaN(num)) nextNumber = num + 1;
+              }
+            }
+            
+            const orderNumber = `${prefix}-${nextNumber.toString().padStart(4, '0')}`;
+
+            const newOrder = await tx.order.create({
+              data: {
+                orderNumber,
+                clientRequestId: data.clientRequestId || undefined,
+                customerId: finalCustomerId,
+                sellerId: finalSellerId,
+                status: 'Reservado',
+                totalAmount: totalAmount,
+              }
+            });
+            
+            for (const [material, items] of Object.entries(orderItemsByMaterial)) {
+               const materialCode = material.substring(0, 3).toUpperCase();
+               const group = await tx.orderMaterialGroup.create({
+                 data: {
+                    orderId: newOrder.id,
+                    material,
+                    groupNumber: `${orderNumber}-${materialCode}`,
+                    status: 'Pendiente'
+                 }
+               });
+               
+               await tx.orderItem.createMany({
+                 data: items.map(item => ({
+                   ...item,
+                   orderId: newOrder.id,
+                   materialGroupId: group.id
+                 }))
+               });
+            }
+            
+            return await tx.order.findUnique({
+               where: { id: newOrder.id },
+               include: { items: true, groups: { include: { items: true } } }
+            });
+          }, {
+            maxWait: 5000, 
+            timeout: 10000 
           });
-
-          if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
-            throw new Error(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
-          }
-
-          const price = product.price;
-          subtotal += price * item.quantity;
           
-          const mat = product.material;
-          if (!orderItemsByMaterial[mat]) orderItemsByMaterial[mat] = [];
-          orderItemsByMaterial[mat].push({
-            productId: product.id,
-            quantity: item.quantity,
-            priceAtTime: price,
-            materialSnapshot: mat,
-            sizeDetails: item.sizeDetails || undefined
-          });
-        }
-        
-        const totalAmount = subtotal * (1 - discount);
-        
-        const prefix = finalSellerId ? 'VEN' : 'WEB';
-        const lastOrder = await tx.order.findFirst({
-          where: { orderNumber: { startsWith: `${prefix}-` } },
-          orderBy: { createdAt: 'desc' }
-        });
-        
-        let nextNumber = 1;
-        if (lastOrder) {
-          const parts = lastOrder.orderNumber.split('-');
-          if (parts.length === 2) {
-            const num = parseInt(parts[1], 10);
-            if (!isNaN(num)) nextNumber = num + 1;
-          }
-        }
-        
-        const orderNumber = `${prefix}-${nextNumber.toString().padStart(4, '0')}`;
-
-        const newOrder = await tx.order.create({
-          data: {
-            orderNumber,
-            customerId: finalCustomerId,
-            sellerId: finalSellerId,
-            status: 'Reservado',
-            totalAmount: totalAmount,
-          }
-        });
-        
-        for (const [material, items] of Object.entries(orderItemsByMaterial)) {
-           const materialCode = material.substring(0, 3).toUpperCase();
-           const group = await tx.orderMaterialGroup.create({
-             data: {
-                orderId: newOrder.id,
-                material,
-                groupNumber: `${orderNumber}-${materialCode}`,
-                status: 'Pendiente'
-             }
-           });
-           
-           await tx.orderItem.createMany({
-             data: items.map(item => ({
-               ...item,
-               orderId: newOrder.id,
-               materialGroupId: group.id
-             }))
-           });
-        }
-        
-        return await tx.order.findUnique({
-           where: { id: newOrder.id },
-           include: { items: true, groups: { include: { items: true } } }
-        });
-      }, {
-        maxWait: 5000, 
-        timeout: 10000 
-      });
+          // If transaction succeeds, break out of loop
+          break;
+      } catch (e: any) {
+         if (e.code === 'P2002') {
+            const target = e.meta?.target;
+            
+            // Caso A: Carrera de cliente. Dos envíos paralelos insertaron el mismo clientRequestId
+            if (target && target.includes('clientRequestId') && data.clientRequestId) {
+                const racedOrder = await prisma.order.findUnique({
+                   where: { clientRequestId: data.clientRequestId },
+                   include: { items: true, groups: { include: { items: true } } }
+                });
+                if (racedOrder) {
+                   verifyIdempotentContent(racedOrder);
+                   order = racedOrder; // Asignamos para retornar como éxito
+                   break; // Escapamos del bucle
+                }
+            }
+            
+            // Caso B: Colisión de orderNumber (Normal, generamos otro consecutivo)
+            if (target && target.includes('orderNumber')) {
+               attempt++;
+               if (attempt >= MAX_RETRIES) throw new Error('No se pudo generar un número de pedido único tras varios intentos.');
+               continue; // Repetir el bucle
+            }
+         }
+         throw e; // Bubble up other errors
+      }
+    }
     
     return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
@@ -175,7 +248,6 @@ export async function createOrder(data: {
     return { success: false, error: error.message };
   }
 }
-
 
 export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string, trackingInfo?: {carrier: string, trackingNumber: string}) {
   const { user, role } = await requireRole(['admin', 'vendedor', 'cliente']);

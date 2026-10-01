@@ -53,6 +53,7 @@ model Seller {
 model Order {
   id          String      @id @default(uuid())
   orderNumber String      @unique
+  clientRequestId String? @unique
   customerId  String
   customer    Customer    @relation(fields: [customerId], references: [id])
   sellerId    String?

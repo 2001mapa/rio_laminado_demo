@@ -8,8 +8,10 @@
   },
   "include": [
     "src/app/actions/sellers.ts",
+    "src/app/actions/orders.ts",
     "src/utils/auth-helpers.ts",
     "__tests__/test-sellers.ts",
-    "__tests__/test-auth.ts"
+    "__tests__/test-auth.ts",
+    "__tests__/test-idempotency.ts"
   ]
 }
