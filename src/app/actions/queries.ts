@@ -54,7 +54,7 @@ export async function getAppData() {
     }
   } catch (error: any) {
     console.error('Error fetching app data:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error.message, errorCode: error.code }
   }
 }
 
@@ -106,7 +106,7 @@ export async function getAdminStats() {
       }
     };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 
@@ -150,7 +150,7 @@ export async function getPagedAdminOrders({ status, search, limit = 50, cursor }
 
     return { success: true, orders, hasMore, nextCursor };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 
@@ -167,7 +167,7 @@ export async function getAdminLatestOrderIds() {
     });
     return { success: true, orders: orders.map(o => ({ id: o.id, number: o.orderNumber })) };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 
@@ -189,7 +189,7 @@ export async function getClientOrderStatuses() {
     });
     return { success: true, orders: orders.map(o => ({ id: o.id, number: o.orderNumber, status: o.status })) };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 
@@ -230,7 +230,7 @@ export async function getSellerOrderStates() {
     });
     return { success: true, orders: orders.map(o => ({ id: o.id, number: o.orderNumber, status: o.status })) };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 
@@ -471,7 +471,7 @@ export async function getAdminMaterialCounts() {
 
     return { success: true, counts: result };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 
@@ -495,7 +495,7 @@ export async function getPrintableProducts() {
     
     return { success: true, products };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorCode: error.code };
   }
 }
 

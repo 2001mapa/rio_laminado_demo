@@ -56,10 +56,19 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [currentUserAuthId, setCurrentUserAuthId] = useState<string | null>(null);
+  const [appDataError, setAppDataError] = useState<string | null>(null);
 
   const refreshData = async () => {
     try {
       const result = await getAppData();
+      if (!result.success) {
+         
+         const rawError = result.error || "Error desconocido";
+         const safeError = rawError.replace(/(postgres|postgresql):\/\/[^@]+@[^:]+:\d+\/[^\s]+/gi, '[DATABASE_URL_OCULTA]');
+         const errorCode = (result as any).errorCode;
+         setAppDataError(errorCode ? `[${errorCode}] ${safeError}` : safeError);
+
+      }
       if (result.success && result.data) {
         setProducts(result.data.products as any[]);
         setCustomers(result.data.customers as any[]);
@@ -405,7 +414,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     } catch (e) { console.error(e) }
   };
 
-  return (
+  {appDataError && (
+        <div style={{ position: 'fixed', bottom: 20, right: 20, backgroundColor: '#ff4d4f', color: 'white', padding: '12px 24px', zIndex: 99999, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', fontWeight: 'bold' }}>
+          Error cargando datos: {appDataError}
+        </div>
+      )}
+      return (
     <DemoContext.Provider value={{
       products,
       customers,
