@@ -2,10 +2,12 @@
 
 class BusinessLogicError extends Error {
   code: string;
-  constructor(msg: string, code = 'BUSINESS_ERROR') {
+  conflicts?: any[];
+  constructor(msg: string, code = 'BUSINESS_ERROR', conflicts?: any[]) {
     super(msg);
     this.name = 'BusinessLogicError';
     this.code = code;
+    this.conflicts = conflicts;
   }
 }
 
@@ -118,25 +120,22 @@ export async function createOrder(data: {
         order = await prisma.$transaction(async (tx) => {
             let subtotal = 0;
             const orderItemsByMaterial: Record<string, any[]> = {};
+            const conflicts: any[] = [];
 
+            // Primera pasada: Validaciones
             for (const item of data.items) {
               if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-                throw new BusinessLogicError('Cantidad inváida.');
+                throw new BusinessLogicError('Cantidad inválida.');
               }
-
-              const product = await tx.product.findUnique({
-                where: { id: item.productId }
-              });
-              
+              const product = await tx.product.findUnique({ where: { id: item.productId } });
               if (!product || !product.isActive) {
-                throw new BusinessLogicError(`Producto no encontrado o inactivo.`);
+                conflicts.push({ productId: item.productId, reason: 'Producto inactivo o eliminado', currentStock: 0 });
+                continue;
               }
-              
               if (!product.material || product.material === 'Por revisar') {
-                throw new BusinessLogicError(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
+                conflicts.push({ productId: item.productId, reason: 'Material no definido', currentStock: 0 });
+                continue;
               }
-
-              // Sizes validation
               if (product.category === 'Anillos') {
                  if (!item.sizeDetails || item.sizeDetails.length === 0) {
                     throw new BusinessLogicError(`El anillo ${product.name} requiere al menos una talla.`);
@@ -148,27 +147,30 @@ export async function createOrder(data: {
               } else if (item.sizeDetails && item.sizeDetails.length > 0 && product.category !== 'Anillos') {
                  throw new BusinessLogicError(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
               }
-              
               const available = product.physicalStock - product.reservedStock;
               if (item.quantity > available) {
-                throw new BusinessLogicError(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
+                conflicts.push({ productId: product.id, reason: 'Stock insuficiente', currentStock: available, currentPrice: product.price });
+                continue;
               }
-              
+            }
+            if (conflicts.length > 0) {
+              throw new BusinessLogicError("Conflictos en el inventario o precios.", 'CONFLICT_ERROR', conflicts);
+            }
+
+            for (const item of data.items) {
+              const product = await tx.product.findUnique({ where: { id: item.productId } });
+              if (!product) continue;
               const updatedProduct = await tx.product.update({
                 where: { id: product.id },
-                data: {
-                  reservedStock: { increment: item.quantity }
-                }
+                data: { reservedStock: { increment: item.quantity } }
               });
-
               if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
                 throw new BusinessLogicError(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
               }
-
               const price = product.price;
               subtotal += price * item.quantity;
               
-              const mat = product.material;
+              const mat = product.material || 'Otro';
               if (!orderItemsByMaterial[mat]) orderItemsByMaterial[mat] = [];
               orderItemsByMaterial[mat].push({
                 productId: product.id,

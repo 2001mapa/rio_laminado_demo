@@ -11,15 +11,25 @@ import { addToast } from '@/lib/toast';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { getExactProductBySku, getPagedCatalog, getProductsByIds } from '@/app/actions/queries';
+import { useCatalogSync } from '@/lib/useCatalogSync';
+import { searchOfflineProducts, searchOfflineCustomers, getOfflineProductsByIds } from '@/lib/offlineQueue';
 import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
   const router = useRouter();
   const { customers, products, checkoutSeller, syncPendingOrders } = useDemo();
+  const { syncCatalog, isSyncing, lastSyncDate } = useCatalogSync();
+  const [offlineCustomers, setOfflineCustomers] = useState<Customer[]>([]);
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const effectiveCustomers = customers.length > 0 ? customers : offlineCustomers;
+  useEffect(() => {
+    if (customers.length === 0) {
+      searchOfflineCustomers('').then(res => setOfflineCustomers(res as any));
+    }
+  }, [customers]);
   
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -59,7 +69,7 @@ export default function NuevaVentaPage() {
   }, []);
 
   useEffect(() => {
-      if (offlineDraftWaiting && customers.length > 0) {
+      if (offlineDraftWaiting && effectiveCustomers.length > 0) {
           const hydrate = async () => {
               const neededIds = offlineDraftWaiting.cart.map((item: any) => item.productId);
               const missingIds = neededIds.filter((id: string) => !products.find((p: any) => p.id === id));
@@ -89,7 +99,7 @@ export default function NuevaVentaPage() {
               
               let clientResolved = true;
               if (offlineDraftWaiting.clientId) {
-                 const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
+                 const cust = effectiveCustomers.find((c: any) => c.id === offlineDraftWaiting.clientId);
                  if (!cust) clientResolved = false;
               }
       
@@ -98,7 +108,7 @@ export default function NuevaVentaPage() {
                       setCartItems(restoredCart as any[]);
                   }
                   if (offlineDraftWaiting.clientId) {
-                     const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
+                     const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
                      if (cust) {
                          setSelectedCustomer(cust);
                          setStep(2);
@@ -157,6 +167,24 @@ export default function NuevaVentaPage() {
       }
   };
 
+    const handleResolveConflict = async (order: PendingOrder) => {
+        let currentProducts = products;
+        if (currentProducts.length === 0) {
+           currentProducts = (await getOfflineProductsByIds(order.items.map(i => i.productId))) as any[];
+        }
+        const hydratedCart = order.items.map(i => {
+           const p = currentProducts.find((p: any) => p.id === i.productId);
+           return p ? { product: p, quantity: i.quantity, sizes: i.sizeDetails } : null;
+        }).filter(Boolean) as CartItem[];
+        setCartItems(hydratedCart);
+        const cust = effectiveCustomers.find((c: any) => c.id === order.customerId);
+        if (cust) setSelectedCustomer(cust);
+        setCurrentCheckoutId(null);
+        setStep(2);
+        addToast("Pedido cargado en el carrito para corrección. Se generará un nuevo envío.");
+    };
+
+
   const [isScanning, setIsScanning] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   
@@ -191,7 +219,7 @@ export default function NuevaVentaPage() {
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
 
-  const filteredCustomers = customers.filter(c => 
+  const filteredCustomers = effectiveCustomers.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -569,10 +597,20 @@ export default function NuevaVentaPage() {
                           </button>
                         )}
                         {order.status === 'failed_fatal' && (
-                          <button onClick={() => handleDiscard(order.clientRequestId)} className="px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded text-xs font-medium hover:bg-red-100">
-                            Descartar
-                          </button>
-                        )}
+                            <button onClick={() => handleDiscard(order.clientRequestId)} className="px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded text-xs font-medium hover:bg-red-100">
+                              Descartar
+                            </button>
+                          )}
+                          {order.status === 'conflict' && (
+                            <>
+                              <button onClick={() => handleResolveConflict(order)} className="px-3 py-1 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded text-xs font-medium hover:bg-yellow-100">
+                                Revisar/Corregir
+                              </button>
+                              <button onClick={() => handleDiscard(order.clientRequestId)} className="px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded text-xs font-medium hover:bg-red-100">
+                                Descartar
+                              </button>
+                            </>
+                          )}
                       </div>
                     </div>
                   ))}

@@ -98,7 +98,13 @@ export async function executeSync(
                 const newRetryCount = order.retryCount + 1;
                 const nextRetry = Date.now() + (Math.pow(2, newRetryCount) * BASE_DELAY_MS);
                 
-                if (res.code === 'BUSINESS_ERROR') {
+                if (res.code === 'CONFLICT_ERROR') {
+                    await deps.updatePendingOrderStatus(order.clientRequestId, { 
+                        status: 'conflict', 
+                        lastError: res.error || 'Conflicto de inventario.',
+                        conflicts: (res as any).conflicts
+                    });
+                } else if (res.code === 'BUSINESS_ERROR') {
                     await deps.updatePendingOrderStatus(order.clientRequestId, { 
                         status: 'failed_fatal', 
                         lastError: res.error || 'Rechazado por reglas de negocio.',
