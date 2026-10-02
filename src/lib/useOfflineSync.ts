@@ -145,7 +145,13 @@ export async function executeSync(
               }
           });
       } else {
-          // Fallback seguro usando LocalStorage para locks si Web Locks no existe
+          // Fallback usando LocalStorage para navegadores sin Web Locks.
+          // NOTA DE SEGURIDAD: La lectura/escritura en LocalStorage no es atómica. 
+          // En un escenario de carrera (race condition) muy ajustado, dos pestañas 
+          // podrían leer null simultáneamente y ambas enviar la petición al servidor.
+          // Esto es SEGURO únicamente porque el servidor actúa como autoridad final de 
+          // idempotencia utilizando el clientRequestId. El servidor procesará la primera
+          // petición y devolverá error en la segunda, previniendo duplicados.
           const fallbackLockName = `lock_${lockName}`;
           const currentLock = typeof window !== 'undefined' ? window.localStorage.getItem(fallbackLockName) : null;
           

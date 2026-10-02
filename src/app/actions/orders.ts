@@ -552,7 +552,9 @@ export async function checkOrderByRequestId(clientRequestId: string) {
     
     if (role === 'vendedor') {
       const sellerProfile = await prisma.seller.findUnique({ where: { authUserId: user.id } });
-      if (!sellerProfile) return { success: false, notFound: true };
+      if (!sellerProfile) {
+        return { success: false, error: 'Perfil de vendedor no encontrado' };
+      }
       whereClause.sellerId = sellerProfile.id;
     }
     
@@ -564,8 +566,9 @@ export async function checkOrderByRequestId(clientRequestId: string) {
     if (order) {
       return { success: true, order: { orderNumber: order.orderNumber } };
     }
+    
     return { success: false, notFound: true };
   } catch (error: any) {
-    return { success: false, notFound: true, error: error.message };
+    return { success: false, error: error.message };
   }
 }
