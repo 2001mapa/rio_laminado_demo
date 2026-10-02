@@ -45,7 +45,11 @@ vi.mock('@/lib/offlineQueue', () => ({
   addPendingOrder: (order: any) => mockAddPendingOrder(order),
   clearDraft: async () => {}, 
   saveDraft: async () => {},
-  loadDraft: async () => null
+  loadDraft: async () => null,
+  getDB: async () => null,
+  searchOfflineProducts: async () => [],
+  searchOfflineCustomers: async () => [],
+  getOfflineProductsByIds: async () => []
 }));
 
 vi.mock('next/navigation', () => ({

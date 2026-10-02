@@ -20,7 +20,7 @@ import { logAuditEvent, getAuditActor } from '@/lib/audit'
 
 export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
-  items: { productId: string; quantity: number; sizeDetails?: { size: string, quantity: number }[] }[];
+  items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: { size: string, quantity: number }[] }[];
   clientRequestId?: string;
 }) {
   const { user, role } = await requireRole(['cliente', 'vendedor', 'admin']);
@@ -122,7 +122,7 @@ export async function createOrder(data: {
             const orderItemsByMaterial: Record<string, any[]> = {};
             const conflicts: any[] = [];
 
-            // Primera pasada: Validaciones
+                        // Primera pasada: Validaciones
             for (const item of data.items) {
               if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
                 throw new BusinessLogicError('Cantidad inválida.');
@@ -134,6 +134,10 @@ export async function createOrder(data: {
               }
               if (!product.material || product.material === 'Por revisar') {
                 conflicts.push({ productId: item.productId, reason: 'Material no definido', currentStock: 0 });
+                continue;
+              }
+              if (item.expectedPrice !== undefined && product.price !== item.expectedPrice) {
+                conflicts.push({ productId: product.id, reason: 'El precio ha cambiado', currentPrice: product.price, currentStock: product.physicalStock - product.reservedStock });
                 continue;
               }
               if (product.category === 'Anillos') {
@@ -165,7 +169,7 @@ export async function createOrder(data: {
                 data: { reservedStock: { increment: item.quantity } }
               });
               if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
-                throw new BusinessLogicError(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
+                throw new BusinessLogicError("Conflicto de concurrencia: Stock agotado para " + product.name, 'CONFLICT_ERROR', [{ productId: product.id, reason: 'Stock insuficiente', currentStock: 0 }]);
               }
               const price = product.price;
               subtotal += price * item.quantity;

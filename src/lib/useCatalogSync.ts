@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getSyncCatalog, getSyncCustomers } from '@/app/actions/sync';
 import { getDB, CatalogProduct, CatalogCustomer, SyncMeta } from './offlineQueue';
 
-export function useCatalogSync() {
+export function useCatalogSync(sellerId?: string) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncDate, setLastSyncDate] = useState<number | null>(null);
 
@@ -10,7 +10,7 @@ export function useCatalogSync() {
     const db = await getDB();
     if (db) {
       const meta = await db.get('sync_meta', 'products');
-      if (meta) setLastSyncDate(meta.lastSyncedAt);
+      if (meta) setLastSyncDate(meta.lastSyncedAt as number);
     }
   };
 
@@ -27,7 +27,20 @@ export function useCatalogSync() {
       if (!db) return;
 
       const metaProd = await db.get('sync_meta', 'products');
+      
+      // Evita que datos de clientes de una cuenta queden visibles para otra en dispositivo compartido
+      if (sellerId) {
+        const lastSeller = await db.get('sync_meta', 'lastSellerId');
+        if (lastSeller && lastSeller.lastSyncedAt !== sellerId) {
+          await db.clear('catalog_products');
+          await db.clear('catalog_customers');
+          await db.clear('sync_meta');
+        }
+        await db.put('sync_meta', { storeName: 'lastSellerId', lastSyncedAt: sellerId, isComplete: true });
+      }
+      
       let lastProdSync = metaProd ? metaProd.lastSyncedAt : 0;
+
       
       let cursorProd: string | undefined = undefined;
       let hasMoreProd = true;

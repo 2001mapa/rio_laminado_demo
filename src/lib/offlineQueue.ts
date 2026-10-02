@@ -15,7 +15,7 @@ export interface PendingOrder {
   sellerId: string;
   customerId: string;
   customerName: string;
-  items: { productId: string; quantity: number; sizeDetails?: any }[];
+  items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: any }[];
   status: 'pending' | 'syncing' | 'failed_recoverable' | 'failed_fatal' | 'failed_intervention' | 'conflict';
   conflicts?: { productId?: string; reason: string; currentStock?: number; currentPrice?: number }[];
   lastError?: string;
@@ -50,7 +50,7 @@ export interface CatalogCustomer {
 
 export interface SyncMeta {
   storeName: string;
-  lastSyncedAt: number;
+  lastSyncedAt: number | string;
   isComplete: boolean;
 }
 
@@ -67,17 +67,27 @@ let dbPromise: Promise<IDBPDatabase<RioDB>> | null = null;
 export function getDB() {
   if (typeof window === 'undefined') return null;
   if (!dbPromise) {
-    dbPromise = openDB<RioDB>('rio-offline-db', 3, {
-      upgrade(db, oldVersion, newVersion, transaction) {
-        if (!db.objectStoreNames.contains('drafts')) {
-          db.createObjectStore('drafts', { keyPath: 'sellerId' });
-        }
-        if (!db.objectStoreNames.contains('pending_orders')) {
-          const store = db.createObjectStore('pending_orders', { keyPath: 'clientRequestId' });
-          store.createIndex('by-seller', 'sellerId');
-        }
-      },
-    });
+          dbPromise = openDB<RioDB>('rio-offline-db', 3, {
+        upgrade(db, oldVersion, newVersion, transaction) {
+          if (!db.objectStoreNames.contains('drafts')) {
+            db.createObjectStore('drafts', { keyPath: 'sellerId' });
+          }
+          if (!db.objectStoreNames.contains('pending_orders')) {
+            const store = db.createObjectStore('pending_orders', { keyPath: 'clientRequestId' });
+            store.createIndex('by-seller', 'sellerId');
+          }
+          if (!db.objectStoreNames.contains('catalog_products')) {
+            const prodStore = db.createObjectStore('catalog_products', { keyPath: 'id' });
+            prodStore.createIndex('by-sku', 'sku');
+          }
+          if (!db.objectStoreNames.contains('catalog_customers')) {
+            db.createObjectStore('catalog_customers', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('sync_meta')) {
+            db.createObjectStore('sync_meta', { keyPath: 'storeName' });
+          }
+        },
+      });
   }
   return dbPromise;
 }

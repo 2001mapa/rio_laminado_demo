@@ -18,8 +18,7 @@ import { useRouter } from 'next/navigation';
 export default function NuevaVentaPage() {
   const router = useRouter();
   const { customers, products, checkoutSeller, syncPendingOrders } = useDemo();
-  const { syncCatalog, isSyncing, lastSyncDate } = useCatalogSync();
-  const [offlineCustomers, setOfflineCustomers] = useState<Customer[]>([]);
+    const [offlineCustomers, setOfflineCustomers] = useState<Customer[]>([]);
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -34,6 +33,7 @@ export default function NuevaVentaPage() {
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [sellerId, setSellerId] = useState<string>('');
+  const { syncCatalog, isSyncing, lastSyncDate } = useCatalogSync(sellerId);
   const [pendingQueue, setPendingQueue] = useState<PendingOrder[]>([]);
   const [currentCheckoutId, setCurrentCheckoutId] = useState<string | null>(null);
 
@@ -110,7 +110,7 @@ export default function NuevaVentaPage() {
                   if (offlineDraftWaiting.clientId) {
                      const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
                      if (cust) {
-                         setSelectedCustomer(cust);
+                         setSelectedCustomer(cust || null);
                          setStep(2);
                      }
                   }
@@ -173,15 +173,26 @@ export default function NuevaVentaPage() {
            currentProducts = (await getOfflineProductsByIds(order.items.map(i => i.productId))) as any[];
         }
         const hydratedCart = order.items.map(i => {
-           const p = currentProducts.find((p: any) => p.id === i.productId);
-           return p ? { product: p, quantity: i.quantity, sizes: i.sizeDetails } : null;
-        }).filter(Boolean) as CartItem[];
+           let p = currentProducts.find((p: any) => p.id === i.productId);
+           if (!p) {
+              // No pierdas artículos que falten en el catálogo
+              p = { id: i.productId, name: 'Producto No Encontrado (' + i.productId + ')', price: i.expectedPrice || 0, physicalStock: 0, reservedStock: 0, isActive: false, category: 'Desconocido' } as any;
+           }
+           return { product: p, quantity: i.quantity, sizes: i.sizeDetails };
+        }) as CartItem[];
         setCartItems(hydratedCart);
-        const cust = effectiveCustomers.find((c: any) => c.id === order.customerId);
-        if (cust) setSelectedCustomer(cust);
+        
+        // Seleccionar cliente original
+        let cust = effectiveCustomers.find((c: any) => c.id === order.customerId);
+        if (!cust) {
+            // No selecciones silenciosamente un cliente distinto
+            cust = { id: order.customerId, name: order.customerName, status: 'active', email: null, phone: null } as any;
+        }
+        setSelectedCustomer(cust || null);
+        
         setCurrentCheckoutId(null);
         setStep(2);
-        addToast("Pedido cargado en el carrito para corrección. Se generará un nuevo envío.");
+        addToast("Pedido cargado en el carrito para corrección. Generarás un UUID nuevo al confirmar.");
     };
 
 

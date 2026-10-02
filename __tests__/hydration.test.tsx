@@ -13,7 +13,11 @@ vi.mock('@/lib/offlineQueue', () => ({
   addPendingOrder: vi.fn(),
   clearDraft: vi.fn().mockImplementation(async () => { mockDraft = undefined; }),
   saveDraft: vi.fn().mockImplementation(async (draft) => { mockDraft = draft; }),
-  loadDraft: vi.fn().mockImplementation(() => Promise.resolve(mockDraft))
+  loadDraft: vi.fn().mockImplementation(() => Promise.resolve(mockDraft)),
+  getDB: async () => null,
+  searchOfflineProducts: async () => [],
+  searchOfflineCustomers: async () => [],
+  getOfflineProductsByIds: async () => []
 }));
 
 vi.mock('@/app/actions/queries', () => ({

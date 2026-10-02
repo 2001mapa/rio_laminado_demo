@@ -26,13 +26,13 @@ describe('Phase 5: Offline Sync and Conflict Resolution', () => {
     vi.clearAllMocks();
   });
 
-  it('debe marcar pedido como conflict y no borrarlo si el servidor reporta CONFLICT_ERROR', async () => {
+  it('debe marcar pedido como conflict y no borrarlo si el servidor reporta CONFLICT_ERROR (Stock insuficiente)', async () => {
     pendingOrders = [{
       clientRequestId: 'uuid-conflict-1',
       sellerId: 's1',
       customerId: 'c1',
       customerName: 'Cust',
-      items: [{ productId: 'p1', quantity: 10 }],
+      items: [{ productId: 'p1', quantity: 10, expectedPrice: 100 }],
       status: 'pending',
       createdAt: Date.now(),
       retryCount: 0
@@ -52,9 +52,28 @@ describe('Phase 5: Offline Sync and Conflict Resolution', () => {
     expect(pendingOrders.length).toBe(1); // No borrado!
   });
 
-  it('un ajuste no reutiliza indebidamente el UUID del conflicto', async () => {
-     // Esto lo probamos en la integración UI, pero aquí comprobamos que la UI resetea currentCheckoutId.
-     // Esto está cubierto por el handleResolveConflict en page.tsx: setCurrentCheckoutId(null);
-     expect(true).toBe(true);
+  it('debe registrar conflicto si un producto está desactivado o cambiado de precio', async () => {
+    pendingOrders = [{
+      clientRequestId: 'uuid-conflict-price',
+      sellerId: 's1',
+      customerId: 'c1',
+      customerName: 'Cust',
+      items: [{ productId: 'p2', quantity: 1, expectedPrice: 100 }],
+      status: 'pending',
+      createdAt: Date.now(),
+      retryCount: 0
+    }];
+
+    mockDeps.createOrderAction.mockResolvedValueOnce({
+      success: false,
+      code: 'CONFLICT_ERROR',
+      conflicts: [{ productId: 'p2', reason: 'El precio ha cambiado', currentPrice: 120, currentStock: 10 }]
+    });
+
+    await executeSync('s1', vi.fn(), undefined, mockDeps);
+
+    expect(updatedStatus['uuid-conflict-price'].status).toBe('conflict');
+    expect(updatedStatus['uuid-conflict-price'].conflicts[0].currentPrice).toBe(120);
+    expect(pendingOrders.length).toBe(1);
   });
 });
