@@ -25,6 +25,14 @@ export default function NuevaVentaPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [sellerId, setSellerId] = useState<string>('');
   const [pendingQueue, setPendingQueue] = useState<PendingOrder[]>([]);
+  const [currentCheckoutId, setCurrentCheckoutId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Si cambia el carrito, invalidamos el checkout id actual para permitir un nuevo pedido
+    if (cartItems.length > 0) {
+       setCurrentCheckoutId(null);
+    }
+  }, [cartItems]);
 
   
 
@@ -379,6 +387,14 @@ export default function NuevaVentaPage() {
 
   const handleCheckout = async () => {
     if (!selectedCustomer || cartItems.length === 0) return;
+    
+    // Si ya existe en la cola, bloquemos la creación de uno nuevo
+    console.log('CHECKOUT CLICK:', { currentCheckoutId, pendingQueueIds: pendingQueue.map(o => o.clientRequestId) });
+    if (currentCheckoutId && pendingQueue.some(o => o.clientRequestId === currentCheckoutId)) {
+        addToast("Este pedido ya está en la cola de envíos.");
+        return;
+    }
+    
     setIsCheckingOut(true);
     
     for (const item of cartItems) {
@@ -399,7 +415,11 @@ export default function NuevaVentaPage() {
       }
     }
 
-    const clientRequestId = uuidv4();
+    let clientRequestId = currentCheckoutId;
+    if (!clientRequestId) {
+        clientRequestId = uuidv4();
+        setCurrentCheckoutId(clientRequestId);
+    }
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
     const pendingOrder: PendingOrder = {
