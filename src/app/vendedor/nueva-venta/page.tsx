@@ -432,7 +432,6 @@ export default function NuevaVentaPage() {
     let clientRequestId = currentCheckoutId;
       if (!clientRequestId) {
           clientRequestId = uuidv4();
-          setCurrentCheckoutId(clientRequestId);
           
           const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
           try {
@@ -443,6 +442,8 @@ export default function NuevaVentaPage() {
                 updatedAt: Date.now(),
                 clientRequestId
               });
+              // Solo atar al estado si realmente persistió en IndexedDB
+              setCurrentCheckoutId(clientRequestId);
           } catch (err) {
               console.error(err);
               addToast("Error al bloquear el borrador. Revisa tu almacenamiento local.");
