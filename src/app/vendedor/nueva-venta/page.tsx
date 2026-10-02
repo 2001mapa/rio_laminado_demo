@@ -1,5 +1,8 @@
 'use client';
-
+import { createClient } from '@/utils/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+import { saveDraft, loadDraft, clearDraft, addPendingOrder, getPendingOrders, PendingOrder, removePendingOrder } from '@/lib/offlineQueue';
+import { RefreshCw, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDemo, CartItem } from '@/lib/DemoContext';
 import { Customer, Product } from '@/lib/types';
@@ -12,13 +15,109 @@ import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
   const router = useRouter();
-  const { customers, checkoutSeller } = useDemo();
+  const { customers, products, checkoutSeller, syncPendingOrders } = useDemo();
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
+  
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [sellerId, setSellerId] = useState<string>('');
+  const [pendingQueue, setPendingQueue] = useState<PendingOrder[]>([]);
+
+  
+
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string} | null>(null);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+       if (data.user) {
+          setSellerId(data.user.id);
+          getPendingOrders(data.user.id).then(setPendingQueue);
+          
+          if (!isDraftLoaded) {
+             loadDraft(data.user.id).then(draft => {
+                 if (draft && draft.cart && draft.cart.length > 0) {
+                     setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId });
+                 } else {
+                     setIsDraftLoaded(true);
+                 }
+             });
+          }
+       } else {
+          setIsDraftLoaded(true);
+       }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (offlineDraftWaiting && products.length > 0 && customers.length > 0) {
+        let allResolved = true;
+        const restoredCart = offlineDraftWaiting.cart.map((draftItem: any) => {
+           const product = products.find(p => p.id === draftItem.productId);
+           if (!product) allResolved = false;
+           return product ? { product, quantity: draftItem.quantity, sizes: draftItem.sizes } : null;
+        }).filter(Boolean);
+        
+        let clientResolved = true;
+        if (offlineDraftWaiting.clientId) {
+           const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
+           if (!cust) clientResolved = false;
+        }
+
+        if (allResolved && clientResolved) {
+            if (restoredCart.length > 0) {
+                setCartItems(restoredCart as any[]);
+                if (offlineDraftWaiting.clientId) {
+                   const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
+                   if (cust) setSelectedCustomer(cust);
+                }
+            }
+            setOfflineDraftWaiting(null);
+            setIsDraftLoaded(true);
+        }
+    }
+  }, [products, customers, offlineDraftWaiting]);
+
+  useEffect(() => {
+    // Si offlineDraftWaiting tiene valor, significa que el catálogo no cargó y no hemos podido rehidratar.
+    // Prohibimos guardar/sobrescribir para proteger el borrador original de IDB.
+    if (!isDraftLoaded || !sellerId || offlineDraftWaiting) return;
+    
+    if (cartItems.length > 0 || selectedCustomer) {
+       const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
+       saveDraft({ sellerId, selectedClientId: selectedCustomer?.id, cart: minimalCart, updatedAt: Date.now() });
+    } else {
+       clearDraft(sellerId);
+    }
+  }, [cartItems, selectedCustomer, sellerId, isDraftLoaded, offlineDraftWaiting]);
+
+  useEffect(() => {
+    const refreshQueue = () => {
+      if (sellerId) getPendingOrders(sellerId).then(setPendingQueue);
+    };
+    window.addEventListener('focus', refreshQueue);
+    const interval = setInterval(refreshQueue, 3000);
+    return () => {
+      window.removeEventListener('focus', refreshQueue);
+      clearInterval(interval);
+    };
+  }, [sellerId]);
+
+  const handleRetry = async (order: PendingOrder) => {
+      await syncPendingOrders(order.clientRequestId);
+      if (sellerId) getPendingOrders(sellerId).then(setPendingQueue);
+  };
+  
+  const handleDiscard = async (orderId: string) => {
+      if (confirm("¿Seguro que deseas descartar este borrador fallido?")) {
+         await removePendingOrder(orderId);
+         if (sellerId) getPendingOrders(sellerId).then(setPendingQueue);
+      }
+  };
+
   const [isScanning, setIsScanning] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   
@@ -275,22 +374,56 @@ export default function NuevaVentaPage() {
       }
     }
 
+    
+    const clientRequestId = uuidv4();
+    const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    
+    const pendingOrder: PendingOrder = {
+      clientRequestId,
+      sellerId,
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
+      items: cartItems.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        sizeDetails: item.sizes,
+      })),
+      status: 'pending',
+      createdAt: Date.now(),
+      retryCount: 0,
+      totalAmount
+    };
+
     try {
-      const res = await checkoutSeller(selectedCustomer.id, cartItems);
-      if (res.success) {
-        addToast("Venta registrada exitosamente");
-        setCartItems([]);
-        setStep(1);
-        setSelectedCustomer(null);
-        router.push('/vendedor');
+      await addPendingOrder(pendingOrder);
+      await clearDraft(sellerId);
+      setCartItems([]);
+      setStep(1);
+      setSelectedCustomer(null);
+      setPendingQueue(prev => [...prev, pendingOrder]);
+      addToast("Borrador guardado localmente.");
+      
+      if (navigator.onLine) {
+        const res = await checkoutSeller(pendingOrder.customerId!, cartItems, clientRequestId);
+        if (res.success) {
+           await removePendingOrder(clientRequestId);
+           setPendingQueue(prev => prev.filter(p => p.clientRequestId !== clientRequestId));
+           addToast("Venta confirmada: " + (res.order?.orderNumber || ''));
+        } else {
+           addToast("No se pudo confirmar de inmediato, reintentando en segundo plano.");
+        }
       } else {
-        window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: 'Error: ' + (res.error || ''), type: 'error' } }));
+        addToast("Sin conexión. El pedido está en cola y se enviará automáticamente al recuperar la red.");
       }
-    } catch (e: any) {
-      window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: e.message, type: 'error' } }));
+    } catch(err) {
+      console.error(err);
+      addToast("Error guardando el borrador local");
     } finally {
       setIsCheckingOut(false);
     }
+    return;
+
+    setIsCheckingOut(false);
   };
 
   const updateCartItemQuantity = (productId: string, delta: number) => {

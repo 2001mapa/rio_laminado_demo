@@ -1,5 +1,5 @@
 'use client';
-
+import { useOfflineSync } from './useOfflineSync';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product, Customer, Order, OrderStatus, Seller } from './types';
 import { createClient } from '@/utils/supabase/client';
@@ -30,14 +30,15 @@ type DemoContextType = {
   updateCartItemSize: (productId: string, sizeName: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number, sizeDetails?: {size:string,quantity:number}[] }[] }) => Promise<any>;
+  addOrder: (orderData: { customerId?: string, items: { productId: string, quantity: number, sizeDetails?: {size:string,quantity:number}[] }[], clientRequestId?: string }) => Promise<any>;
   updateOrder: (order: Order) => void;
   transitionOrder: (orderId: string, action: OrderTransitionAction, trackingInfo?: {carrier: string, trackingNumber: string}) => Promise<any>;
   acknowledgeAdjustment: (orderId: string) => Promise<any>;
   updateCustomer: (customer: Customer) => void;
   addSeller: (seller: Seller) => void;
-  checkoutSeller: (customerId: string, cartItems: CartItem[]) => Promise<any>;
+  checkoutSeller: (customerId: string, cartItems: CartItem[], clientRequestId?: string) => Promise<any>;
   refreshData: () => Promise<void>;
+  syncPendingOrders: (bypassUUID?: string) => Promise<void>;
   updateGroupInvoice: (groupId: string, invoice: string) => Promise<{success: boolean, error?: string}>;
   isLoaded: boolean;
   onlineUsers: string[];
@@ -72,6 +73,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, []);
+
+  
+  // --- Offline Sync Hook ---
+  const { syncPendingOrders } = useOfflineSync(async () => { await refreshData() });
 
   const refreshData = async () => {
     try {
@@ -288,7 +293,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const addOrder = async (orderData: { customerId?: string, items: { productId: string, quantity: number }[] }) => {
+  const addOrder = async (orderData: { customerId?: string, items: { productId: string, quantity: number, sizeDetails?: {size:string,quantity:number}[] }[], clientRequestId?: string }) => {
     try {
       const res = await createOrderAction(orderData);
       
@@ -374,11 +379,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       }
     };
     
-    const checkoutSeller = async (customerId: string, cartItems: CartItem[]) => {
+    const checkoutSeller = async (customerId: string, cartItems: CartItem[], clientRequestId?: string) => {
     if (!currentSeller) return { success: false, error: 'No seller logged in' };
     
     const orderData = {
       customerId,
+      clientRequestId,
       items: cartItems.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -459,6 +465,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       addSeller,
       refreshData,
       updateGroupInvoice,
+syncPendingOrders,
       isLoaded,
         onlineUsers,
       }}>

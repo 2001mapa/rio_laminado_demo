@@ -1,4 +1,14 @@
 'use server';
+
+class BusinessLogicError extends Error {
+  code: string;
+  constructor(msg: string, code = 'BUSINESS_ERROR') {
+    super(msg);
+    this.name = 'BusinessLogicError';
+    this.code = code;
+  }
+}
+
 import { unstable_noStore as noStore } from 'next/cache';
 import { OrderTransitionAction, getNextState } from '@/lib/order-status';
 
@@ -21,35 +31,35 @@ export async function createOrder(data: {
     // 1. Resolver identidades de forma segura
     if (role === 'cliente') {
       const customer = await prisma.customer.findUnique({ where: { authUserId: user.id } });
-      if (!customer) throw new Error('Perfil de cliente no encontrado');
+      if (!customer) throw new BusinessLogicError('Perfil de cliente no encontrado');
       finalCustomerId = customer.id;
       // Para pedidos directos de cliente, sellerId siempre es null
     } else {
-      if (!data.customerId) throw new Error('Se requiere el ID del cliente para crear el pedido');
+      if (!data.customerId) throw new BusinessLogicError('Se requiere el ID del cliente para crear el pedido');
       finalCustomerId = data.customerId;
       
       if (role === 'vendedor') {
         const seller = await prisma.seller.findUnique({ where: { authUserId: user.id } });
-        if (!seller) throw new Error('Perfil de vendedor no encontrado');
-        if (seller.status !== 'active') throw new Error('Cuenta de vendedor suspendida');
+        if (!seller) throw new BusinessLogicError('Perfil de vendedor no encontrado');
+        if (seller.status !== 'active') throw new BusinessLogicError('Cuenta de vendedor suspendida');
         finalSellerId = seller.id;
       }
     }
 
     if (!data.items || data.items.length === 0) {
-      throw new Error('El pedido debe tener al menos un articulo.');
+      throw new BusinessLogicError('El pedido debe tener al menos un articulo.');
     }
 
     // Helper for Idempotency Content Verification
     const verifyIdempotentContent = (existingOrder: any) => {
       if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
-        throw new Error('Identificador de solicitud inválido o colisión de petición.');
+        throw new BusinessLogicError('Identificador de solicitud inválido o colisión de petición.');
       }
       
       const originalItems = existingOrder.originalPayload as any[] || existingOrder.items;
       
       if (originalItems.length !== data.items.length) {
-        throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
+        throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
       }
       
       const pool = [...originalItems];
@@ -69,7 +79,7 @@ export async function createOrder(data: {
         });
 
         if (matchIndex === -1) {
-           throw new Error('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
+           throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
         }
         
         // Remove matched item to handle exact duplicate instances safely
@@ -93,7 +103,7 @@ export async function createOrder(data: {
 
     // Obtener detalles del cliente para aplicar descuentos reales
     const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
-    if (!targetCustomer) throw new Error('Cliente objetivo no encontrado');
+    if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
     if (targetCustomer.showDiscount) {
       discount = targetCustomer.discount / 100;
     }
@@ -111,7 +121,7 @@ export async function createOrder(data: {
 
             for (const item of data.items) {
               if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-                throw new Error('Cantidad inváida.');
+                throw new BusinessLogicError('Cantidad inváida.');
               }
 
               const product = await tx.product.findUnique({
@@ -119,29 +129,29 @@ export async function createOrder(data: {
               });
               
               if (!product || !product.isActive) {
-                throw new Error(`Producto no encontrado o inactivo.`);
+                throw new BusinessLogicError(`Producto no encontrado o inactivo.`);
               }
               
               if (!product.material || product.material === 'Por revisar') {
-                throw new Error(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
+                throw new BusinessLogicError(`El producto ${product.name} no tiene un material definido (Por revisar). No se puede vender.`);
               }
 
               // Sizes validation
               if (product.category === 'Anillos') {
                  if (!item.sizeDetails || item.sizeDetails.length === 0) {
-                    throw new Error(`El anillo ${product.name} requiere al menos una talla.`);
+                    throw new BusinessLogicError(`El anillo ${product.name} requiere al menos una talla.`);
                  }
                  const sum = item.sizeDetails.reduce((a, b) => a + b.quantity, 0);
                  if (sum !== item.quantity) {
-                    throw new Error(`La suma de las tallas (${sum}) no coincide con la cantidad total (${item.quantity}) para el anillo ${product.name}.`);
+                    throw new BusinessLogicError(`La suma de las tallas (${sum}) no coincide con la cantidad total (${item.quantity}) para el anillo ${product.name}.`);
                  }
               } else if (item.sizeDetails && item.sizeDetails.length > 0 && product.category !== 'Anillos') {
-                 throw new Error(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
+                 throw new BusinessLogicError(`El producto ${product.name} no es un anillo, no puede llevar desglose de tallas.`);
               }
               
               const available = product.physicalStock - product.reservedStock;
               if (item.quantity > available) {
-                throw new Error(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
+                throw new BusinessLogicError(`Stock insuficiente para ${product.name}. Solo quedan ${available}.`);
               }
               
               const updatedProduct = await tx.product.update({
@@ -152,7 +162,7 @@ export async function createOrder(data: {
               });
 
               if (updatedProduct.reservedStock > updatedProduct.physicalStock) {
-                throw new Error(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
+                throw new BusinessLogicError(`Conflicto de concurrencia: Stock agotado para ${product.name}.`);
               }
 
               const price = product.price;
@@ -251,7 +261,7 @@ export async function createOrder(data: {
             // Caso B: Colisión de orderNumber (Normal, generamos otro consecutivo)
             if (target && target.includes('orderNumber')) {
                attempt++;
-               if (attempt >= MAX_RETRIES) throw new Error('No se pudo generar un número de pedido único tras varios intentos.');
+               if (attempt >= MAX_RETRIES) throw new BusinessLogicError('No se pudo generar un número de pedido único tras varios intentos.');
                continue; // Repetir el bucle
             }
          }
@@ -261,9 +271,16 @@ export async function createOrder(data: {
     
     return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
-    console.error('Error creating order:', error);
-    return { success: false, error: error.message };
-  }
+      console.error('Error creating order:', error);
+      if (error instanceof BusinessLogicError) {
+         return { success: false, error: error.message, code: error.code };
+      }
+      return { 
+        success: false, 
+        error: error.message,
+        code: 'NETWORK_OR_DB_ERROR'
+      };
+    }
 }
 
 export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string, trackingInfo?: {carrier: string, trackingNumber: string}) {
@@ -277,14 +294,14 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
         include: { items: true, customer: true }
       });
       
-      if (!existingOrder) throw new Error('Pedido no encontrado');
+      if (!existingOrder) throw new BusinessLogicError('Pedido no encontrado');
 
       if (role === 'cliente') {
-        if (existingOrder.customer.authUserId !== user.id) throw new Error('No autorizado');
-        if (action !== 'CANCEL') throw new Error('El cliente solo puede cancelar');
-        if (existingOrder.status !== 'Reservado') throw new Error('Solo puedes cancelar pedidos en estado Reservado');
+        if (existingOrder.customer.authUserId !== user.id) throw new BusinessLogicError('No autorizado');
+        if (action !== 'CANCEL') throw new BusinessLogicError('El cliente solo puede cancelar');
+        if (existingOrder.status !== 'Reservado') throw new BusinessLogicError('Solo puedes cancelar pedidos en estado Reservado');
       } else if (role === 'vendedor') {
-        throw new Error('Vendedor no autorizado para cambiar estados');
+        throw new BusinessLogicError('Vendedor no autorizado para cambiar estados');
       }
       
       const nextStatus = getNextState(existingOrder.status, action);
@@ -346,8 +363,8 @@ export async function acknowledgeOrderAdjustment(orderId: string) {
       where: { id: orderId },
       include: { customer: true }
     });
-    if (!existingOrder) throw new Error('Pedido no encontrado');
-    if (existingOrder.customer.authUserId !== user.id) throw new Error('No autorizado');
+    if (!existingOrder) throw new BusinessLogicError('Pedido no encontrado');
+    if (existingOrder.customer.authUserId !== user.id) throw new BusinessLogicError('No autorizado');
     
     const order = await prisma.order.update({
       where: { id: orderId },
@@ -369,7 +386,7 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
         include: { items: true }
       });
       
-      if (!existingOrder) throw new Error('Pedido no encontrado');
+      if (!existingOrder) throw new BusinessLogicError('Pedido no encontrado');
       
       for (const update of items) {
         const existingItem = existingOrder.items.find(i => i.id === update.id);
@@ -408,7 +425,7 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
         include: { items: true, customer: true }
       });
 
-      if (!updatedOrder) throw new Error('Pedido no encontrado tras actualización');
+      if (!updatedOrder) throw new BusinessLogicError('Pedido no encontrado tras actualización');
 
       const discount = updatedOrder.customer?.showDiscount ? updatedOrder.customer.discount / 100 : 0;
       const newSubtotal = updatedOrder.items.reduce((acc, item) => acc + (item.priceAtTime * item.quantity), 0);
@@ -438,12 +455,12 @@ export async function updateMaterialGroupInvoice(groupId: string, invoice: strin
        where: { id: groupId },
        include: { order: { include: { groups: true } } }
     });
-    if (!group) throw new Error("Grupo no encontrado");
-    if (!invoice.trim()) throw new Error("El número de factura no puede estar vacío");
+    if (!group) throw new BusinessLogicError("Grupo no encontrado");
+    if (!invoice.trim()) throw new BusinessLogicError("El número de factura no puede estar vacío");
 
     // Verificar unicidad externa dentro del pedido
     const duplicate = group.order.groups.find(g => g.id !== groupId && g.externalInvoice === invoice.trim());
-    if (duplicate) throw new Error("El número de factura externa ya está registrado en otro grupo de este pedido");
+    if (duplicate) throw new BusinessLogicError("El número de factura externa ya está registrado en otro grupo de este pedido");
 
     await prisma.orderMaterialGroup.update({
        where: { id: groupId },
