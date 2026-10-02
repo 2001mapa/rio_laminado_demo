@@ -57,8 +57,13 @@ function getDB() {
 }
 
 export async function saveDraft(draft: DraftOrder) {
-  const db = await getDB();
-  if (db) await db.put('drafts', draft);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('draft-saving'));
+  try {
+    const db = await getDB();
+    if (db) await db.put('drafts', draft);
+  } finally {
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('draft-saved'));
+  }
 }
 
 export async function loadDraft(sellerId: string): Promise<DraftOrder | undefined> {
