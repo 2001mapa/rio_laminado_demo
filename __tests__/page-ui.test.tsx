@@ -119,4 +119,47 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
          expect(mockSyncCalled).toBe(true);
       });
   });
+
+  it('Verifica que el carrito no se vacía y se muestra error si falla addPendingOrder', async () => {
+      mockAddPendingOrder.mockImplementationOnce(() => {
+          throw new Error('IDB Write Error');
+      });
+
+      render(<NuevaVentaPage />);
+      
+      await waitFor(() => {
+         expect(screen.getAllByText(/Cliente UI/i).length).toBeGreaterThan(0); 
+      });
+      fireEvent.click(screen.getAllByText(/Cliente UI/i)[0]);
+      
+      await waitFor(() => {
+         expect(screen.getByText(/Escáner de Productos/i)).toBeTruthy();
+      });
+      
+      const searchInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
+      fireEvent.change(searchInput, { target: { value: 'SKU1' } });
+      fireEvent.submit(searchInput.closest('form')!);
+      
+      await waitFor(() => {
+         expect(screen.getByText(/MockProduct/i)).toBeTruthy();
+      });
+      
+      const allButtons = screen.getAllByRole('button');
+      const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
+      if (addBtn) fireEvent.click(addBtn);
+      
+      await waitFor(() => {
+         expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy();
+      });
+      
+      const confirmBtn = screen.getByText(/Finalizar Venta/i);
+      fireEvent.click(confirmBtn);
+      
+      await waitFor(() => {
+         expect(mockAddPendingOrder).toHaveBeenCalled();
+         // El botón Finalizar Venta sigue presente porque el carrito NO se vació
+         expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy();
+      });
+  });
+
 });

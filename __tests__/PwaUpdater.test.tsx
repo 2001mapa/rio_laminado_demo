@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import PwaUpdater from '@/components/PwaUpdater';
 
 let mockPendingOrders: any[] = [];
@@ -17,11 +17,12 @@ vi.mock('@/utils/supabase/client', () => ({
   })
 }));
 
-describe('PwaUpdater Component', () => {
+describe('PwaUpdater Component (Seguridad de Escritura)', () => {
   let mockWorker: any;
   let workboxEvents: Record<string, any> = {};
   
   beforeEach(() => {
+    
     mockPendingOrders = [];
     workboxEvents = {};
     
@@ -43,7 +44,8 @@ describe('PwaUpdater Component', () => {
       value: {
         serviceWorker: {
             controller: true,
-            addEventListener: vi.fn()
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn()
         }
       },
       writable: true,
@@ -53,89 +55,102 @@ describe('PwaUpdater Component', () => {
 
   afterEach(() => {
     cleanup();
+    
   });
 
-  it('1. Muestra el actualizador al disparar el evento waiting de workbox', async () => {
-      // Configuramos getSW para que retorne null al inicio, obligando a usar el evento waiting
-      (global as any).window.workbox.getSW = vi.fn().mockResolvedValue(null);
-      
+  it('1. Bloquea actualización si hay dos escrituras simultáneas y libera cuando AMBAS terminan', async () => {
       render(<PwaUpdater />);
-      
-      // Al inicio no hay UI
-      expect(screen.queryByText(/Nueva versión disponible/i)).toBeNull();
-
-      // Disparamos el evento waiting
-      if (workboxEvents['waiting']) {
-         workboxEvents['waiting']({ sw: mockWorker });
-      }
-
-      await waitFor(() => {
-         expect(screen.getByText(/Nueva versión disponible/i)).toBeTruthy();
-      });
-      
-      const btn = screen.getByRole('button', { name: /Actualizar/i });
-      expect(btn.hasAttribute('disabled')).toBe(false);
-  });
-
-  it('2. Deshabilita la actualización mientras se guarda un borrador (eventos window)', async () => {
-      render(<PwaUpdater />);
-      
-      if (workboxEvents['waiting']) {
-         workboxEvents['waiting']({ sw: mockWorker });
-      }
+      if (workboxEvents['waiting']) workboxEvents['waiting']({ sw: mockWorker });
       
       await waitFor(() => {
-         expect(screen.getByText(/Nueva versión disponible/i)).toBeTruthy();
+         expect(screen.getByText(/Nueva versin disponible/i)).toBeTruthy();
       });
 
-      // Disparamos evento draft-saving
-      fireEvent(window, new Event('draft-saving'));
+      // Primer write
+      act(() => { fireEvent(window, new Event('idb-write-start')); });
       
       await waitFor(() => {
-         expect(screen.getByText(/Guardando borrador/i)).toBeTruthy();
+         expect(screen.getByText(/Guardando/i)).toBeTruthy();
+         const btn = screen.getByRole('button', { name: /Actualizar/i });
+         expect(btn.hasAttribute('disabled')).toBe(true);
       });
-      
-      const btn = screen.getByRole('button', { name: /Actualizar/i });
-      expect(btn.hasAttribute('disabled')).toBe(true);
 
-      // Simulamos que terminó
-      fireEvent(window, new Event('draft-saved'));
+      // Segundo write (ej: saveDraft y clearDraft solapados)
+      act(() => { fireEvent(window, new Event('idb-write-start')); });
+      
+      // Termina el primero
+      act(() => { fireEvent(window, new CustomEvent('idb-write-end', { detail: { success: true } })); });
+      
+      // Aún debe estar bloqueado
+      await waitFor(() => {
+         expect(screen.getByRole('button', { name: /Actualizar/i }).hasAttribute('disabled')).toBe(true);
+      });
+
+      // Termina el segundo
+      act(() => { fireEvent(window, new CustomEvent('idb-write-end', { detail: { success: true } })); });
       
       await waitFor(() => {
-         expect(screen.queryByText(/Guardando borrador/i)).toBeNull();
-         expect(btn.hasAttribute('disabled')).toBe(false);
+         expect(screen.queryByText(/Guardando/i)).toBeNull();
+         expect(screen.getByRole('button', { name: /Actualizar/i }).hasAttribute('disabled')).toBe(false);
       });
   });
 
-  it('3. Envía SKIP_WAITING y NO recarga hasta que controllerchange dispare (sin temporizador ciego)', async () => {
+  it('2. Actualización solicitada se suspende y luego recarga RÁPIDO si controllerchange dispara', async () => {
       let swListener: any;
       global.navigator.serviceWorker.addEventListener = (e: string, cb: any) => {
           if (e === 'controllerchange') swListener = cb;
       };
       
       render(<PwaUpdater />);
-      
-      if (workboxEvents['waiting']) {
-         workboxEvents['waiting']({ sw: mockWorker });
-      }
+      if (workboxEvents['waiting']) workboxEvents['waiting']({ sw: mockWorker });
       
       let btn: any;
       await waitFor(() => {
           btn = screen.getByRole('button', { name: /Actualizar/i });
-          expect(btn.hasAttribute('disabled')).toBe(false);
       });
       
       fireEvent.click(btn);
       
       expect(mockWorker.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
-      
-      // Aseguramos que reload NO fue llamado inmediatamente
       expect((global as any).window.location.reload).not.toHaveBeenCalled();
       
-      // Simulamos que el worker se activó y disparó el evento
-      swListener();
+      // Disparo rápido
+      act(() => { swListener(); });
       
-      // AHORA debe recargar
       expect((global as any).window.location.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('3. Muestra error si controllerchange NUNCA dispara (ausente) y permite reintento', async () => {
+      
+      let swListener: any;
+      global.navigator.serviceWorker.addEventListener = (e: string, cb: any) => {
+          if (e === 'controllerchange') swListener = cb;
+      };
+      
+      render(<PwaUpdater />);
+      if (workboxEvents['waiting']) workboxEvents['waiting']({ sw: mockWorker });
+      
+      let btn: any;
+      await waitFor(() => {
+          btn = screen.getByRole('button', { name: /Actualizar/i });
+      });
+      
+      vi.useFakeTimers();
+      fireEvent.click(btn);
+      expect((global as any).window.location.reload).not.toHaveBeenCalled();
+      
+      // Pasan 5 segundos y controllerchange NUNCA se disparó
+      act(() => { vi.advanceTimersByTime(5000); });
+      
+      // NUNCA recarga a ciegas
+      expect((global as any).window.location.reload).not.toHaveBeenCalled();
+      
+      // Muestra la opción de reintento
+      expect(screen.getByText(/Error al activar. Reintentar/i)).toBeTruthy();
+      vi.useRealTimers();
+      
+      // El botón vuelve a estar habilitado
+      expect(btn.hasAttribute('disabled')).toBe(false);
+      expect(btn.textContent).toContain('Actualizar');
   });
 });

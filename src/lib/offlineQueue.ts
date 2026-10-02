@@ -56,14 +56,30 @@ function getDB() {
   return dbPromise;
 }
 
-export async function saveDraft(draft: DraftOrder) {
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event('draft-saving'));
+export function emitWriteStart() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('idb-write-start'));
+}
+export function emitWriteEnd(success: boolean, error?: any) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('idb-write-end', { detail: { success, error } }));
+}
+
+async function withWriteTracking<T>(operation: () => Promise<T>): Promise<T> {
+  emitWriteStart();
   try {
+    const res = await operation();
+    emitWriteEnd(true);
+    return res;
+  } catch (error: any) {
+    emitWriteEnd(false, error);
+    throw error;
+  }
+}
+
+export async function saveDraft(draft: DraftOrder) {
+  return withWriteTracking(async () => {
     const db = await getDB();
     if (db) await db.put('drafts', draft);
-  } finally {
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event('draft-saved'));
-  }
+  });
 }
 
 export async function loadDraft(sellerId: string): Promise<DraftOrder | undefined> {
@@ -73,13 +89,17 @@ export async function loadDraft(sellerId: string): Promise<DraftOrder | undefine
 }
 
 export async function clearDraft(sellerId: string) {
-  const db = await getDB();
-  if (db) await db.delete('drafts', sellerId);
+  return withWriteTracking(async () => {
+    const db = await getDB();
+    if (db) await db.delete('drafts', sellerId);
+  });
 }
 
 export async function addPendingOrder(order: PendingOrder) {
-  const db = await getDB();
-  if (db) await db.put('pending_orders', order);
+  return withWriteTracking(async () => {
+    const db = await getDB();
+    if (db) await db.put('pending_orders', order);
+  });
 }
 
 export async function getPendingOrders(sellerId: string): Promise<PendingOrder[]> {
@@ -89,18 +109,22 @@ export async function getPendingOrders(sellerId: string): Promise<PendingOrder[]
 }
 
 export async function updatePendingOrderStatus(id: string, update: Partial<PendingOrder>) {
-  const db = await getDB();
-  if (!db) return;
-  const tx = db.transaction('pending_orders', 'readwrite');
-  const store = tx.objectStore('pending_orders');
-  const order = await store.get(id);
-  if (order) {
-    await store.put({ ...order, ...update });
-  }
-  await tx.done;
+  return withWriteTracking(async () => {
+    const db = await getDB();
+    if (!db) return;
+    const tx = db.transaction('pending_orders', 'readwrite');
+    const store = tx.objectStore('pending_orders');
+    const order = await store.get(id);
+    if (order) {
+      await store.put({ ...order, ...update });
+    }
+    await tx.done;
+  });
 }
 
 export async function removePendingOrder(id: string) {
-  const db = await getDB();
-  if (db) await db.delete('pending_orders', id);
+  return withWriteTracking(async () => {
+    const db = await getDB();
+    if (db) await db.delete('pending_orders', id);
+  });
 }

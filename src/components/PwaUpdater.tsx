@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { DownloadCloud, Loader2 } from 'lucide-react';
 import { getPendingOrders } from '@/lib/offlineQueue';
 import { createClient } from '@/utils/supabase/client';
@@ -9,8 +9,12 @@ export default function PwaUpdater() {
   const [authId, setAuthId] = useState<string | null>(null);
   
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isDraftSaving, setIsDraftSaving] = useState(false);
+  const [inFlightWrites, setInFlightWrites] = useState(0);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updateFailed, setUpdateFailed] = useState(false);
+  
+  // Para evitar dependencias en los onWriteStart/End, usamos ref
+  const writesRef = useRef(0);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => {
@@ -35,17 +39,23 @@ export default function PwaUpdater() {
     }
   }, [authId]);
 
-  // Monitor draft saving events
+  // Monitor in-flight IDB writes
   useEffect(() => {
-    const onSaving = () => setIsDraftSaving(true);
-    const onSaved = () => setIsDraftSaving(false);
+    const onWriteStart = () => {
+      writesRef.current += 1;
+      setInFlightWrites(writesRef.current);
+    };
+    const onWriteEnd = () => {
+      writesRef.current = Math.max(0, writesRef.current - 1);
+      setInFlightWrites(writesRef.current);
+    };
     
-    window.addEventListener('draft-saving', onSaving);
-    window.addEventListener('draft-saved', onSaved);
+    window.addEventListener('idb-write-start', onWriteStart);
+    window.addEventListener('idb-write-end', onWriteEnd);
     
     return () => {
-      window.removeEventListener('draft-saving', onSaving);
-      window.removeEventListener('draft-saved', onSaved);
+      window.removeEventListener('idb-write-start', onWriteStart);
+      window.removeEventListener('idb-write-end', onWriteEnd);
     };
   }, []);
 
@@ -63,7 +73,6 @@ export default function PwaUpdater() {
 
       wb.addEventListener('waiting', promptNewVersionAvailable);
       
-      // Also check if already waiting
       if (typeof wb.getSW === 'function') {
           wb.getSW().then((sw: ServiceWorker | undefined) => {
              if (sw && sw.state === 'installed' && navigator.serviceWorker.controller) {
@@ -81,16 +90,31 @@ export default function PwaUpdater() {
   const reloadToUpdate = () => {
     if (waitingWorker) {
       setIsUpdating(true);
+      setUpdateFailed(false);
+      
+      let controllerChanged = false;
+      
+      const onControllerChange = () => {
+        controllerChanged = true;
+        window.location.reload();
+      };
+      
+      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
       
-      // Solo recargar cuando el worker indique que ha tomado control. NO setTimeout ciego.
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
+      // Si despus de 5 segundos no tom control, mostramos opcin de reintento
+      setTimeout(() => {
+          if (!controllerChanged) {
+              setIsUpdating(false);
+              setUpdateFailed(true);
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+          }
+      }, 5000);
     }
   };
 
-  const canUpdate = !isSyncing && !isDraftSaving && !isUpdating;
+  const isWriting = inFlightWrites > 0;
+  const canUpdate = !isSyncing && !isWriting && !isUpdating;
 
   if (!waitingWorker) return null;
 
@@ -98,11 +122,14 @@ export default function PwaUpdater() {
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
       <div className="bg-rio-ink text-white px-4 py-3 rounded-xl shadow-lg border border-gray-700 flex items-center gap-4">
         <div className="flex flex-col">
-          <span className="font-bold text-sm">Nueva versión disponible</span>
+          <span className="font-bold text-sm">Nueva versin disponible</span>
           {!canUpdate && !isUpdating && (
             <span className="text-xs text-gray-300">
-              {isDraftSaving ? 'Guardando borrador...' : 'Espera a que termine el envío...'}
+              {isWriting ? 'Guardando...' : 'Espera a que termine el envo...'}
             </span>
+          )}
+          {updateFailed && (
+            <span className="text-xs text-red-400">Error al activar. Reintentar?</span>
           )}
         </div>
         <button 
