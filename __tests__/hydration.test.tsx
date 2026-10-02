@@ -11,8 +11,8 @@ vi.mock('@/lib/offlineQueue', () => ({
   getPendingOrders: vi.fn().mockResolvedValue([]),
   removePendingOrder: vi.fn(),
   addPendingOrder: vi.fn(),
-  clearDraft: vi.fn().mockImplementation(() => { mockDraft = undefined; }),
-  saveDraft: vi.fn().mockImplementation((draft) => { mockDraft = draft; }),
+  clearDraft: vi.fn().mockImplementation(async () => { mockDraft = undefined; }),
+  saveDraft: vi.fn().mockImplementation(async (draft) => { mockDraft = draft; }),
   loadDraft: vi.fn().mockImplementation(() => Promise.resolve(mockDraft))
 }));
 

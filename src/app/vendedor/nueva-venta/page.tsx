@@ -396,10 +396,18 @@ export default function NuevaVentaPage() {
     
     // Si ya existe en la cola, bloquemos la creación de uno nuevo
     console.log('CHECKOUT CLICK:', { currentCheckoutId, pendingQueueIds: pendingQueue.map(o => o.clientRequestId) });
-    if (currentCheckoutId && pendingQueue.some(o => o.clientRequestId === currentCheckoutId)) {
-        addToast("Este pedido ya está en la cola de envíos.");
-        return;
-    }
+    if (currentCheckoutId) {
+          const idbQueue = await getPendingOrders(sellerId);
+          if (idbQueue.some(o => o.clientRequestId === currentCheckoutId)) {
+              addToast("Este pedido ya está en la cola de envíos.");
+              
+              // Opcionalmente limpiar el carrito porque ya lo capturó el IDB
+              setCartItems([]);
+              setStep(1);
+              setSelectedCustomer(null);
+              return;
+          }
+      }
     
     setIsCheckingOut(true);
     
@@ -426,15 +434,21 @@ export default function NuevaVentaPage() {
           clientRequestId = uuidv4();
           setCurrentCheckoutId(clientRequestId);
           
-          // Asegurar que el borrador queda con el ID correcto en BD antes de crear el pedido
           const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
-          await saveDraft({
-            sellerId,
-            selectedClientId: selectedCustomer.id,
-            cart: minimalCart,
-            updatedAt: Date.now(),
-            clientRequestId
-          }).catch(() => {}); 
+          try {
+              await saveDraft({
+                sellerId,
+                selectedClientId: selectedCustomer.id,
+                cart: minimalCart,
+                updatedAt: Date.now(),
+                clientRequestId
+              });
+          } catch (err) {
+              console.error(err);
+              addToast("Error al bloquear el borrador. Revisa tu almacenamiento local.");
+              setIsCheckingOut(false);
+              return;
+          }
       }
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
