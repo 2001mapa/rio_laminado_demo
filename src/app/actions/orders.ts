@@ -279,7 +279,7 @@ export async function createOrder(data: {
   } catch (error: any) {
       console.error('Error creating order:', error);
       if (error instanceof BusinessLogicError) {
-         return { success: false, error: error.message, code: error.code };
+         return { success: false, error: error.message, code: error.code, conflicts: (error as any).conflicts };
       }
       return { 
         success: false, 

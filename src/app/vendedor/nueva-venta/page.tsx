@@ -328,12 +328,34 @@ export default function NuevaVentaPage() {
     }
   };
 
-  const handleScan = async (sku: string) => {
+    const handleScan = async (sku: string) => {
     try {
-      const result = await getExactProductBySku(sku);
-      
-      if (result.success && result.product) {
-        setScannedProduct(result.product as Product);
+      let product: any = null;
+      let error = '';
+
+      if (navigator.onLine) {
+        try {
+           const result = await getExactProductBySku(sku);
+           if (result.success && result.product) product = result.product;
+           else error = result.error || 'SKU no encontrado';
+        } catch (e) {
+           error = 'Error de red';
+        }
+      }
+
+      if (!product) {
+        const offlineResults = await searchOfflineProducts(sku);
+        const match = offlineResults.find((p: any) => p.sku.toLowerCase() === sku.toLowerCase());
+        if (match) {
+          product = match;
+          addToast(!navigator.onLine ? 'Modo offline: Stock y precio sujetos a confirmación.' : 'Aviso: Falló la red. Mostrando catálogo local sujeto a confirmación.');
+        } else {
+          error = !navigator.onLine ? 'SKU no encontrado en catálogo offline' : (error || 'SKU no encontrado');
+        }
+      }
+
+      if (product) {
+        setScannedProduct(product as Product);
         setScanQuantity(1);
         setScanSizes([]);
         setScanSizeInput('');
@@ -344,11 +366,11 @@ export default function NuevaVentaPage() {
           audio.play();
         } catch(e) {}
       } else {
-        addToast(result.error || `SKU no encontrado: ${sku}`);
+        addToast(error || `SKU no encontrado: ${sku}`);
         if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
       }
     } catch (err) {
-      addToast('Error al buscar el producto');
+      addToast('Error al procesar el escaneo');
       if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
     }
   };
