@@ -550,3 +550,16 @@ export async function getDuplicateLocationsCount() {
     return { success: false, count: 0 };
   }
 }
+
+export async function getProductsByIds(ids: string[]) {
+  noStore();
+  try {
+    const { role } = await requireRole(['admin', 'vendedor', 'cliente']);
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids } }
+    });
+    return { success: true, products };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

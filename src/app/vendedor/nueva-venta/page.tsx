@@ -10,7 +10,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { getExactProductBySku, getPagedCatalog } from '@/app/actions/queries';
+import { getExactProductBySku, getPagedCatalog, getProductsByIds } from '@/app/actions/queries';
 import { useRouter } from 'next/navigation';
 
 export default function NuevaVentaPage() {
@@ -53,33 +53,58 @@ export default function NuevaVentaPage() {
   }, []);
 
   useEffect(() => {
-    if (offlineDraftWaiting && products.length > 0 && customers.length > 0) {
-        let allResolved = true;
-        const restoredCart = offlineDraftWaiting.cart.map((draftItem: any) => {
-           const product = products.find(p => p.id === draftItem.productId);
-           if (!product) allResolved = false;
-           return product ? { product, quantity: draftItem.quantity, sizes: draftItem.sizes } : null;
-        }).filter(Boolean);
-        
-        let clientResolved = true;
-        if (offlineDraftWaiting.clientId) {
-           const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
-           if (!cust) clientResolved = false;
-        }
+      if (offlineDraftWaiting && customers.length > 0) {
+          const hydrate = async () => {
+              const neededIds = offlineDraftWaiting.cart.map((item: any) => item.productId);
+              const missingIds = neededIds.filter((id: string) => !products.find((p: any) => p.id === id));
+              
+              let currentProducts = [...products];
+              if (missingIds.length > 0) {
+                  try {
+                      const res = await getProductsByIds(missingIds);
+                      if (res.success && res.products) {
+                          currentProducts = [...currentProducts, ...(res.products as any[])];
+                      }
+                  } catch (e) {
+                      // Offline: remains blocked by missing catalog, warning stays visible
+                  }
+              }
 
-        if (allResolved && clientResolved) {
-            if (restoredCart.length > 0) {
-                setCartItems(restoredCart as any[]);
-                if (offlineDraftWaiting.clientId) {
-                   const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
-                   if (cust) setSelectedCustomer(cust);
-                }
-            }
-            setOfflineDraftWaiting(null);
-            setIsDraftLoaded(true);
-        }
-    }
-  }, [products, customers, offlineDraftWaiting]);
+              let allResolved = true;
+              if (neededIds.length > 0 && missingIds.length > 0 && currentProducts.length === products.length) {
+                 allResolved = false;
+              }
+
+              const restoredCart = offlineDraftWaiting.cart.map((draftItem: any) => {
+                 const product = currentProducts.find(p => p.id === draftItem.productId);
+                 if (!product) allResolved = false;
+                 return product ? { product, quantity: draftItem.quantity, sizes: draftItem.sizes } : null;
+              }).filter(Boolean);
+              
+              let clientResolved = true;
+              if (offlineDraftWaiting.clientId) {
+                 const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
+                 if (!cust) clientResolved = false;
+              }
+      
+              if (allResolved && clientResolved) {
+                  if (restoredCart.length > 0) {
+                      setCartItems(restoredCart as any[]);
+                  }
+                  if (offlineDraftWaiting.clientId) {
+                     const cust = customers.find(c => c.id === offlineDraftWaiting.clientId);
+                     if (cust) {
+                         setSelectedCustomer(cust);
+                         setStep(2);
+                     }
+                  }
+                  setOfflineDraftWaiting(null);
+                  setIsDraftLoaded(true);
+              }
+          };
+          hydrate();
+      }
+    }, [products, customers, offlineDraftWaiting]);
 
   useEffect(() => {
     // Si offlineDraftWaiting tiene valor, significa que el catálogo no cargó y no hemos podido rehidratar.
