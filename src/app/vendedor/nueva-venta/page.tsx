@@ -461,12 +461,58 @@ export default function NuevaVentaPage() {
     <div className="min-h-screen bg-rio-background md:h-screen md:overflow-hidden flex flex-col pt-4">
       {step === 1 && (
         <div className="flex-1 max-w-md w-full mx-auto px-4 pb-24 space-y-6 animate-fade-in overflow-y-auto">
-          <div className="text-center space-y-2 mb-8">
-            <h1 className="text-2xl font-serif font-black text-rio-ink">Nueva Venta</h1>
-            <p className="text-sm text-rio-muted font-medium">Selecciona el cliente a facturar.</p>
-          </div>
           
-          <div className="relative">
+            <div className="text-center space-y-2 mb-8">
+              <h1 className="text-2xl font-serif font-black text-rio-ink">Nueva Venta</h1>
+              <p className="text-sm text-rio-muted font-medium">Selecciona el cliente a facturar.</p>
+            </div>
+
+            {offlineDraftWaiting && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-start gap-3 shadow-sm text-left">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+                <div>
+                  <p className="font-bold">Requiere recargar catálogo</p>
+                  <p className="text-sm mt-1">Tienes una venta guardada con productos o clientes que aún no se han cargado en el dispositivo. Conéctate a internet para restaurarla de forma segura. Tus datos locales están a salvo.</p>
+                </div>
+              </div>
+            )}
+
+            {pendingQueue.length > 0 && (
+              <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl shadow-sm text-left">
+                <h2 className="font-bold text-rio-ink flex items-center gap-2 mb-3">
+                  <Clock className="w-5 h-5 text-amber-500" /> Cola de Envíos ({pendingQueue.length})
+                </h2>
+                <div className="space-y-3">
+                  {pendingQueue.map(order => (
+                    <div key={order.clientRequestId} className="p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm relative">
+                      <p className="font-medium text-gray-800">{order.customerName}</p>
+                      <p className="text-gray-500 text-xs mt-1">Estado: <span className="font-semibold text-amber-600">{
+                        order.status === 'pending' ? 'Pendiente de conexión' : 
+                        order.status === 'syncing' ? 'Sincronizando...' : 
+                        order.status === 'failed_recoverable' ? 'Reintentando (Red)...' : 
+                        order.status === 'failed_intervention' ? 'Requiere verificar con servidor' : 
+                        'Requiere revisión'
+                      }</span></p>
+                      {order.lastError && <p className="text-xs text-red-500 mt-1">{order.lastError}</p>}
+                      <div className="mt-2 flex gap-2">
+                        {(order.status === 'failed_fatal' || order.status === 'failed_intervention' || order.status === 'failed_recoverable') && (
+                          <button onClick={() => handleRetry(order)} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium hover:bg-gray-100 flex items-center gap-1">
+                            <RefreshCw className="w-3 h-3" /> Reintentar
+                          </button>
+                        )}
+                        {order.status === 'failed_fatal' && (
+                          <button onClick={() => handleDiscard(order.clientRequestId)} className="px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded text-xs font-medium hover:bg-red-100">
+                            Descartar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-rio-muted" />
             <input 
               type="text"
