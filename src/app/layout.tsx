@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Montserrat, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { DemoProvider } from "@/lib/DemoContext";
+import PwaUpdater from "@/components/PwaUpdater";
 
 const manrope = Manrope({
   variable: "--font-sans",
@@ -53,6 +54,7 @@ export default function RootLayout({
         className={`${manrope.variable} ${montserrat.variable} ${jetbrainsMono.variable} antialiased bg-rio-background text-rio-ink font-sans`}
       >
         <DemoProvider>
+        <PwaUpdater />
           {children}
         </DemoProvider>
       </body>

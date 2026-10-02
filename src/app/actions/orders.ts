@@ -543,3 +543,29 @@ export async function getOrderById(id: string) {
     return { success: false, message: error.message };
   }
 }
+
+export async function checkOrderByRequestId(clientRequestId: string) {
+  noStore();
+  try {
+    const { user, role } = await requireRole(['admin', 'vendedor']);
+    let whereClause: any = { clientRequestId };
+    
+    if (role === 'vendedor') {
+      const sellerProfile = await prisma.seller.findUnique({ where: { authUserId: user.id } });
+      if (!sellerProfile) return { success: false, notFound: true };
+      whereClause.sellerId = sellerProfile.id;
+    }
+    
+    const order = await prisma.order.findFirst({
+      where: whereClause,
+      select: { orderNumber: true }
+    });
+    
+    if (order) {
+      return { success: true, order: { orderNumber: order.orderNumber } };
+    }
+    return { success: false, notFound: true };
+  } catch (error: any) {
+    return { success: false, notFound: true, error: error.message };
+  }
+}
