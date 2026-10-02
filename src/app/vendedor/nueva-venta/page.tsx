@@ -27,12 +27,7 @@ export default function NuevaVentaPage() {
   const [pendingQueue, setPendingQueue] = useState<PendingOrder[]>([]);
   const [currentCheckoutId, setCurrentCheckoutId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Si cambia el carrito, invalidamos el checkout id actual para permitir un nuevo pedido
-    if (cartItems.length > 0) {
-       setCurrentCheckoutId(null);
-    }
-  }, [cartItems]);
+  
 
   
 
@@ -47,12 +42,15 @@ export default function NuevaVentaPage() {
           
           if (!isDraftLoaded) {
              loadDraft(data.user.id).then(draft => {
-                 if (draft && draft.cart && draft.cart.length > 0) {
-                     setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId });
-                 } else {
-                     setIsDraftLoaded(true);
-                 }
-             });
+                   if (draft && draft.cart && draft.cart.length > 0) {
+                       setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId });
+                       if (draft.clientRequestId) {
+                           setCurrentCheckoutId(draft.clientRequestId);
+                       }
+                   } else {
+                       setIsDraftLoaded(true);
+                   }
+               });
           }
        } else {
           setIsDraftLoaded(true);
@@ -424,10 +422,20 @@ export default function NuevaVentaPage() {
     }
 
     let clientRequestId = currentCheckoutId;
-    if (!clientRequestId) {
-        clientRequestId = uuidv4();
-        setCurrentCheckoutId(clientRequestId);
-    }
+      if (!clientRequestId) {
+          clientRequestId = uuidv4();
+          setCurrentCheckoutId(clientRequestId);
+          
+          // Asegurar que el borrador queda con el ID correcto en BD antes de crear el pedido
+          const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
+          await saveDraft({
+            sellerId,
+            selectedClientId: selectedCustomer.id,
+            cart: minimalCart,
+            updatedAt: Date.now(),
+            clientRequestId
+          }).catch(() => {}); 
+      }
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
     const pendingOrder: PendingOrder = {

@@ -5,10 +5,7 @@ import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 import * as idb from 'idb';
 
 let addToastMock = vi.fn();
-
-vi.mock('@/lib/toast', () => ({
-  addToast: (msg: string) => addToastMock(msg)
-}));
+vi.mock('@/lib/toast', () => ({ addToast: (msg: string) => addToastMock(msg) }));
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
@@ -21,9 +18,7 @@ vi.mock('@/lib/DemoContext', () => ({
 }));
 
 vi.mock('@/utils/supabase/client', () => ({
-  createClient: () => ({
-    auth: { getUser: async () => ({ data: { user: { id: 'seller-1' } } }) }
-  })
+  createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'seller-1' } } }) } })
 }));
 
 vi.mock('next/navigation', () => ({
@@ -34,7 +29,12 @@ vi.mock('@/app/actions/queries', () => ({
   getExactProductBySku: vi.fn(async () => ({
       success: true,
       product: { id: 'P1', sku: 'SKU1', name: 'MockProduct', price: 100, physicalStock: 10, reservedStock: 0, category: 'Collares' }
-  }))
+  })),
+  getProductsByIds: vi.fn(async () => ({
+      success: true,
+      products: [{ id: 'P1', sku: 'SKU1', name: 'MockProduct', price: 100, physicalStock: 10, reservedStock: 0, category: 'Collares' }]
+  })),
+  getPagedCatalog: vi.fn(async () => ({ success: true, products: [] }))
 }));
 
 let mockDbPut = vi.fn();
@@ -52,7 +52,8 @@ vi.mock('idb', async (importOriginal) => {
             transaction: vi.fn(() => ({
                 objectStore: vi.fn(() => ({
                     get: (...args: any) => mockDbGet(...args),
-                    put: (...args: any) => mockDbPut(...args)
+                    put: (...args: any) => mockDbPut(...args),
+                    delete: (...args: any) => mockDbDelete(...args)
                 })),
                 done: Promise.resolve()
             }))
@@ -60,19 +61,30 @@ vi.mock('idb', async (importOriginal) => {
     }
 });
 
-let addedOrders: any[] = [];
+let dbStore: Record<string, Record<string, any>> = { drafts: {}, pending_orders: {} };
 
-describe('Fallas Reales en IDB (Fase 4)', () => {
+describe('Fallas Reales en IDB y Recargas (Fase 4)', () => {
   let originalError: any;
   beforeEach(() => {
-    addedOrders = [];
-    mockDbPut.mockReset().mockResolvedValue(undefined);
-    mockDbDelete.mockReset().mockResolvedValue(undefined);
-    mockDbGet.mockReset().mockResolvedValue(undefined);
-    mockDbGetAllFromIndex.mockReset().mockResolvedValue([]);
+    dbStore = { drafts: {}, pending_orders: {} };
+    
+    mockDbPut.mockReset().mockImplementation(async (store, val, key) => {
+      if (store === 'drafts') dbStore.drafts[key || val.sellerId] = val;
+      if (store === 'pending_orders') dbStore.pending_orders[val.clientRequestId] = val;
+    });
+    mockDbDelete.mockReset().mockImplementation(async (store, key) => {
+      if (store === 'drafts') delete dbStore.drafts[key];
+    });
+    mockDbGet.mockReset().mockImplementation(async (store, key) => {
+      if (store === 'drafts') return dbStore.drafts[key];
+      return undefined;
+    });
+    mockDbGetAllFromIndex.mockReset().mockImplementation(async (store, indexName, key) => {
+      if (store === 'pending_orders') return Object.values(dbStore.pending_orders).filter(o => o.sellerId === key);
+      return [];
+    });
     addToastMock.mockClear();
     
-    // Suprimir warnings en consola pero NO silenciar fallos reales del test
     originalError = console.error;
     console.error = vi.fn();
   });
@@ -84,9 +96,7 @@ describe('Fallas Reales en IDB (Fase 4)', () => {
   });
 
   it('1. Error en saveDraft muestra advertencia y no promete protección', async () => {
-      // Usamos reject normal y atrapamos la queja de unhandled rejections dentro del test o ignoramos
       mockDbPut.mockImplementation(async () => { throw new Error('QuotaExceededError') });
-
       render(<NuevaVentaPage />);
       
       await waitFor(() => {
@@ -101,56 +111,97 @@ describe('Fallas Reales en IDB (Fase 4)', () => {
   });
 
   it('2. addPendingOrder exitoso pero clearDraft fallido bloquea segundo envío y retiene UUID', async () => {
-      mockDbPut.mockImplementation(async (store, val) => {
-         if (store === 'pending_orders') addedOrders.push(val);
-      });
-      mockDbGetAllFromIndex.mockImplementation(async () => addedOrders);
-      
       // SOLO falla delete!
       mockDbDelete.mockImplementation(async () => { throw new Error('IDB Delete Error') });
 
       render(<NuevaVentaPage />);
       
-      await waitFor(() => {
-         expect(screen.getAllByText(/Cliente UI/i).length).toBeGreaterThan(0); 
-      });
+      await waitFor(() => expect(screen.getAllByText(/Cliente UI/i).length).toBeGreaterThan(0));
       fireEvent.click(screen.getAllByText(/Cliente UI/i)[0]);
       
-      await waitFor(() => {
-         expect(screen.getByText(/Escáner de Productos/i)).toBeTruthy();
-      });
+      await waitFor(() => expect(screen.getByText(/Escáner de Productos/i)).toBeTruthy());
       
       const searchInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
       fireEvent.change(searchInput, { target: { value: 'SKU1' } });
       fireEvent.submit(searchInput.closest('form')!);
       
-      await waitFor(() => {
-         expect(screen.getByText(/MockProduct/i)).toBeTruthy();
-      });
+      await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
       
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
       if (addBtn) fireEvent.click(addBtn);
       
-      await waitFor(() => {
-         expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy();
-      });
-      
+      await waitFor(() => expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy());
       const confirmBtn = screen.getByText(/Finalizar Venta/i);
       
       fireEvent.click(confirmBtn);
       
       await waitFor(() => {
-         // El toast de error de try/catch
-         // O el fallback de no borrador si el delete falla (está silenciado arriba, no importa)
-         expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy();
+         expect(Object.keys(dbStore.pending_orders).length).toBe(1);
       });
 
-      // Volvemos a hacer clic (el UUID se conservó en memoria, pendingQueue NO TIENE, pero IDB sí)
-      fireEvent.click(confirmBtn);
-      
+      const newConfirmBtn = screen.getByText(/Finalizar Venta/i);
+      fireEvent.click(newConfirmBtn);
+
       await waitFor(() => {
          expect(addToastMock).toHaveBeenCalledWith('Este pedido ya está en la cola de envíos.');
       });
+  });
+
+  it('3. Recarga de página tras clearDraft fallido retiene UUID, consulta IDB y bloquea duplicado', async () => {
+      mockDbDelete.mockImplementation(async () => { throw new Error('IDB Delete Error') });
+
+      const { unmount } = render(<NuevaVentaPage />);
+      
+      await waitFor(() => expect(screen.getAllByText(/Cliente UI/i).length).toBeGreaterThan(0));
+      fireEvent.click(screen.getAllByText(/Cliente UI/i)[0]);
+      
+      await waitFor(() => expect(screen.getByText(/Escáner de Productos/i)).toBeTruthy());
+      
+      const searchInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
+      fireEvent.change(searchInput, { target: { value: 'SKU1' } });
+      fireEvent.submit(searchInput.closest('form')!);
+      
+      await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
+      
+      const allButtons = screen.getAllByRole('button');
+      const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
+      if (addBtn) fireEvent.click(addBtn);
+      
+      await waitFor(() => expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy());
+      const confirmBtn = screen.getByText(/Finalizar Venta/i);
+      
+      fireEvent.click(confirmBtn);
+      
+      await waitFor(() => {
+         expect(Object.keys(dbStore.pending_orders).length).toBe(1);
+         expect(dbStore.drafts['seller-1']).toBeDefined();
+         expect(dbStore.drafts['seller-1'].clientRequestId).toBeDefined();
+      });
+
+      const generatedUUID = dbStore.drafts['seller-1'].clientRequestId;
+
+      // Desmontamos (simulando recarga de página/cierre)
+      unmount();
+      cleanup();
+
+      // Montamos nuevamente
+      render(<NuevaVentaPage />);
+
+      await waitFor(() => {
+         expect(screen.getByText(/MockProduct/i)).toBeTruthy();
+      });
+
+      const newConfirmBtn = screen.getByText(/Finalizar Venta/i);
+      
+      // SEGUNDO CLIC (Tras recarga)
+      fireEvent.click(newConfirmBtn);
+
+      await waitFor(() => {
+         expect(addToastMock).toHaveBeenCalledWith('Este pedido ya está en la cola de envíos.');
+      });
+
+      expect(Object.keys(dbStore.pending_orders).length).toBe(1);
+      expect(Object.keys(dbStore.pending_orders)[0]).toBe(generatedUUID);
   });
 });
