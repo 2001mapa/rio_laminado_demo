@@ -23,7 +23,8 @@
     "papaparse": "^5.7.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-qr-code": "^2.2.0"
+    "react-qr-code": "^2.2.0",
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
