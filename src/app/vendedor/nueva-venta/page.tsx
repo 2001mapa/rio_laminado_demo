@@ -121,9 +121,17 @@ export default function NuevaVentaPage() {
     
     if (cartItems.length > 0 || selectedCustomer) {
        const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
-       saveDraft({ sellerId, selectedClientId: selectedCustomer?.id, cart: minimalCart, updatedAt: Date.now() });
+       saveDraft({ 
+           sellerId, 
+           selectedClientId: selectedCustomer?.id, 
+           cart: minimalCart, 
+           updatedAt: Date.now(),
+           clientRequestId: currentCheckoutId || undefined 
+         }).catch(err => {
+           addToast('Error local: tu borrador no pudo ser protegido en el almacenamiento.');
+         });
     } else {
-       clearDraft(sellerId);
+       clearDraft(sellerId).catch(() => {});
     }
   }, [cartItems, selectedCustomer, sellerId, isDraftLoaded, offlineDraftWaiting]);
 
@@ -440,11 +448,15 @@ export default function NuevaVentaPage() {
 
     try {
       await addPendingOrder(pendingOrder);
+      
+      // Lo añadimos inmediatamente a la cola local en memoria para proteger contra fallos posteriores
+      setPendingQueue(prev => [...prev, pendingOrder]);
+      
       await clearDraft(sellerId);
+      
       setCartItems([]);
       setStep(1);
       setSelectedCustomer(null);
-      setPendingQueue(prev => [...prev, pendingOrder]);
       addToast("Borrador guardado localmente.");
       
       await syncPendingOrders(clientRequestId);

@@ -7,6 +7,7 @@ export interface DraftOrder {
   selectedClientId?: string;
   cart: { productId: string; quantity: number; sizes?: any }[];
   updatedAt: number;
+  clientRequestId?: string;
 }
 
 export interface PendingOrder {
