@@ -1,14 +1,10 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { getPendingOrders, updatePendingOrderStatus, removePendingOrder, PendingOrder } from './offlineQueue';
-import { createClient } from '@/utils/supabase/client';
-import { createOrder as createOrderAction, checkOrderByRequestId } from '@/app/actions/orders';
-import { addToast } from './toast';
+const fs = require('fs');
 
-export const activeSyncs = new Set<string>();
-export const MAX_RETRIES = 5;
-export const BASE_DELAY_MS = 2000;
+let c = fs.readFileSync('src/lib/useOfflineSync.ts', 'utf8');
 
-export async function executeSync(
+const regex = /export async function executeSync\([\s\S]*?return closestNextRetry;\n\}/m;
+
+const newExecuteSync = `export async function executeSync(
     sellerId: string, 
     refreshData: () => void, 
     bypassUUID?: string,
@@ -64,7 +60,7 @@ export async function executeSync(
                     if (checkRes.success && checkRes.order && checkRes.order.orderNumber) {
                         // El pedido ya existe! Lo quitamos de la cola
                         await deps.removePendingOrder(order.clientRequestId);
-                        addToast(`Pedido ${checkRes.order.orderNumber} conciliado y enviado con éxito.`, 'success');
+                        addToast(\`Pedido \${checkRes.order.orderNumber} conciliado y enviado con éxito.\`, 'success');
                         refreshData();
                         return;
                     }
@@ -135,7 +131,7 @@ export async function executeSync(
           }
       };
 
-      const lockName = `rio-sync-${staledOrder.clientRequestId}`;
+      const lockName = \`rio-sync-\${staledOrder.clientRequestId}\`;
       
       // Fase 4: Exclusión cruzada entre pestañas con Web Locks API
       if (typeof navigator !== 'undefined' && navigator.locks) {
@@ -146,7 +142,7 @@ export async function executeSync(
           });
       } else {
           // Fallback seguro usando LocalStorage para locks si Web Locks no existe
-          const fallbackLockName = `lock_${lockName}`;
+          const fallbackLockName = \`lock_\${lockName}\`;
           const currentLock = typeof window !== 'undefined' ? window.localStorage.getItem(fallbackLockName) : null;
           
           if (!currentLock || (Date.now() - parseInt(currentLock)) > 30000) {
@@ -161,54 +157,8 @@ export async function executeSync(
     }
     
     return closestNextRetry;
-}
+}`;
 
-export function useOfflineSync(refreshData: () => void) {
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+c = c.replace(regex, newExecuteSync);
 
-  const syncPendingOrders = useCallback(async (bypassUUID?: string) => {
-    if (typeof window === 'undefined') return;
-    
-    if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-    }
-
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    // Exclusión de sesión: si expiró o no hay usuario, pausar todo
-    if (!authData.user) return;
-    
-    const closestNextRetry = await executeSync(authData.user.id, refreshData, bypassUUID);
-
-    if (closestNextRetry && closestNextRetry > Date.now()) {
-        const delay = closestNextRetry - Date.now();
-        timerRef.current = setTimeout(() => syncPendingOrders(), delay);
-    }
-
-  }, [refreshData]);
-
-  useEffect(() => {
-    const handleOnline = () => syncPendingOrders();
-    // Fase 4: Reanudar al volver al primer plano (App Load / Foreground)
-    const handleVisibility = () => {
-        if (document.visibilityState === 'visible') {
-            syncPendingOrders();
-        }
-    };
-    
-    window.addEventListener('online', handleOnline);
-    document.addEventListener('visibilitychange', handleVisibility);
-    
-    // Initial sync
-    syncPendingOrders();
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [syncPendingOrders]);
-
-  return { syncPendingOrders };
-}
+fs.writeFileSync('src/lib/useOfflineSync.ts', c);

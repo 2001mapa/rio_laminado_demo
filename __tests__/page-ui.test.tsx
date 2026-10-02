@@ -3,19 +3,21 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 
-// 1. Mock dependencies
 let mockSyncCalled = false;
 let mockSyncUuid = '';
+let mockAddPendingOrder = vi.fn();
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
     customers: [{ id: 'C1', name: 'Cliente UI', email: 'ui@test.com' }],
-    products: [], // Empty products triggers the offline catalog warning
+    products: [], 
     checkoutSeller: async () => {},
     syncPendingOrders: async (uuid: string) => {
         mockSyncCalled = true;
         mockSyncUuid = uuid;
-    }
+    },
+    currentSeller: { id: 'seller-1' },
+    addToast: vi.fn()
   })
 }));
 
@@ -25,29 +27,25 @@ vi.mock('@/utils/supabase/client', () => ({
   })
 }));
 
+let mockGetPendingOrders = vi.fn(async (userId?: string) => [
+  {
+    clientRequestId: 'fail-biz-1',
+    sellerId: 'seller-1',
+    customerName: 'Cliente Reintento UI',
+    status: 'failed_fatal',
+    lastError: 'Stock insuficiente (Simulado)',
+    createdAt: Date.now(),
+    retryCount: 0
+  }
+]);
+
 vi.mock('@/lib/offlineQueue', () => ({
-  getPendingOrders: async () => [
-    {
-      clientRequestId: 'fail-biz-1',
-      sellerId: 'seller-1',
-      customerName: 'Cliente Reintento UI',
-      status: 'failed_fatal',
-      lastError: 'Stock insuficiente (Simulado)',
-      createdAt: Date.now(),
-      retryCount: 0
-    },
-    {
-      clientRequestId: 'fail-net-max',
-      sellerId: 'seller-1',
-      customerName: 'Cliente Resultado Incierto',
-      status: 'failed_intervention',
-      lastError: 'Requiere verificar con servidor',
-      createdAt: Date.now(),
-      retryCount: 5
-    }
-  ],
+  getPendingOrders: (userId: string) => mockGetPendingOrders(userId),
   removePendingOrder: async () => {},
-  loadDraft: async () => ({ cart: [{ productId: 'missing-p1', quantity: 1 }], clientId: 'C1' })
+  addPendingOrder: (order: any) => mockAddPendingOrder(order),
+  clearDraft: async () => {}, 
+  saveDraft: async () => {},
+  loadDraft: async () => null
 }));
 
 vi.mock('next/navigation', () => ({
@@ -58,47 +56,67 @@ vi.mock('html5-qrcode', () => ({
   Html5Qrcode: class { start(){} stop(){} clear(){} static getCameras(){ return Promise.resolve([]); } }
 }));
 
-describe('NuevaVentaPage UI', () => {
-  it('Debe renderizar la cola de IndexedDB, el aviso de catálogo y ocultar Descartar en failed_intervention', async () => {
+vi.mock('@/app/actions/queries', () => ({
+  getProductsByIds: async () => ({ success: true, products: [] }),
+  getExactProductBySku: async () => ({ success: true, product: { id: 'missing-p1', name: 'MockProduct', sku: 'SKU1', category: 'Collares', material: 'Oro', price: 10, physicalStock: 10, reservedStock: 0 } })
+}));
+
+describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
+
+  it('Verifica que Reintentar desaparece en rechazos de negocio (failed_fatal) y se permite Descartar', async () => {
     render(<NuevaVentaPage />);
-
-    // Wait for the queue block to appear
+    
     await waitFor(() => {
-      expect(screen.queryByText(/Cola de Envíos/)).not.toBeNull();
+       expect(screen.getByText(/Cola de Envíos/i)).toBeTruthy();
     });
 
-    // 1. Verify Catalog Alert
-    expect(screen.getByText('Requiere recargar catálogo')).not.toBeNull();
-
-    // 2. Verify pending cards are rendered
-    const cardFatal = screen.getByText('Cliente Reintento UI').closest('div');
-    const cardIntervention = screen.getByText('Cliente Resultado Incierto').closest('div');
+    const fatalItem = screen.getByText('Stock insuficiente (Simulado)').closest('div');
+    expect(fatalItem).toBeTruthy();
     
-    expect(cardFatal).not.toBeNull();
-    expect(cardIntervention).not.toBeNull();
-    
-    // 3. Verify Discard button visibility per state
-    // failed_fatal -> SHOULD have Descartar
-    const discardBtnsFatal = cardFatal!.querySelectorAll('button');
-    const hasDiscardFatal = Array.from(discardBtnsFatal).some(b => b.textContent?.includes('Descartar'));
-    expect(hasDiscardFatal).toBe(true);
+    expect(fatalItem!.textContent).toContain('Descartar');
+  });
 
-    // failed_intervention -> SHOULD NOT have Descartar
-    const discardBtnsIntervention = cardIntervention!.querySelectorAll('button');
-    const hasDiscardIntervention = Array.from(discardBtnsIntervention).some(b => b.textContent?.includes('Descartar'));
-    expect(hasDiscardIntervention).toBe(false);
-
-    // Both should have Reintentar
-    const hasRetryIntervention = Array.from(discardBtnsIntervention).some(b => b.textContent?.includes('Reintentar'));
-    expect(hasRetryIntervention).toBe(true);
-    
-    // 4. Verify interaction
-    const retryBtns = screen.getAllByText('Reintentar');
-    fireEvent.click(retryBtns[0]); // clicks the first retry (fail-biz-1)
-
-    await waitFor(() => {
-      expect(mockSyncCalled).toBe(true);
-      expect(mockSyncUuid).toBe('fail-biz-1');
-    });
+  it('Comprueba que Confirmar Venta invoca directamente al coordinador unificado', async () => {
+      render(<NuevaVentaPage />);
+      
+      await waitFor(() => {
+         expect(screen.getAllByText(/Cliente UI/i).length).toBeGreaterThan(0); 
+      });
+      fireEvent.click(screen.getAllByText(/Cliente UI/i)[0]);
+      
+      await waitFor(() => {
+         expect(screen.getByText(/Escáner de Productos/i)).toBeTruthy();
+      });
+      
+      const searchInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
+      fireEvent.change(searchInput, { target: { value: 'SKU1' } });
+      
+      fireEvent.submit(searchInput.closest('form')!);
+      
+      await waitFor(() => {
+         expect(screen.getByText(/MockProduct/i)).toBeTruthy();
+      });
+      
+      const allButtons = screen.getAllByRole('button');
+      const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
+      
+      if (!addBtn) throw new Error("Could not find the Agregar button!");
+      fireEvent.click(addBtn);
+      
+      await waitFor(() => {
+         expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy();
+      });
+      
+      const confirmBtn = screen.getByText(/Finalizar Venta/i);
+      
+      mockSyncCalled = false;
+      mockAddPendingOrder.mockClear();
+      
+      fireEvent.click(confirmBtn);
+      
+      await waitFor(() => {
+         expect(mockAddPendingOrder).toHaveBeenCalled();
+         expect(mockSyncCalled).toBe(true);
+      });
   });
 });

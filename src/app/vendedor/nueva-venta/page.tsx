@@ -399,7 +399,6 @@ export default function NuevaVentaPage() {
       }
     }
 
-    
     const clientRequestId = uuidv4();
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
@@ -408,7 +407,7 @@ export default function NuevaVentaPage() {
       sellerId,
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
-      items: cartItems.map((item) => ({
+      items: cartItems.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
         sizeDetails: item.sizes,
@@ -428,27 +427,16 @@ export default function NuevaVentaPage() {
       setPendingQueue(prev => [...prev, pendingOrder]);
       addToast("Borrador guardado localmente.");
       
-      if (navigator.onLine) {
-        const res = await checkoutSeller(pendingOrder.customerId!, cartItems, clientRequestId);
-        if (res.success) {
-           await removePendingOrder(clientRequestId);
-           setPendingQueue(prev => prev.filter(p => p.clientRequestId !== clientRequestId));
-           addToast("Venta confirmada: " + (res.order?.orderNumber || ''));
-        } else {
-           addToast("No se pudo confirmar de inmediato, reintentando en segundo plano.");
-        }
-      } else {
-        addToast("Sin conexión. El pedido está en cola y se enviará automáticamente al recuperar la red.");
-      }
+      await syncPendingOrders(clientRequestId);
+      
+      if (sellerId) getPendingOrders(sellerId).then(setPendingQueue);
+      
     } catch(err) {
       console.error(err);
       addToast("Error guardando el borrador local");
     } finally {
       setIsCheckingOut(false);
     }
-    return;
-
-    setIsCheckingOut(false);
   };
 
   const updateCartItemQuantity = (productId: string, delta: number) => {
@@ -520,7 +508,7 @@ export default function NuevaVentaPage() {
                       }</span></p>
                       {order.lastError && <p className="text-xs text-red-500 mt-1">{order.lastError}</p>}
                       <div className="mt-2 flex gap-2">
-                        {(order.status === 'failed_fatal' || order.status === 'failed_intervention' || order.status === 'failed_recoverable') && (
+                        {(order.status === 'failed_intervention' || order.status === 'failed_recoverable') && (
                           <button onClick={() => handleRetry(order)} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium hover:bg-gray-100 flex items-center gap-1">
                             <RefreshCw className="w-3 h-3" /> Reintentar
                           </button>
