@@ -166,23 +166,27 @@ export async function removePendingOrder(id: string) {
 }
 
 
-export async function searchOfflineProducts(query: string): Promise<CatalogProduct[]> {
+export async function searchOfflineProducts(query: string, sellerId?: string): Promise<CatalogProduct[]> {
   const db = await getDB();
   if (!db) return [];
-  const all = (await db.getAll('catalog_products')) as unknown as CatalogProduct[];
+  const meta = await db.get('sync_meta', 'lastSellerId');
+    if (meta && meta.lastSyncedAt !== sellerId) return [];
+    const all = (await db.getAll('catalog_products')) as unknown as CatalogProduct[];
   const lowerQuery = query.toLowerCase();
   return all.filter(p => p.isActive && (p.sku.toLowerCase().includes(lowerQuery) || p.name.toLowerCase().includes(lowerQuery)));
 }
 
-export async function searchOfflineCustomers(query: string): Promise<CatalogCustomer[]> {
+export async function searchOfflineCustomers(query: string, sellerId?: string): Promise<CatalogCustomer[]> {
   const db = await getDB();
   if (!db) return [];
-  const all = (await db.getAll('catalog_customers')) as unknown as CatalogCustomer[];
+  const meta = await db.get('sync_meta', 'lastSellerId');
+    if (meta && meta.lastSyncedAt !== sellerId) return [];
+    const all = (await db.getAll('catalog_customers')) as unknown as CatalogCustomer[];
   const lowerQuery = query.toLowerCase();
   return all.filter(c => c.status === 'active' && c.name.toLowerCase().includes(lowerQuery));
 }
 
-export async function getOfflineProductsByIds(ids: string[]): Promise<CatalogProduct[]> {
+export async function getOfflineProductsByIds(ids: string[], sellerId?: string): Promise<CatalogProduct[]> {
   const db = await getDB();
   if (!db) return [];
   const tx = db.transaction('catalog_products', 'readonly');

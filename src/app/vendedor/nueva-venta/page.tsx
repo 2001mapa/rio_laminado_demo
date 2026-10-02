@@ -26,7 +26,7 @@ export default function NuevaVentaPage() {
   const effectiveCustomers = customers.length > 0 ? customers : offlineCustomers;
   useEffect(() => {
     if (customers.length === 0) {
-      searchOfflineCustomers('').then(res => setOfflineCustomers(res as any));
+      searchOfflineCustomers('', sellerId).then(res => setOfflineCustomers(res as any));
     }
   }, [customers]);
   
@@ -344,7 +344,7 @@ export default function NuevaVentaPage() {
       }
 
       if (!product) {
-        const offlineResults = await searchOfflineProducts(sku);
+        const offlineResults = await searchOfflineProducts(sku, sellerId);
         const match = offlineResults.find((p: any) => p.sku.toLowerCase() === sku.toLowerCase());
         if (match) {
           product = match;
@@ -623,6 +623,18 @@ export default function NuevaVentaPage() {
                         'Requiere revisión'
                       }</span></p>
                       {order.lastError && <p className="text-xs text-red-500 mt-1">{order.lastError}</p>}
+                        {order.status === 'conflict' && order.conflicts && order.conflicts.length > 0 && (
+                          <ul className="mt-2 space-y-1 text-xs text-red-600 bg-red-50/50 p-2 rounded-lg border border-red-100">
+                            {order.conflicts.map((c, i) => (
+                              <li key={i} className="flex flex-col">
+                                <span className="font-bold">Ref: {c.productId}</span>
+                                <span>{c.reason}</span>
+                                {c.currentStock !== undefined && <span className="text-[10px]">Stock actual en B2B: {c.currentStock}</span>}
+                                {c.currentPrice !== undefined && <span className="text-[10px]">Precio actual en B2B: $ {c.currentPrice}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       <div className="mt-2 flex gap-2">
                         {(order.status === 'failed_intervention' || order.status === 'failed_recoverable') && (
                           <button onClick={() => handleRetry(order)} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium hover:bg-gray-100 flex items-center gap-1">
