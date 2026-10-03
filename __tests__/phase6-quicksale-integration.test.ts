@@ -113,7 +113,7 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     // Reintento: una tercera petición idéntica tiempo después
     const result3 = await createOrder(orderData);
     expect(result3.success).toBe(true);
-    expect(result3.order.id).toBe(createdOrder.id); // Debe devolver exactamente el mismo pedido
+    expect(result3.order?.id).toBe(createdOrder.id); // Debe devolver exactamente el mismo pedido
 
     // Verificación final en BD: Solo un cliente y un pedido creados
     const ordersByReq = await testPrisma.order.findMany({ where: { clientRequestId: reqId } });

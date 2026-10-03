@@ -10,17 +10,17 @@ vi.mock('@/lib/toast', () => ({ addToast: vi.fn() }));
 vi.mock('@/app/actions/queries', () => ({
   getExactProductBySku: vi.fn().mockResolvedValue({
     success: true,
-    product: { id: 'p1', sku: 'A1', name: 'Anillo Test', category: 'Anillos', price: 100, physicalStock: 10, isActive: true }
+    product: { id: 'p1', sku: 'A1', name: 'Anillo Test', category: 'Collares', price: 100, physicalStock: 10, isActive: true }
   }),
   getProductsByIds: vi.fn().mockResolvedValue({
     success: true,
-    products: [{ id: 'p1', sku: 'A1', name: 'Anillo Test', category: 'Anillos', price: 100, physicalStock: 10, isActive: true }]
+    products: [{ id: 'p1', sku: 'A1', name: 'Anillo Test', category: 'Collares', price: 100, physicalStock: 10, isActive: true }]
   })
 }));
 
 const mockDemoContext = {
   customers: [],
-  products: [{ id: 'p1', sku: 'A1', name: 'Anillo Test', category: 'Anillos', price: 100, physicalStock: 10, isActive: true }],
+  products: [{ id: 'p1', sku: 'A1', name: 'Anillo Test', category: 'Collares', price: 100, physicalStock: 10, isActive: true }],
   get checkoutSeller() { return { id: 'seller-1', name: 'Seller' }; },
   syncPendingOrders: vi.fn()
 };
@@ -81,7 +81,7 @@ describe('Phase 6: Venta Rapida UI', () => {
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
 
     // Cuando encuentra el producto muestra un modal para confirmar
-    const confirmBtn = screen.getByText('Confirmar y Agregar');
+    const confirmBtn = screen.getByText('Agregar a la Orden');
     fireEvent.click(confirmBtn);
     
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
