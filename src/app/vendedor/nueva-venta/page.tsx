@@ -483,7 +483,7 @@ export default function NuevaVentaPage() {
         setSelectedCustomer(null);
         setNewCustomerData(null);
         setCurrentCheckoutId(null);
-        try { await clearDraft(sellerId); } catch(e) {}
+        try { await clearDraft(sellerId); } catch(e) { addToast("El pedido está seguro en cola, pero el borrador residual no pudo eliminarse y podría reaparecer."); }
         return;
       }
     }

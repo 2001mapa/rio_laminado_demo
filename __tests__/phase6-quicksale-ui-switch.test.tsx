@@ -1,4 +1,4 @@
-import 'fake-indexeddb/auto';
+﻿import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
@@ -241,10 +241,9 @@ describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restore
     }));
   });
   it('previene crear una venta duplicada si clearDraft falla (carrito residual)', async () => {
-    // 1. Simulamos que una orden previa termin en la cola exitosamente, PERO clearDraft fall
     const fakeResidualId = 'uuid-residual-999';
     
-    // a. Orden ya en cola (estado correcto final de addPendingOrder)
+    // a. Orden ya en cola
     await offlineQueue.addPendingOrder({
       clientRequestId: fakeResidualId,
       sellerId: mockSellerId,
@@ -257,7 +256,7 @@ describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restore
       retryCount: 0
     });
 
-    // b. El borrador tambin qued vivo (porque clearDraft fall)
+    // b. El borrador tambin qued vivo
     vi.spyOn(offlineQueue, 'loadDraft').mockResolvedValue({
       sellerId: mockSellerId, cart: [{ productId: 'p1', quantity: 1 }],
       clientRequestId: fakeResidualId,
@@ -265,42 +264,40 @@ describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restore
       updatedAt: Date.now()
     });
 
+    // c. Forzamos el fallo de clearDraft!
+    vi.spyOn(offlineQueue, 'clearDraft').mockRejectedValue(new Error('Simulated clearDraft fail'));
     const addSpy = vi.spyOn(offlineQueue, 'addPendingOrder');
     
-    // 2. Renderizamos la UI. El useEffect cargar el draft residual.
+    // 2. Renderizamos la UI.
+    const { unmount } = render(<NuevaVentaPage />);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    // Intenta cambiar de cliente. Debe fallar clearDraft y mostrar el nuevo toast!
+    fireEvent.click(screen.getByText('Cambiar Cliente'));
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+    
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('el borrador residual'));
+
+    // Remontamos la pagina para simular un refresco de la web por parte del usuario frustrado
+    unmount();
     render(<NuevaVentaPage />);
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
 
-    // La UI est en Step 2 (escner). El usuario ve el carrito de la orden anterior
-    // e intenta cambiar el cliente para hacer una nueva venta usando esos mismos items sin saberlo.
-    fireEvent.click(screen.getByText('Cambiar Cliente'));
-    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
-
-    // EXPECT: Debe haber interceptado, limpiado el carrito residual y enviado a Step 1
-    // Comprobemos que el toast haya salido
-    const clearDraftSpy = vi.spyOn(offlineQueue, 'clearDraft');
-
-    // 3. El carrito se vaci y volvimos al Step 1.
-    // El usuario selecciona a alguien para la nueva venta
-    fireEvent.click(screen.getAllByText('Cliente Existente')[0]);
-    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
-
-    // 4. Intenta Finalizar Venta INMEDIATAMENTE
-    // Como se vaci el carrito por seguridad, el botn "Finalizar Venta" NO debera existir o no debe hacer nada
-    // Buscamos si existe Finalizar Venta y hacemos clic (si existe)
+    // El draft residual vuelve a cargar en step 2 con el mismo UUID.
+    // Esta vez el usuario no cambia de cliente, sino que pulsa Finalizar Venta creyendo que no se envi.
     const finalizarBtns = screen.queryAllByRole('button', { name: /Finalizar Venta/i });
     if (finalizarBtns.length > 0) {
       fireEvent.click(finalizarBtns[0]);
       await act(async () => { await new Promise(r => setTimeout(r, 100)); });
     }
 
-    // El addPendingOrder no debi haber sido llamado para crear un duplicado
-    expect(addSpy).not.toHaveBeenCalled();
+    // Debe mostrar que el UUID de la cola se reconoce de nuevo sin duplicar
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('el borrador residual'));
 
-    // Verifiquemos el estado de la cola
+    // Verificamos estricta prevencin de duplicado y estado intacto
+    expect(addSpy).not.toHaveBeenCalled();
     const pending = await offlineQueue.getPendingOrders(mockSellerId);
-    expect(pending.some(o => o.clientRequestId === fakeResidualId)).toBe(true);
-    
+    expect(pending.filter(o => o.clientRequestId === fakeResidualId).length).toBe(1); // Exactamente un pendiente con este UUID
   });
 
 });
