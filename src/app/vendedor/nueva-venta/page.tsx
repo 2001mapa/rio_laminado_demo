@@ -170,7 +170,7 @@ export default function NuevaVentaPage() {
     const handleResolveConflict = async (order: PendingOrder) => {
         let currentProducts = products;
         if (currentProducts.length === 0) {
-           currentProducts = (await getOfflineProductsByIds(order.items.map(i => i.productId))) as any[];
+           currentProducts = (await getOfflineProductsByIds(order.items.map(i => i.productId), sellerId)) as any[];
         }
         const hydratedCart = order.items.map(i => {
            let p = currentProducts.find((p: any) => p.id === i.productId);

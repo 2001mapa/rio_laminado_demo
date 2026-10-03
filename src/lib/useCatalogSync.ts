@@ -77,8 +77,7 @@ export function useCatalogSync(sellerId?: string) {
         hasMoreCust = res.hasMore;
       }
       
-      // Transaction to isolate write:
-      // Clear old and put new data for BOTH stores
+      // Transaction to isolate write
       const tx = db.transaction(['catalog_products', 'catalog_customers'], 'readwrite');
       await tx.objectStore('catalog_products').clear();
       for (const p of allFetchedProducts) {
@@ -102,6 +101,27 @@ export function useCatalogSync(sellerId?: string) {
       setIsSyncing(false);
     }
   }, [isSyncing, sellerId]);
+
+  // Restaura la sincronización automática
+  useEffect(() => {
+    if (!sellerId) return;
+    
+    // Al obtener la sesión (si no ha sincronizado o simplemente al montar)
+    syncCatalog();
+    
+    const handleOnline = () => syncCatalog();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') syncCatalog();
+    };
+    
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [sellerId, syncCatalog]);
 
   return { isSyncing, lastSyncDate, syncCatalog };
 }
