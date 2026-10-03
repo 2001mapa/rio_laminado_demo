@@ -22,7 +22,8 @@ export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
   items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: { size: string, quantity: number }[] }[];
   clientRequestId?: string;
-}) {
+    newCustomerData?: { name: string, phone: string, city: string, address: string, email?: string };
+  }) {
   const { user, role } = await requireRole(['cliente', 'vendedor', 'admin']);
   
   try {
@@ -104,10 +105,12 @@ export async function createOrder(data: {
     }
 
     // Obtener detalles del cliente para aplicar descuentos reales
-    const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
-    if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
-    if (targetCustomer.showDiscount) {
-      discount = targetCustomer.discount / 100;
+    if (finalCustomerId !== 'NEW_CUSTOMER') {
+      const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
+      if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
+      if (targetCustomer.showDiscount) {
+        discount = targetCustomer.discount / 100;
+      }
     }
 
     // Retry loop for unique constraint violations
@@ -118,6 +121,21 @@ export async function createOrder(data: {
     while (attempt < MAX_RETRIES) {
       try {
         order = await prisma.$transaction(async (tx) => {
+            let actualCustomerId = finalCustomerId;
+            if (actualCustomerId === 'NEW_CUSTOMER' && data.newCustomerData) {
+               const newCust = await tx.customer.create({
+                  data: {
+                      name: data.newCustomerData.name,
+                      phone: data.newCustomerData.phone,
+                      city: data.newCustomerData.city,
+                      address: data.newCustomerData.address,
+                      email: data.newCustomerData.email || null,
+                      internalSystemStatus: 'Pendiente'
+                  }
+               });
+               actualCustomerId = newCust.id;
+            }
+
             let subtotal = 0;
             const orderItemsByMaterial: Record<string, any[]> = {};
             const conflicts: any[] = [];
@@ -209,7 +227,7 @@ export async function createOrder(data: {
                 orderNumber,
                 clientRequestId: data.clientRequestId || undefined,
                 originalPayload: data.items as any,
-                customerId: finalCustomerId,
+                customerId: actualCustomerId,
                 sellerId: finalSellerId,
                 status: 'Reservado',
                 totalAmount: totalAmount,

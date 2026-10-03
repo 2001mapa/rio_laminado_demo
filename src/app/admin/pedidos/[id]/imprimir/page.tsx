@@ -77,6 +77,8 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
           <div className="text-right max-w-[150px]">
             <p className="font-bold uppercase text-[10px] bg-black text-white px-1 py-0.5 inline-block mb-1">Cliente</p>
             <p className="font-bold text-xs truncate">{customer?.name}</p>
+            <p className="text-[10px] leading-tight truncate">{customer?.city}</p>
+            <p className="text-[10px] leading-tight truncate">{customer?.address}</p>
           </div>
         </div>
 

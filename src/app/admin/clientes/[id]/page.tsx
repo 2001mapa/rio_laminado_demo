@@ -1,6 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
+import { updateCustomerInternalStatus } from '@/app/actions/clients';
 import { updateCustomerStatusAction, getCustomerProfile } from '@/app/actions/clients';
 import EditCustomerModal from '@/components/EditCustomerModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';

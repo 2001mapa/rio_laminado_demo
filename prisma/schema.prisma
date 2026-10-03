@@ -15,10 +15,12 @@ model Customer {
   name         String
   email        String?   @unique
   phone        String?
+  city         String?
   address      String?
   discount     Int       @default(0)
   showDiscount Boolean   @default(false)
   status       String    @default("active")
+  internalSystemStatus String @default("Registrado")
   createdAt    DateTime  @default(now())
   orders       Order[]
 }

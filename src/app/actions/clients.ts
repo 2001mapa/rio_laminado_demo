@@ -20,7 +20,7 @@ export async function createCustomer(data: {
   showDiscount: boolean;
   temporaryPassword?: string;
 }) {
-  await requireRole(['admin']);
+  const { user } = await requireRole(['admin']);
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -200,5 +200,36 @@ export async function getCustomerProfile(customerId: string) {
     return { success: true, orders: mapped };
   } catch (e: any) {
     return { success: false, message: e.message };
+  }
+}
+
+
+import { logAuditEvent, getAuditActor } from '@/lib/audit';
+
+export async function updateCustomerInternalStatus(id: string, status: 'Pendiente' | 'Registrado') {
+  await requireRole(['admin']);
+  try {
+    const actor = await getAuditActor();
+    
+    const existing = await prisma.customer.findUnique({ where: { id } });
+    if (!existing) return { success: false, message: 'Cliente no encontrado' };
+    
+    const updated = await prisma.customer.update({
+      where: { id },
+      data: { internalSystemStatus: status }
+    });
+    
+    await logAuditEvent(actor, {
+      action: 'UPDATE',
+      entityType: 'CUSTOMER',
+      entityId: id,
+      result: 'success',
+      changes: { before: { internalSystemStatus: existing.internalSystemStatus }, after: { internalSystemStatus: status } }
+    });
+    
+    return { success: true, customer: updated };
+  } catch (error: any) {
+    console.error('Error updating status:', error);
+    return { success: false, message: error.message };
   }
 }

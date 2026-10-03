@@ -22,6 +22,8 @@ export default function NuevaVentaPage() {
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [newCustomerData, setNewCustomerData] = useState<{name: string, phone: string, city: string, address: string, email?: string} | null>(null);
+  const [isCreatingNewCustomer, setIsCreatingNewCustomer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sellerId, setSellerId] = useState<string>('');
   const effectiveCustomers = customers.length > 0 ? customers : offlineCustomers;
@@ -47,7 +49,7 @@ export default function NuevaVentaPage() {
   
 
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
-  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string} | null>(null);
+  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string, newCustomerData?: any} | null>(null);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => {
@@ -57,8 +59,8 @@ export default function NuevaVentaPage() {
           
           if (!isDraftLoaded) {
              loadDraft(data.user.id).then(draft => {
-                   if (draft && draft.cart && draft.cart.length > 0) {
-                       setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId });
+                   if (draft && ((draft.cart && draft.cart.length > 0) || draft.newCustomerData)) {
+                       setOfflineDraftWaiting({ cart: draft.cart || [], clientId: draft.selectedClientId, newCustomerData: draft.newCustomerData });
                        if (draft.clientRequestId) {
                            setCurrentCheckoutId(draft.clientRequestId);
                        }
@@ -109,19 +111,22 @@ export default function NuevaVentaPage() {
               }
       
               if (allResolved && clientResolved) {
-                  if (restoredCart.length > 0) {
-                      setCartItems(restoredCart as any[]);
-                  }
-                  if (offlineDraftWaiting.clientId) {
-                     const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
-                     if (cust) {
-                         setSelectedCustomer(cust || null);
-                         setStep(2);
-                     }
-                  }
-                  setOfflineDraftWaiting(null);
-                  setIsDraftLoaded(true);
-              }
+                    if (restoredCart.length > 0) {
+                        setCartItems(restoredCart as any[]);
+                    }
+                    if (offlineDraftWaiting.clientId) {
+                       const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
+                       if (cust) {
+                           setSelectedCustomer(cust || null);
+                           setStep(2);
+                       }
+                    } else if (offlineDraftWaiting.newCustomerData) {
+                       setNewCustomerData(offlineDraftWaiting.newCustomerData);
+                       setStep(2);
+                    }
+                    setOfflineDraftWaiting(null);
+                    setIsDraftLoaded(true);
+                }
           };
           hydrate();
       }
@@ -132,11 +137,11 @@ export default function NuevaVentaPage() {
     // Prohibimos guardar/sobrescribir para proteger el borrador original de IDB.
     if (!isDraftLoaded || !sellerId || offlineDraftWaiting) return;
     
-    if (cartItems.length > 0 || selectedCustomer) {
+    if (cartItems.length > 0 || selectedCustomer || newCustomerData) {
        const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
        saveDraft({ 
            sellerId, 
-           selectedClientId: selectedCustomer?.id, 
+           selectedClientId: selectedCustomer?.id, newCustomerData: newCustomerData || undefined, 
            cart: minimalCart, 
            updatedAt: Date.now(),
            clientRequestId: currentCheckoutId || undefined 
@@ -146,7 +151,7 @@ export default function NuevaVentaPage() {
     } else {
        clearDraft(sellerId).catch(() => {});
     }
-  }, [cartItems, selectedCustomer, sellerId, isDraftLoaded, offlineDraftWaiting]);
+  }, [cartItems, selectedCustomer, newCustomerData, sellerId, isDraftLoaded, offlineDraftWaiting]);
 
   useEffect(() => {
     const refreshQueue = () => {
@@ -533,8 +538,8 @@ export default function NuevaVentaPage() {
     const pendingOrder: PendingOrder = {
       clientRequestId,
       sellerId,
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
+      customerId: selectedCustomer ? selectedCustomer.id : 'NEW_CUSTOMER',
+        customerName: selectedCustomer ? selectedCustomer.name : (newCustomerData?.name || 'Cliente Nuevo'),
       items: cartItems.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -692,29 +697,74 @@ export default function NuevaVentaPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-bold text-rio-muted uppercase tracking-wider px-2">Clientes Disponibles</p>
-            {filteredCustomers.length === 0 ? (
-              <div className="text-center py-8 bg-rio-surface-muted rounded-2xl border border-rio-border border-dashed">
-                <p className="text-[13px] text-rio-muted font-medium">No se encontraron clientes.</p>
-              </div>
-            ) : (
-              filteredCustomers.map(customer => (
-                <button
-                  key={customer.id}
-                  onClick={() => { setSelectedCustomer(customer); setStep(2); }}
-                  className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
+              <div className="flex items-center justify-between px-2">
+                <p className="text-xs font-bold text-rio-muted uppercase tracking-wider">Clientes Disponibles</p>
+                <button 
+                  onClick={() => setIsCreatingNewCustomer(true)}
+                  className="text-xs font-bold text-rio-gold-dark hover:text-rio-gold-light transition-colors flex items-center gap-1"
                 >
-                  <div>
-                    <p className="font-bold text-rio-ink text-sm group-hover:text-rio-gold-dark transition-colors">{customer.name}</p>
-                    <p className="text-xs text-rio-muted mt-1">{customer.email}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-rio-background flex items-center justify-center group-hover:bg-rio-gold-light/20 transition-colors">
-                    <Plus className="w-4 h-4 text-rio-gold-dark" />
-                  </div>
+                  <Plus className="w-3 h-3" />
+                  Cliente Nuevo
                 </button>
-              ))
-            )}
-          </div>
+              </div>
+
+              {isCreatingNewCustomer ? (
+                <div className="bg-white p-4 rounded-2xl border border-rio-border space-y-4">
+                  <h3 className="font-bold text-sm text-rio-ink border-b pb-2">Registrar Venta Rápida</h3>
+                  <input type="text" placeholder="Nombre o Negocio *" className="w-full text-sm border p-2 rounded" id="new-name" defaultValue={newCustomerData?.name || ''} />
+                  <input type="text" placeholder="Teléfono *" className="w-full text-sm border p-2 rounded" id="new-phone" defaultValue={newCustomerData?.phone || ''} />
+                  <input type="text" placeholder="Ciudad / Departamento *" className="w-full text-sm border p-2 rounded" id="new-city" defaultValue={newCustomerData?.city || ''} />
+                  <input type="text" placeholder="Dirección de Entrega *" className="w-full text-sm border p-2 rounded" id="new-address" defaultValue={newCustomerData?.address || ''} />
+                  <input type="email" placeholder="Correo Electrónico (Opcional)" className="w-full text-sm border p-2 rounded" id="new-email" defaultValue={newCustomerData?.email || ''} />
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setIsCreatingNewCustomer(false)}
+                      className="flex-1 py-2 text-sm text-rio-muted border rounded"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const name = (document.getElementById('new-name') as HTMLInputElement).value;
+                        const phone = (document.getElementById('new-phone') as HTMLInputElement).value;
+                        const city = (document.getElementById('new-city') as HTMLInputElement).value;
+                        const address = (document.getElementById('new-address') as HTMLInputElement).value;
+                        const email = (document.getElementById('new-email') as HTMLInputElement).value;
+                        if (!name || !phone || !city || !address) {
+                          addToast('Llene todos los campos obligatorios');
+                          return;
+                        }
+                        setNewCustomerData({ name, phone, city, address, email });
+                        setStep(2);
+                      }}
+                      className="flex-1 py-2 text-sm text-white bg-rio-ink rounded font-bold"
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+              ) : filteredCustomers.length === 0 ? (
+                <div className="text-center py-8 bg-rio-surface-muted rounded-2xl border border-rio-border border-dashed">
+                  <p className="text-[13px] text-rio-muted font-medium">No se encontraron clientes.</p>
+                </div>
+              ) : (
+                filteredCustomers.map(customer => (
+                  <button
+                    key={customer.id}
+                    onClick={() => { setSelectedCustomer(customer); setStep(2); }}
+                    className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-bold text-rio-ink text-sm group-hover:text-rio-gold-dark transition-colors">{customer.name}</p>
+                      <p className="text-xs text-rio-muted mt-1">{customer.email}</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-rio-background flex items-center justify-center group-hover:bg-rio-gold-light/20 transition-colors">
+                      <Plus className="w-4 h-4 text-rio-gold-dark" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
         </div>
       )}
 
@@ -744,7 +794,12 @@ export default function NuevaVentaPage() {
               <div className="p-4 border-b border-rio-border bg-rio-surface flex items-center justify-between z-20 shrink-0">
                 <div className="flex-1">
                   <p className="text-[10px] uppercase font-bold text-rio-muted">Cliente Seleccionado</p>
-                  <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name}</p>
+                  <div className="flex gap-2 items-center">
+                      <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name || newCustomerData?.name}</p>
+                      {newCustomerData && (
+                        <button onClick={() => setStep(1)} className="text-[10px] text-rio-gold-dark underline">Editar Datos del Cliente</button>
+                      )}
+                    </div>
                 </div>
               </div>
 
