@@ -115,39 +115,39 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
 
               return (
                 <tr key={item.id} className={`border-b border-gray-400 ${styles.itemRow}`}>
-                  <td className="py-2 px-1 text-xs text-gray-500 font-bold">{index + 1}</td>
-                  <td className={`py-2 px-1 ${styles.locationCell}`}>
+                  <td className="py-1 px-1 text-[11px] text-gray-500 font-bold">{index + 1}</td>
+                  <td className={`py-1 px-1 ${styles.locationCell}`}>
                     {isNoLocation ? (
-                      <span className="bg-black text-white px-1.5 py-0.5 text-xs font-bold whitespace-nowrap">SIN UBIC.</span>
+                      <span className="bg-black text-white px-1 py-0.5 text-[10px] font-bold whitespace-nowrap">SIN UBIC.</span>
                     ) : (
-                      <span className="font-black text-sm">{product.locationCode}</span>
+                      <span className="font-black text-xs">{product.locationCode}</span>
                     )}
                   </td>
-                  <td className={`py-2 px-1 font-mono font-bold text-sm ${styles.referenceCell}`}>
+                  <td className={`py-1 px-1 font-mono font-bold text-xs leading-tight ${styles.referenceCell}`}>
                     {product.sku}
                   </td>
-                  <td className="py-2 px-1 text-center">
+                  <td className="py-1 px-1 text-center">
                     <img 
                       src={product.imageUrl || undefined} 
                       alt="" 
-                      className="w-10 h-10 object-cover border border-gray-300 rounded-sm inline-block"
+                      className="w-8 h-8 object-cover border border-gray-300 rounded-sm inline-block"
                     />
                   </td>
-                  <td className="py-2 px-1 text-center">
-                    <span className="text-xl font-black border border-black rounded-sm px-2 py-0.5 inline-block leading-none">
+                  <td className="py-1 px-1 text-center">
+                    <span className="text-base font-black border border-black rounded-sm px-1.5 py-0.5 inline-block leading-none">
                       {item.quantity}
                     </span>
                   </td>
-                  <td className="py-2 px-2 text-xs font-medium leading-tight text-gray-800">
+                  <td className="py-1 px-2 text-[11px] font-medium leading-tight text-gray-800">
                     {product.name}
                     {item.sizeDetails && item.sizeDetails.length > 0 && (
-                      <div className="mt-1 text-[10px] font-bold text-black bg-gray-100 p-1 rounded inline-block">
+                      <div className="text-[9px] font-bold text-black bg-gray-100 px-1 py-0.5 rounded inline-block">
                         Tallas: {item.sizeDetails.map((s: any) => `${s.size} x ${s.quantity}`).join(' | ')}
                       </div>
                     )}
                   </td>
-                  <td className="py-2 px-1 text-center align-middle">
-                    <div className="w-6 h-6 border-2 border-black rounded-sm mx-auto"></div>
+                  <td className="py-1 px-1 text-center align-middle">
+                    <div className="w-5 h-5 border-2 border-black rounded-sm mx-auto"></div>
                   </td>
                 </tr>
               );
