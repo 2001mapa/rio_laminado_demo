@@ -75,7 +75,9 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
       newCustomerData: { name: 'Cliente Rollback', phone: '111', city: 'BOG', address: 'Avenida 1' }
     });
 
-    await expect(resultPromise).rejects.toThrow('No hay stock');
+    const result = await resultPromise;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('No hay stock');
 
     // Verificar el Rollback: No debe existir el pedido NI EL CLIENTE NUEVO.
     const orderCheck = await testPrisma.order.findUnique({ where: { clientRequestId: reqId } });

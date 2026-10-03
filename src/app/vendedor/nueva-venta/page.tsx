@@ -474,19 +474,17 @@ export default function NuevaVentaPage() {
   };
 
   const handleCheckout = async () => {
-    if (!selectedCustomer || cartItems.length === 0) return;
+    if ((!selectedCustomer && !newCustomerData) || cartItems.length === 0) return;
     
-    // Si ya existe en la cola, bloquemos la creación de uno nuevo
     console.log('CHECKOUT CLICK:', { currentCheckoutId, pendingQueueIds: pendingQueue.map(o => o.clientRequestId) });
     if (currentCheckoutId) {
           const idbQueue = await getPendingOrders(sellerId);
           if (idbQueue.some(o => o.clientRequestId === currentCheckoutId)) {
               addToast("Este pedido ya está en la cola de envíos.");
-              
-              // Opcionalmente limpiar el carrito porque ya lo capturó el IDB
               setCartItems([]);
               setStep(1);
               setSelectedCustomer(null);
+              setNewCustomerData(null);
               return;
           }
       }
@@ -519,12 +517,12 @@ export default function NuevaVentaPage() {
           try {
               await saveDraft({
                 sellerId,
-                selectedClientId: selectedCustomer.id,
+                selectedClientId: selectedCustomer ? selectedCustomer.id : undefined,
+                newCustomerData: newCustomerData || undefined,
                 cart: minimalCart,
                 updatedAt: Date.now(),
                 clientRequestId
               });
-              // Solo atar al estado si realmente persistió en IndexedDB
               setCurrentCheckoutId(clientRequestId);
           } catch (err) {
               console.error(err);
@@ -539,7 +537,8 @@ export default function NuevaVentaPage() {
       clientRequestId,
       sellerId,
       customerId: selectedCustomer ? selectedCustomer.id : 'NEW_CUSTOMER',
-        customerName: selectedCustomer ? selectedCustomer.name : (newCustomerData?.name || 'Cliente Nuevo'),
+      customerName: selectedCustomer ? selectedCustomer.name : (newCustomerData?.name || 'Cliente Nuevo'),
+      newCustomerData: newCustomerData || undefined,
       items: cartItems.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -555,7 +554,6 @@ export default function NuevaVentaPage() {
     try {
       await addPendingOrder(pendingOrder);
       
-      // Lo añadimos inmediatamente a la cola local en memoria para proteger contra fallos posteriores
       setPendingQueue(prev => [...prev, pendingOrder]);
       
       await clearDraft(sellerId);
@@ -563,6 +561,7 @@ export default function NuevaVentaPage() {
       setCartItems([]);
       setStep(1);
       setSelectedCustomer(null);
+      setNewCustomerData(null);
       addToast("Borrador guardado localmente.");
       
       await syncPendingOrders(clientRequestId);
