@@ -8,13 +8,6 @@ export interface DraftOrder {
   cart: { productId: string; quantity: number; sizes?: any }[];
   updatedAt: number;
   clientRequestId?: string;
-  newCustomerData?: {
-    name: string;
-    phone: string;
-    city: string;
-    address: string;
-    email?: string;
-  };
 }
 
 export interface PendingOrder {
@@ -25,13 +18,6 @@ export interface PendingOrder {
   items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: any }[];
   status: 'pending' | 'syncing' | 'failed_recoverable' | 'failed_fatal' | 'failed_intervention' | 'conflict';
   conflicts?: { productId?: string; reason: string; currentStock?: number; currentPrice?: number }[];
-  newCustomerData?: {
-    name: string;
-    phone: string;
-    city: string;
-    address: string;
-    email?: string;
-  };
   lastError?: string;
   createdAt: number;
   retryCount: number;

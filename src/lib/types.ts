@@ -24,9 +24,7 @@ export type Customer = {
   showDiscount: boolean; // admin controls whether client sees their discount
   status: 'active' | 'suspended';
   phone: string;
-  city?: string | null;
   address: string;
-  internalSystemStatus?: string;
 };
 
 export type OrderStatus = 

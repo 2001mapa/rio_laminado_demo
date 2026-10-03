@@ -22,8 +22,6 @@ export default function NuevaVentaPage() {
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [newCustomerData, setNewCustomerData] = useState<{name: string, phone: string, city: string, address: string, email?: string} | null>(null);
-  const [isCreatingNewCustomer, setIsCreatingNewCustomer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sellerId, setSellerId] = useState<string>('');
   const effectiveCustomers = customers.length > 0 ? customers : offlineCustomers;
@@ -49,7 +47,7 @@ export default function NuevaVentaPage() {
   
 
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
-  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string, newCustomerData?: any} | null>(null);
+  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string} | null>(null);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => {
@@ -59,8 +57,8 @@ export default function NuevaVentaPage() {
           
           if (!isDraftLoaded) {
              loadDraft(data.user.id).then(draft => {
-                   if (draft && ((draft.cart && draft.cart.length > 0) || draft.newCustomerData)) {
-                       setOfflineDraftWaiting({ cart: draft.cart || [], clientId: draft.selectedClientId, newCustomerData: draft.newCustomerData });
+                   if (draft && draft.cart && draft.cart.length > 0) {
+                       setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId });
                        if (draft.clientRequestId) {
                            setCurrentCheckoutId(draft.clientRequestId);
                        }
@@ -76,7 +74,7 @@ export default function NuevaVentaPage() {
   }, []);
 
   useEffect(() => {
-      if (offlineDraftWaiting && (effectiveCustomers.length > 0 || offlineDraftWaiting.newCustomerData)) {
+      if (offlineDraftWaiting && effectiveCustomers.length > 0) {
           const hydrate = async () => {
               const neededIds = offlineDraftWaiting.cart.map((item: any) => item.productId);
               const missingIds = neededIds.filter((id: string) => !products.find((p: any) => p.id === id));
@@ -111,22 +109,19 @@ export default function NuevaVentaPage() {
               }
       
               if (allResolved && clientResolved) {
-                    if (restoredCart.length > 0) {
-                        setCartItems(restoredCart as any[]);
-                    }
-                    if (offlineDraftWaiting.clientId) {
-                       const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
-                       if (cust) {
-                           setSelectedCustomer(cust || null);
-                           setStep(2);
-                       }
-                    } else if (offlineDraftWaiting.newCustomerData) {
-                       setNewCustomerData(offlineDraftWaiting.newCustomerData);
-                       setStep(2);
-                    }
-                    setOfflineDraftWaiting(null);
-                    setIsDraftLoaded(true);
-                }
+                  if (restoredCart.length > 0) {
+                      setCartItems(restoredCart as any[]);
+                  }
+                  if (offlineDraftWaiting.clientId) {
+                     const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
+                     if (cust) {
+                         setSelectedCustomer(cust || null);
+                         setStep(2);
+                     }
+                  }
+                  setOfflineDraftWaiting(null);
+                  setIsDraftLoaded(true);
+              }
           };
           hydrate();
       }
@@ -137,11 +132,11 @@ export default function NuevaVentaPage() {
     // Prohibimos guardar/sobrescribir para proteger el borrador original de IDB.
     if (!isDraftLoaded || !sellerId || offlineDraftWaiting) return;
     
-    if (cartItems.length > 0 || selectedCustomer || newCustomerData) {
+    if (cartItems.length > 0 || selectedCustomer) {
        const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
        saveDraft({ 
            sellerId, 
-           selectedClientId: selectedCustomer?.id, newCustomerData: newCustomerData || undefined, 
+           selectedClientId: selectedCustomer?.id, 
            cart: minimalCart, 
            updatedAt: Date.now(),
            clientRequestId: currentCheckoutId || undefined 
@@ -151,7 +146,7 @@ export default function NuevaVentaPage() {
     } else {
        clearDraft(sellerId).catch(() => {});
     }
-  }, [cartItems, selectedCustomer, newCustomerData, sellerId, isDraftLoaded, offlineDraftWaiting]);
+  }, [cartItems, selectedCustomer, sellerId, isDraftLoaded, offlineDraftWaiting]);
 
   useEffect(() => {
     const refreshQueue = () => {
@@ -473,35 +468,20 @@ export default function NuevaVentaPage() {
     if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
   };
 
-    const handleSafeCustomerChange = async (callback: () => void) => {
-    if (currentCheckoutId) {
-      const pending = await getPendingOrders(sellerId);
-      if (pending.some(o => o.clientRequestId === currentCheckoutId)) {
-        addToast("Este pedido ya está en cola. Apartando carrito residual...");
-        setCartItems([]);
-        setStep(1);
-        setSelectedCustomer(null);
-        setNewCustomerData(null);
-        setCurrentCheckoutId(null);
-        try { await clearDraft(sellerId); } catch(e) { addToast("El pedido está seguro en cola, pero el borrador residual no pudo eliminarse y podría reaparecer."); }
-        return;
-      }
-    }
-    callback();
-  };
-
   const handleCheckout = async () => {
-    if ((!selectedCustomer && !newCustomerData) || cartItems.length === 0) return;
+    if (!selectedCustomer || cartItems.length === 0) return;
     
+    // Si ya existe en la cola, bloquemos la creación de uno nuevo
     console.log('CHECKOUT CLICK:', { currentCheckoutId, pendingQueueIds: pendingQueue.map(o => o.clientRequestId) });
     if (currentCheckoutId) {
           const idbQueue = await getPendingOrders(sellerId);
           if (idbQueue.some(o => o.clientRequestId === currentCheckoutId)) {
               addToast("Este pedido ya está en la cola de envíos.");
+              
+              // Opcionalmente limpiar el carrito porque ya lo capturó el IDB
               setCartItems([]);
               setStep(1);
               setSelectedCustomer(null);
-              setNewCustomerData(null); setCurrentCheckoutId(null);
               return;
           }
       }
@@ -534,12 +514,12 @@ export default function NuevaVentaPage() {
           try {
               await saveDraft({
                 sellerId,
-                selectedClientId: selectedCustomer ? selectedCustomer.id : undefined,
-                newCustomerData: newCustomerData || undefined,
+                selectedClientId: selectedCustomer.id,
                 cart: minimalCart,
                 updatedAt: Date.now(),
                 clientRequestId
               });
+              // Solo atar al estado si realmente persistió en IndexedDB
               setCurrentCheckoutId(clientRequestId);
           } catch (err) {
               console.error(err);
@@ -553,9 +533,8 @@ export default function NuevaVentaPage() {
     const pendingOrder: PendingOrder = {
       clientRequestId,
       sellerId,
-      customerId: selectedCustomer ? selectedCustomer.id : 'NEW_CUSTOMER',
-      customerName: selectedCustomer ? selectedCustomer.name : (newCustomerData?.name || 'Cliente Nuevo'),
-      newCustomerData: newCustomerData || undefined,
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
       items: cartItems.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -571,6 +550,7 @@ export default function NuevaVentaPage() {
     try {
       await addPendingOrder(pendingOrder);
       
+      // Lo añadimos inmediatamente a la cola local en memoria para proteger contra fallos posteriores
       setPendingQueue(prev => [...prev, pendingOrder]);
       
       await clearDraft(sellerId);
@@ -578,7 +558,6 @@ export default function NuevaVentaPage() {
       setCartItems([]);
       setStep(1);
       setSelectedCustomer(null);
-      setNewCustomerData(null); setCurrentCheckoutId(null);
       addToast("Borrador guardado localmente.");
       
       await syncPendingOrders(clientRequestId);
@@ -713,74 +692,29 @@ export default function NuevaVentaPage() {
           </div>
 
           <div className="space-y-3">
-              <div className="flex items-center justify-between px-2">
-                <p className="text-xs font-bold text-rio-muted uppercase tracking-wider">Clientes Disponibles</p>
-                <button 
-                  onClick={() => handleSafeCustomerChange(() => { setIsCreatingNewCustomer(true); setCurrentCheckoutId(null); })}
-                  className="text-xs font-bold text-rio-gold-dark hover:text-rio-gold-light transition-colors flex items-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Cliente Nuevo
-                </button>
+            <p className="text-xs font-bold text-rio-muted uppercase tracking-wider px-2">Clientes Disponibles</p>
+            {filteredCustomers.length === 0 ? (
+              <div className="text-center py-8 bg-rio-surface-muted rounded-2xl border border-rio-border border-dashed">
+                <p className="text-[13px] text-rio-muted font-medium">No se encontraron clientes.</p>
               </div>
-
-              {isCreatingNewCustomer ? (
-                <div className="bg-white p-4 rounded-2xl border border-rio-border space-y-4">
-                  <h3 className="font-bold text-sm text-rio-ink border-b pb-2">Registrar Venta Rápida</h3>
-                  <input type="text" placeholder="Nombre o Negocio *" className="w-full text-sm border p-2 rounded" id="new-name" defaultValue={newCustomerData?.name || ''} />
-                  <input type="text" placeholder="Teléfono *" className="w-full text-sm border p-2 rounded" id="new-phone" defaultValue={newCustomerData?.phone || ''} />
-                  <input type="text" placeholder="Ciudad / Departamento *" className="w-full text-sm border p-2 rounded" id="new-city" defaultValue={newCustomerData?.city || ''} />
-                  <input type="text" placeholder="Dirección de Entrega *" className="w-full text-sm border p-2 rounded" id="new-address" defaultValue={newCustomerData?.address || ''} />
-                  <input type="email" placeholder="Correo Electrónico (Opcional)" className="w-full text-sm border p-2 rounded" id="new-email" defaultValue={newCustomerData?.email || ''} />
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setIsCreatingNewCustomer(false)}
-                      className="flex-1 py-2 text-sm text-rio-muted border rounded"
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      onClick={() => {
-                        const name = (document.getElementById('new-name') as HTMLInputElement).value;
-                        const phone = (document.getElementById('new-phone') as HTMLInputElement).value;
-                        const city = (document.getElementById('new-city') as HTMLInputElement).value;
-                        const address = (document.getElementById('new-address') as HTMLInputElement).value;
-                        const email = (document.getElementById('new-email') as HTMLInputElement).value;
-                        if (!name || !phone || !city || !address) {
-                          addToast('Llene todos los campos obligatorios');
-                          return;
-                        }
-                        setNewCustomerData({ name, phone, city, address, email });
-                        handleSafeCustomerChange(() => { setSelectedCustomer(null); setCurrentCheckoutId(null); setStep(2); });
-                      }}
-                      className="flex-1 py-2 text-sm text-white bg-rio-ink rounded font-bold"
-                    >
-                      Continuar
-                    </button>
+            ) : (
+              filteredCustomers.map(customer => (
+                <button
+                  key={customer.id}
+                  onClick={() => { setSelectedCustomer(customer); setStep(2); }}
+                  className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-bold text-rio-ink text-sm group-hover:text-rio-gold-dark transition-colors">{customer.name}</p>
+                    <p className="text-xs text-rio-muted mt-1">{customer.email}</p>
                   </div>
-                </div>
-              ) : filteredCustomers.length === 0 ? (
-                <div className="text-center py-8 bg-rio-surface-muted rounded-2xl border border-rio-border border-dashed">
-                  <p className="text-[13px] text-rio-muted font-medium">No se encontraron clientes.</p>
-                </div>
-              ) : (
-                filteredCustomers.map(customer => (
-                  <button
-                    key={customer.id}
-                    onClick={() => handleSafeCustomerChange(() => { setSelectedCustomer(customer); setNewCustomerData(null); setCurrentCheckoutId(null); setStep(2); })}
-                    className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-bold text-rio-ink text-sm group-hover:text-rio-gold-dark transition-colors">{customer.name}</p>
-                      <p className="text-xs text-rio-muted mt-1">{customer.email}</p>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-rio-background flex items-center justify-center group-hover:bg-rio-gold-light/20 transition-colors">
-                      <Plus className="w-4 h-4 text-rio-gold-dark" />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+                  <div className="w-8 h-8 rounded-full bg-rio-background flex items-center justify-center group-hover:bg-rio-gold-light/20 transition-colors">
+                    <Plus className="w-4 h-4 text-rio-gold-dark" />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -801,7 +735,7 @@ export default function NuevaVentaPage() {
                      </span>
                    </div>
                 </div>
-                <button onClick={() => handleSafeCustomerChange(() => { stopScanner(); setStep(1); setCurrentCheckoutId(null); })} className="text-xs font-bold text-rio-gold-dark hover:underline">
+                <button onClick={() => { stopScanner(); setStep(1); }} className="text-xs font-bold text-rio-gold-dark hover:underline">
                   Cambiar Cliente
                 </button>
               </div>
@@ -810,12 +744,7 @@ export default function NuevaVentaPage() {
               <div className="p-4 border-b border-rio-border bg-rio-surface flex items-center justify-between z-20 shrink-0">
                 <div className="flex-1">
                   <p className="text-[10px] uppercase font-bold text-rio-muted">Cliente Seleccionado</p>
-                  <div className="flex gap-2 items-center">
-                      <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name || newCustomerData?.name}</p>
-                      {newCustomerData && (
-                        <button onClick={() => setStep(1)} className="text-[10px] text-rio-gold-dark underline">Editar Datos del Cliente</button>
-                      )}
-                    </div>
+                  <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name}</p>
                 </div>
               </div>
 
@@ -1105,7 +1034,7 @@ export default function NuevaVentaPage() {
               </div>
               <button 
                 onClick={handleCheckout}
-                disabled={cartItems.length === 0 || (!selectedCustomer && !newCustomerData) || isCheckingOut}
+                disabled={cartItems.length === 0 || !selectedCustomer || isCheckingOut}
                 className="w-full bg-rio-gold-dark disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-rio-gold active:scale-[0.98] transition-all flex items-center justify-center"
               >
                 {isCheckingOut ? "Procesando..." : "Finalizar Venta"} <Check className="w-5 h-5 ml-2"/>

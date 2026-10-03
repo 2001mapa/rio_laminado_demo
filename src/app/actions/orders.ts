@@ -22,8 +22,7 @@ export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
   items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: { size: string, quantity: number }[] }[];
   clientRequestId?: string;
-    newCustomerData?: { name: string, phone: string, city: string, address: string, email?: string };
-  }) {
+}) {
   const { user, role } = await requireRole(['cliente', 'vendedor', 'admin']);
   
   try {
@@ -55,32 +54,11 @@ export async function createOrder(data: {
 
     // Helper for Idempotency Content Verification
     const verifyIdempotentContent = (existingOrder: any) => {
-      // Si el pedido original era de un cliente nuevo, su ID guardado será el uuid real asignado, no 'NEW_CUSTOMER'.
-      // En ese caso, la aserción de igualdad estricta fallaría. Validamos condicionalmente:
-      if (finalCustomerId === 'NEW_CUSTOMER') {
-        if (existingOrder.sellerId !== finalSellerId) {
-          throw new BusinessLogicError('Identificador de solicitud inválido: colisión de vendedor.');
-        }
-      } else {
-        if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
-          throw new BusinessLogicError('Identificador de solicitud inválido o colisión de petición.');
-        }
+      if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
+        throw new BusinessLogicError('Identificador de solicitud inválido o colisión de petición.');
       }
       
-      let originalItems = existingOrder.items;
-      if (existingOrder.originalPayload) {
-        if (Array.isArray(existingOrder.originalPayload)) originalItems = existingOrder.originalPayload;
-        else if (typeof existingOrder.originalPayload === 'object' && existingOrder.originalPayload.items) originalItems = existingOrder.originalPayload.items;
-      }
-      
-      if (finalCustomerId === 'NEW_CUSTOMER' && existingOrder.originalPayload && !Array.isArray(existingOrder.originalPayload) && existingOrder.originalPayload.newCustomerData) {
-         const storedNewCust = existingOrder.originalPayload.newCustomerData;
-         if (data.newCustomerData) {
-             if (storedNewCust.name !== data.newCustomerData.name || storedNewCust.phone !== data.newCustomerData.phone || storedNewCust.city !== data.newCustomerData.city || storedNewCust.address !== data.newCustomerData.address) {
-                 throw new BusinessLogicError('Identificador de solicitud utilizado con distintos datos de cliente nuevo.');
-             }
-         }
-      }
+      const originalItems = existingOrder.originalPayload as any[] || existingOrder.items;
       
       if (originalItems.length !== data.items.length) {
         throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
@@ -112,18 +90,7 @@ export async function createOrder(data: {
       return true;
     };
 
-    // Validación de Venta Rápida
-      if (finalCustomerId === 'NEW_CUSTOMER') {
-        if (!data.newCustomerData) throw new BusinessLogicError('Faltan datos del cliente nuevo');
-        if (!data.newCustomerData.name || !data.newCustomerData.phone || !data.newCustomerData.city || !data.newCustomerData.address) {
-          throw new BusinessLogicError('Nombre, teléfono, ciudad y dirección son obligatorios para cliente nuevo');
-        }
-        if (data.newCustomerData.email) {
-          data.newCustomerData.email = data.newCustomerData.email.trim().toLowerCase();
-        }
-      }
-
-      // 2. Verificación de Idempotencia PRE-creación
+    // 2. Verificación de Idempotencia PRE-creación
     if (data.clientRequestId) {
       const existingOrder = await prisma.order.findUnique({
         where: { clientRequestId: data.clientRequestId },
@@ -137,12 +104,10 @@ export async function createOrder(data: {
     }
 
     // Obtener detalles del cliente para aplicar descuentos reales
-    if (finalCustomerId !== 'NEW_CUSTOMER') {
-      const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
-      if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
-      if (targetCustomer.showDiscount) {
-        discount = targetCustomer.discount / 100;
-      }
+    const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
+    if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
+    if (targetCustomer.showDiscount) {
+      discount = targetCustomer.discount / 100;
     }
 
     // Retry loop for unique constraint violations
@@ -153,21 +118,6 @@ export async function createOrder(data: {
     while (attempt < MAX_RETRIES) {
       try {
         order = await prisma.$transaction(async (tx) => {
-            let actualCustomerId = finalCustomerId;
-            if (actualCustomerId === 'NEW_CUSTOMER' && data.newCustomerData) {
-               const newCust = await tx.customer.create({
-                  data: {
-                      name: data.newCustomerData.name,
-                      phone: data.newCustomerData.phone,
-                      city: data.newCustomerData.city,
-                      address: data.newCustomerData.address,
-                      email: data.newCustomerData.email || null,
-                      internalSystemStatus: 'Pendiente'
-                  }
-               });
-               actualCustomerId = newCust.id;
-            }
-
             let subtotal = 0;
             const orderItemsByMaterial: Record<string, any[]> = {};
             const conflicts: any[] = [];
@@ -258,8 +208,8 @@ export async function createOrder(data: {
               data: {
                 orderNumber,
                 clientRequestId: data.clientRequestId || undefined,
-                originalPayload: { items: data.items, newCustomerData: data.newCustomerData } as any,
-                customerId: actualCustomerId,
+                originalPayload: data.items as any,
+                customerId: finalCustomerId,
                 sellerId: finalSellerId,
                 status: 'Reservado',
                 totalAmount: totalAmount,
