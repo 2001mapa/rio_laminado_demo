@@ -489,6 +489,7 @@ export async function getPrintableProducts() {
         category: true,
         material: true,
         price: true,
+        locationCode: true,
       },
       orderBy: { createdAt: 'desc' }
     });
