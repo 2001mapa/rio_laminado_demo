@@ -68,6 +68,9 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     const reqId = uuidv4();
     
     // Intentamos crear con stock insuficiente para forzar un throw y probar rollback
+    const prodBefore = await testPrisma.product.findUnique({ where: { id: productId } });
+    
+    // Intentamos crear con stock insuficiente para forzar un throw y probar rollback
     const resultPromise = createOrder({
       customerId: 'NEW_CUSTOMER',
       items: [{ productId, quantity: 9999, expectedPrice: 100 }], // Más que el physicalStock (10)
@@ -97,6 +100,7 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     };
 
     // Carrera: dos peticiones concurrentes idénticas (simulando que el cliente clickeó dos veces o recargó rápido)
+    const prodBeforeRace = await testPrisma.product.findUnique({ where: { id: productId } });
     const p1 = createOrder(orderData);
     const p2 = createOrder(orderData);
 
@@ -128,7 +132,8 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     const customersByPhone = await testPrisma.customer.findMany({ where: { phone: '222' } });
     expect(customersByPhone.length).toBe(1);
 
-    const reservations = await testPrisma.stockReservation.findMany({ where: { orderId: createdOrder.id } });
-    expect(reservations.length).toBe(1);
+    const prodAfterRace = await testPrisma.product.findUnique({ where: { id: productId } });
+    // Exactly 1 item was reserved, so it shouldn't have reserved twice
+    expect(prodAfterRace!.reservedStock).toBe(prodBeforeRace!.reservedStock + 1);
   });
 });
