@@ -37,16 +37,17 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
 
   const customer = order.customer || customers.find(c => c.id === order.customerId);
 
+  const locationCollator = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
   const sortedItems = [...order.items].sort((a, b) => {
     const pA = (a as any).product;
     const pB = (b as any).product;
     const locA = pA?.locationCode || '';
     const locB = pB?.locationCode || '';
     
-    // Items without location go first
-    if (!locA && locB) return -1;
-    if (locA && !locB) return 1;
-    return locA.localeCompare(locB);
+    // Keep products without a location after the numbered warehouse route.
+    if (!locA && locB) return 1;
+    if (locA && !locB) return -1;
+    return locationCollator.compare(locA, locB);
   });
 
   return (
@@ -85,15 +86,24 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
 
         {/* Compact Table */}
         <table className={`w-full border-collapse ${styles.orderTable}`}>
+          <colgroup>
+            <col style={{ width: '4%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '17%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '39%' }} />
+            <col style={{ width: '8%' }} />
+          </colgroup>
           <thead>
             <tr className="border-b-2 border-black border-t-2">
-              <th className="py-1 px-1 text-left w-6">#</th>
-              <th className="py-1 px-1 text-left w-24">UBICACIÓN</th>
-              <th className="py-1 px-1 text-left w-24">REF</th>
-              <th className="py-1 px-1 text-center w-12">IMG</th>
-              <th className="py-1 px-1 text-center w-12 text-lg">CANT</th>
-              <th className="py-1 px-1 text-left">DESCRIPCIÓN</th>
-              <th className="py-1 px-1 text-center w-10">OK</th>
+              <th className="py-1 px-1 text-left">#</th>
+              <th className="py-1 px-1 text-left">UBICACIÓN</th>
+              <th className="py-1 px-1 text-left">REF</th>
+              <th className="py-1 px-1 text-center">IMG</th>
+              <th className="py-1 px-1 text-center text-sm">CANT</th>
+              <th className="py-1 px-2 text-left">DESCRIPCIÓN</th>
+              <th className="py-1 px-1 text-center">OK</th>
             </tr>
           </thead>
           <tbody>
@@ -106,14 +116,14 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
               return (
                 <tr key={item.id} className={`border-b border-gray-400 ${styles.itemRow}`}>
                   <td className="py-2 px-1 text-xs text-gray-500 font-bold">{index + 1}</td>
-                  <td className="py-2 px-1">
+                  <td className={`py-2 px-1 ${styles.locationCell}`}>
                     {isNoLocation ? (
                       <span className="bg-black text-white px-1.5 py-0.5 text-xs font-bold whitespace-nowrap">SIN UBIC.</span>
                     ) : (
-                      <span className="font-black text-sm whitespace-nowrap">{product.locationCode}</span>
+                      <span className="font-black text-sm">{product.locationCode}</span>
                     )}
                   </td>
-                  <td className="py-2 px-1 font-mono font-bold text-sm whitespace-nowrap">
+                  <td className={`py-2 px-1 font-mono font-bold text-sm ${styles.referenceCell}`}>
                     {product.sku}
                   </td>
                   <td className="py-2 px-1 text-center">
@@ -128,7 +138,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
                       {item.quantity}
                     </span>
                   </td>
-                  <td className="py-2 px-1 text-xs font-medium leading-tight text-gray-800">
+                  <td className="py-2 px-2 text-xs font-medium leading-tight text-gray-800">
                     {product.name}
                     {item.sizeDetails && item.sizeDetails.length > 0 && (
                       <div className="mt-1 text-[10px] font-bold text-black bg-gray-100 p-1 rounded inline-block">

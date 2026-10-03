@@ -9,6 +9,11 @@
   table-layout: fixed;
 }
 
+.locationCell,
+.referenceCell {
+  overflow-wrap: anywhere;
+}
+
 .signature {
   display: flex;
   flex-direction: column;

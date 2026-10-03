@@ -15,7 +15,7 @@ const printOrder = vi.hoisted(() => ({
     product: {
       sku: `REF-${String(index + 1).padStart(3, '0')}`,
       name: `Artículo ${index + 1}`,
-      locationCode: String(index + 1).padStart(3, '0'),
+      locationCode: index < 6 ? ['1', '12', '13', '25', '3', '4'][index] : String(index + 100),
       imageUrl: null,
     },
   })),
@@ -39,6 +39,9 @@ describe('Hoja de pedido imprimible', () => {
     });
 
     await waitFor(() => expect(container.querySelectorAll('tbody tr')).toHaveLength(105));
+
+    expect(Array.from(container.querySelectorAll('tbody tr')).slice(0, 6).map(row => row.children[1].textContent))
+      .toEqual(['1', '3', '4', '12', '13', '25']);
 
     expect(screen.getByText('VEN-0105')).toBeTruthy();
     expect(screen.getByText('Joyería de Prueba')).toBeTruthy();
