@@ -1,0 +1,71 @@
+.orderHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+
+.orderTable {
+  table-layout: fixed;
+}
+
+.signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.signatureLine {
+  display: block;
+  width: 100%;
+  border-bottom: 2px solid black;
+}
+
+@media print {
+  .printSheet {
+    border: 0;
+    padding: 0;
+  }
+
+  .orderHeader {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .orderTable {
+    width: 100%;
+  }
+
+  .orderTable thead {
+    display: table-header-group;
+  }
+
+  .orderTable thead tr {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .orderTable tbody {
+    display: table-row-group;
+  }
+
+  .itemRow,
+  .itemRow td {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .orderTable tbody tr:last-child {
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .orderFooter {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+}

@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useDemo } from '@/lib/DemoContext';
 import { getOrderById } from '@/app/actions/orders';
 import { use, useState, useEffect } from 'react';
+import styles from './page.module.css';
 
 export default function PrintableOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -34,7 +35,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
 
   if (!order) return <div>Pedido no encontrado</div>;
 
-  const customer = customers.find(c => c.id === order.customerId);
+  const customer = order.customer || customers.find(c => c.id === order.customerId);
 
   const sortedItems = [...order.items].sort((a, b) => {
     const pA = (a as any).product;
@@ -63,33 +64,27 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
       </div>
 
       {/* TICKET / TALONARIO COMPACTO */}
-      <div className="print:block border-2 border-black p-4">
+      <div className={`border-2 border-black p-4 ${styles.printSheet}`}>
         {/* Header Compacto */}
-        <div className="border-b-2 border-black pb-2 mb-3 flex justify-between items-end">
+        <div className={`border-b-2 border-black pb-2 mb-2 ${styles.orderHeader}`}>
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">RIO</h1>
-            <p className="text-[10px] font-bold uppercase mt-0.5">Almacén B2B</p>
+            <h1 className="text-lg font-black uppercase tracking-tighter leading-none">RIO</h1>
+            <p className="text-[9px] font-bold uppercase mt-0.5">Almacén B2B</p>
           </div>
           <div className="text-center">
-            <h2 className="text-3xl font-black leading-none">{order.number}</h2>
-            <p className="text-[10px] mt-0.5 font-bold">{new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
+            <h2 className="text-xl font-black leading-none">{order.number}</h2>
+            <p className="text-[9px] mt-1 font-bold">{new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
           </div>
-          <div className="text-right max-w-[150px]">
-            <p className="font-bold uppercase text-[10px] bg-black text-white px-1 py-0.5 inline-block mb-1">Cliente</p>
-            <p className="font-bold text-xs truncate">{customer?.name}</p>
-            <p className="text-[10px] leading-tight truncate">{customer?.city}</p>
-            <p className="text-[10px] leading-tight truncate">{customer?.address}</p>
+          <div className="text-right min-w-0">
+            <p className="font-bold uppercase text-[9px] text-gray-600 mb-0.5">Cliente</p>
+            <p className="font-bold text-xs leading-tight break-words">{customer?.name}</p>
+            {customer?.city && <p className="text-[10px] leading-tight break-words">{customer.city}</p>}
+            {customer?.address && <p className="text-[10px] leading-tight break-words">{customer.address}</p>}
           </div>
-        </div>
-
-        <div className="text-center border-b-2 border-black pb-2 mb-3">
-          <p className="font-bold text-xs uppercase bg-gray-200 inline-block px-3 py-1 rounded-sm border border-black">
-            Ordenado por recorrido de bodega
-          </p>
         </div>
 
         {/* Compact Table */}
-        <table className="w-full border-collapse">
+        <table className={`w-full border-collapse ${styles.orderTable}`}>
           <thead>
             <tr className="border-b-2 border-black border-t-2">
               <th className="py-1 px-1 text-left w-6">#</th>
@@ -109,7 +104,7 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
               const isNoLocation = !product.locationCode;
 
               return (
-                <tr key={item.id} className="border-b border-gray-400 break-inside-avoid">
+                <tr key={item.id} className={`border-b border-gray-400 ${styles.itemRow}`}>
                   <td className="py-2 px-1 text-xs text-gray-500 font-bold">{index + 1}</td>
                   <td className="py-2 px-1">
                     {isNoLocation ? (
@@ -151,13 +146,14 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
         </table>
 
         {/* Footer */}
-        <div className="mt-4 pt-2 flex justify-between items-end">
+        <div className={`mt-4 pt-2 flex justify-between items-end ${styles.orderFooter}`}>
           <div className="text-xs">
             <p><strong>REFS:</strong> {order.items.length}</p>
             <p><strong>UNIDADES:</strong> {order.items.reduce((acc: any, item: any) => acc + item.quantity, 0)}</p>
           </div>
-          <div className="w-48 border-b-2 border-black text-center pb-0.5 text-[10px] font-bold uppercase">
-            Preparado por
+          <div className={`w-48 ${styles.signature}`}>
+            <span>Preparado por</span>
+            <span className={styles.signatureLine} aria-hidden="true" />
           </div>
         </div>
       </div>
