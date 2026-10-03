@@ -484,7 +484,7 @@ export default function NuevaVentaPage() {
               setCartItems([]);
               setStep(1);
               setSelectedCustomer(null);
-              setNewCustomerData(null);
+              setNewCustomerData(null); setCurrentCheckoutId(null);
               return;
           }
       }
@@ -561,7 +561,7 @@ export default function NuevaVentaPage() {
       setCartItems([]);
       setStep(1);
       setSelectedCustomer(null);
-      setNewCustomerData(null);
+      setNewCustomerData(null); setCurrentCheckoutId(null);
       addToast("Borrador guardado localmente.");
       
       await syncPendingOrders(clientRequestId);
@@ -734,6 +734,7 @@ export default function NuevaVentaPage() {
                           return;
                         }
                         setNewCustomerData({ name, phone, city, address, email });
+                        setSelectedCustomer(null);
                         setStep(2);
                       }}
                       className="flex-1 py-2 text-sm text-white bg-rio-ink rounded font-bold"
@@ -750,7 +751,7 @@ export default function NuevaVentaPage() {
                 filteredCustomers.map(customer => (
                   <button
                     key={customer.id}
-                    onClick={() => { setSelectedCustomer(customer); setStep(2); }}
+                    onClick={() => { setSelectedCustomer(customer); setNewCustomerData(null); setCurrentCheckoutId(null); setStep(2); }}
                     className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
                   >
                     <div>

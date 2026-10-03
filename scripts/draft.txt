@@ -1,0 +1,22 @@
+const fs = require('fs');
+let content = fs.readFileSync('__tests__/phase6-quicksale-ui.test.tsx', 'utf8');
+
+const newTest = `
+  it('limpia cruce de clientes al alternar entre existente y nuevo', async () => {
+    mockSellerId = 'seller-cruce';
+    await offlineQueue.clearDraft(mockSellerId);
+    const addPendingOrderSpy = vi.spyOn(offlineQueue, 'addPendingOrder');
+    
+    // 1. Render and wait
+    render(<NuevaVentaPage />);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    // 2. Click existing customer (assuming DemoContext mock provides one with name "Cliente Prueba")
+    const existingBtn = screen.getByText('Seller'); // "Seller" is the name in mock DemoContext? 
+    // Wait, let's just make the mock DemoContext provide customers.
+    // I will mock it before rendering if needed.
+  });
+});
+`;
+
+// Better to write a fully clean test file `__tests__/phase6-quicksale-ui-switch.test.tsx`

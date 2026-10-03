@@ -10,7 +10,7 @@ if (testDbUrl && !testDbUrl.includes('localhost') && !testDbUrl.includes('127.0.
 }
 
 // Instanciar un PrismaClient exclusivo para la prueba (solo se usa si hay URL de prueba válida)
-const testPrisma = testDbUrl ? new PrismaClient({ datasourceUrl: testDbUrl }) : (null as any);
+const { testPrisma } = vi.hoisted(() => { return { testPrisma: process.env.TEST_DATABASE_URL ? new PrismaClient({ datasourceUrl: process.env.TEST_DATABASE_URL }) : (null as any) }; }); // testDbUrl ? new PrismaClient({ datasourceUrl: testDbUrl }) : (null as any);
 
 // Inyectamos el prisma de prueba para que los actions usen la BD aislada
 vi.mock('@/lib/prisma', () => ({
@@ -42,7 +42,7 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     const seller = await testPrisma.seller.create({ data: { name: 'Seller Test', email: `test-${Date.now()}@seller.com`, status: 'active', authUserId: 'test-123' } });
     sellerId = seller.id;
 
-    const p = await testPrisma.product.create({ data: { sku: `TEST-SKU-${Date.now()}`, name: 'Anillo Test', category: 'Anillos', price: 100, physicalStock: 10 } });
+    const p = await testPrisma.product.create({ data: { sku: `TEST-SKU-${Date.now()}`, name: 'Collar Test', category: 'Collares', price: 100, physicalStock: 10 } });
     productId = p.id;
   });
 
@@ -100,13 +100,14 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     const p1 = createOrder(orderData);
     const p2 = createOrder(orderData);
 
-    const results = await Promise.allSettled([p1, p2]);
+    const [res1, res2] = await Promise.all([p1, p2]);
     
-    // Al menos uno debe haber sido exitoso
-    const successResult = results.find(r => r.status === 'fulfilled' && (r.value as any).success);
-    expect(successResult).toBeDefined();
+    // Ambas deben ser exitosas y devolver el mismo pedido
+    expect(res1.success).toBe(true);
+    expect(res2.success).toBe(true);
+    expect(res1.order?.id).toBe(res2.order?.id);
 
-    const createdOrder = (successResult as PromiseFulfilledResult<any>).value.order;
+    const createdOrder = res1.order!;
     cleanupOrderIds.push(createdOrder.id);
     cleanupCustomerIds.push(createdOrder.customerId);
 
@@ -123,5 +124,11 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     expect(customerInDb).toBeDefined();
     expect(customerInDb!.internalSystemStatus).toBe('Pendiente');
     expect(customerInDb!.name).toBe('Cliente Idempotente');
+    
+    const customersByPhone = await testPrisma.customer.findMany({ where: { phone: '222' } });
+    expect(customersByPhone.length).toBe(1);
+
+    const reservations = await testPrisma.stockReservation.findMany({ where: { orderId: createdOrder.id } });
+    expect(reservations.length).toBe(1);
   });
 });
