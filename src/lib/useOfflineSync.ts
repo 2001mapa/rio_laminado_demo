@@ -85,10 +85,11 @@ export async function executeSync(
             
             try {
               const res = await deps.createOrderAction({
-                customerId: order.customerId,
-                items: order.items,
-                clientRequestId: order.clientRequestId
-              });
+                  customerId: order.customerId,
+                  items: order.items,
+                  clientRequestId: order.clientRequestId,
+                  newCustomerData: order.newCustomerData
+                });
 
               // Strict order number check (Fix 2)
               if (res.success && res.order && res.order.orderNumber) {
