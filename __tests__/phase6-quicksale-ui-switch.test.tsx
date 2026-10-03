@@ -16,9 +16,9 @@ vi.mock('@/app/actions/queries', () => ({
 }));
 
 const mockDemoContext = {
-  customers: [{ id: 'cust-real', name: 'Cliente Existente', email: 'a@a.com', phone: '1', address: 'a', status: 'active' }],
+  customers: [{ id: 'real-cust-id-xyz', name: 'Cliente Existente', email: 'a@a.com', phone: '1', address: 'a', status: 'active' }],
   products: [{ id: 'p1', sku: 'A1', name: 'Collar Test', category: 'Collares', price: 100, physicalStock: 10, isActive: true }],
-  get checkoutSeller() { return { id: 'seller-1', name: 'Seller' }; },
+  get checkoutSeller() { return { id: mockSellerId, name: 'Seller' }; },
   syncPendingOrders: vi.fn()
 };
 vi.mock('@/lib/DemoContext', () => ({ useDemo: () => mockDemoContext }));
@@ -28,7 +28,53 @@ vi.mock('@/utils/supabase/client', () => ({
   createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: mockSellerId } } }) } })
 }));
 
-describe('Phase 6: Venta Rapida UI Switch', () => {
+describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restoreAllMocks(); offlineQueue.clearDraft(mockSellerId).catch(()=>{}); });
+  it('no reutiliza el UUID de un borrador anterior al cambiar de cliente', async () => {
+    // 1. Forzamos que haya un borrador con un UUID especfico
+    const fakeDraftId = 'falso-uuid-1234';
+    vi.spyOn(offlineQueue, 'loadDraft').mockResolvedValue({ sellerId: mockSellerId, cart: [{ productId: 'p1', quantity: 1 }], clientRequestId: fakeDraftId, selectedClientId: 'real-cust-id-xyz', updatedAt: Date.now() });
+
+    const addSpy = vi.spyOn(offlineQueue, 'addPendingOrder');
+    
+    render(<NuevaVentaPage />);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    // La UI carga el borrador, as que estamos en Step 2 con el cliente existente
+    // Cambiamos de cliente a Nuevo (esto debera limpiar el currentCheckoutId)
+    fireEvent.click(screen.getByText('Cambiar Cliente'));
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    fireEvent.click(screen.getAllByText('Cliente Nuevo')[0]);
+    vi.spyOn(document, 'getElementById').mockImplementation((id) => {
+      if (id === 'new-name') return { value: 'Borrador Nuevo' } as any;
+      if (id === 'new-phone') return { value: '555' } as any;
+      if (id === 'new-city') return { value: 'BOG' } as any;
+      if (id === 'new-address') return { value: 'C4' } as any;
+      if (id === 'new-email') return { value: '' } as any;
+      return null;
+    });
+    fireEvent.click(screen.getByText('Continuar'));
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+    vi.mocked(document.getElementById).mockRestore();
+
+    // Aadimos producto y finalizamos
+    fireEvent.change(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0], { target: { value: 'A1' } });
+    fireEvent.submit(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0].closest('form')!);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+    fireEvent.click(screen.getByText('Agregar a la Orden'));
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Finalizar Venta/i })[0]);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    expect(addSpy).toHaveBeenCalled();
+    const payload = addSpy.mock.calls[0][0];
+    
+    // El ID enviado NO debe ser el del borrador viejo
+    expect(payload.clientRequestId).not.toBe(fakeDraftId);
+    expect(payload.clientRequestId.length).toBeGreaterThan(10);
+  });
+
   it('limpia datos al cambiar existente -> nuevo SIN finalizar', async () => {
     await offlineQueue.clearDraft(mockSellerId);
     const addSpy = vi.spyOn(offlineQueue, 'addPendingOrder');
@@ -60,8 +106,8 @@ describe('Phase 6: Venta Rapida UI Switch', () => {
     vi.mocked(document.getElementById).mockRestore();
 
     // 3. Añadimos producto y finalizamos
-    fireEvent.change(screen.getByPlaceholderText('Ingresar SKU manualmente'), { target: { value: 'A1' } });
-    fireEvent.submit(screen.getByPlaceholderText('Ingresar SKU manualmente').closest('form')!);
+    fireEvent.change(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0], { target: { value: 'A1' } });
+    fireEvent.submit(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0].closest('form')!);
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
     fireEvent.click(screen.getByText('Agregar a la Orden'));
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
@@ -107,8 +153,8 @@ describe('Phase 6: Venta Rapida UI Switch', () => {
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
 
     // 3. Añadimos producto y finalizamos
-    fireEvent.change(screen.getByPlaceholderText('Ingresar SKU manualmente'), { target: { value: 'A1' } });
-    fireEvent.submit(screen.getByPlaceholderText('Ingresar SKU manualmente').closest('form')!);
+    fireEvent.change(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0], { target: { value: 'A1' } });
+    fireEvent.submit(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0].closest('form')!);
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
     fireEvent.click(screen.getByText('Agregar a la Orden'));
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
@@ -118,7 +164,7 @@ describe('Phase 6: Venta Rapida UI Switch', () => {
 
     // ASSERT: Debe enviarse como cust-real sin restos de newCustomerData
     expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({
-      customerId: 'cust-real',
+      customerId: 'real-cust-id-xyz',
       newCustomerData: undefined
     }));
   });
@@ -141,7 +187,7 @@ describe('Phase 6: Venta Rapida UI Switch', () => {
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
 
     // Añadimos producto
-    const skuInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
+    const skuInput = screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0];
     fireEvent.change(skuInput, { target: { value: 'A1' } });
     fireEvent.submit(skuInput.closest('form')!);
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
@@ -153,9 +199,9 @@ describe('Phase 6: Venta Rapida UI Switch', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /Finalizar Venta/i })[0]);
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
 
-    // ASSERT 1: CustomerId debe ser 'cust-real', newCustomerData nulo (limpiado por el click)
+    // ASSERT 1: CustomerId debe ser 'real-cust-id-xyz', newCustomerData nulo (limpiado por el click)
     expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({
-      customerId: 'cust-real',
+      customerId: 'real-cust-id-xyz',
       newCustomerData: undefined
     }));
     
@@ -178,8 +224,8 @@ describe('Phase 6: Venta Rapida UI Switch', () => {
     // vi.mocked(document.getElementById).mockRestore();
 
     // Añadimos producto de nuevo
-    fireEvent.change(screen.getByPlaceholderText('Ingresar SKU manualmente'), { target: { value: 'A1' } });
-    fireEvent.submit(screen.getByPlaceholderText('Ingresar SKU manualmente').closest('form')!);
+    fireEvent.change(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0], { target: { value: 'A1' } });
+    fireEvent.submit(screen.getAllByPlaceholderText('Ingresar SKU manualmente')[0].closest('form')!);
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });
     fireEvent.click(screen.getByText('Agregar a la Orden'));
     await act(async () => { await new Promise(r => setTimeout(r, 100)); });

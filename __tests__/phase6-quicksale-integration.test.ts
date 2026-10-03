@@ -10,7 +10,7 @@ if (testDbUrl && !testDbUrl.includes('localhost') && !testDbUrl.includes('127.0.
 }
 
 // Instanciar un PrismaClient exclusivo para la prueba (solo se usa si hay URL de prueba válida)
-const { testPrisma } = vi.hoisted(() => { return { testPrisma: process.env.TEST_DATABASE_URL ? new PrismaClient({ datasourceUrl: process.env.TEST_DATABASE_URL }) : (null as any) }; }); // testDbUrl ? new PrismaClient({ datasourceUrl: testDbUrl }) : (null as any);
+const { testPrisma } = vi.hoisted(() => { const { PrismaClient: PC } = require('@prisma/client'); return { testPrisma: process.env.TEST_DATABASE_URL ? new PC({ datasourceUrl: process.env.TEST_DATABASE_URL }) : (null as any) }; }); // testDbUrl ? new PrismaClient({ datasourceUrl: testDbUrl }) : (null as any);
 
 // Inyectamos el prisma de prueba para que los actions usen la BD aislada
 vi.mock('@/lib/prisma', () => ({
