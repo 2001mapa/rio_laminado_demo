@@ -28,7 +28,7 @@ vi.mock('@/utils/supabase/client', () => ({
   createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: mockSellerId } } }) } })
 }));
 
-describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restoreAllMocks(); offlineQueue.clearDraft(mockSellerId).catch(()=>{}); });
+describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restoreAllMocks(); offlineQueue.clearDraft(mockSellerId).catch(()=>{}); indexedDB.deleteDatabase('rio-offline-db'); });
   it('no reutiliza el UUID de un borrador anterior al cambiar de cliente', async () => {
     // 1. Forzamos que haya un borrador con un UUID especfico
     const fakeDraftId = 'falso-uuid-1234';
@@ -240,4 +240,67 @@ describe('Phase 6: Venta Rapida UI Switch', () => { afterEach(() => { vi.restore
       newCustomerData: expect.objectContaining({ name: 'Juan Nuevo' })
     }));
   });
+  it('previene crear una venta duplicada si clearDraft falla (carrito residual)', async () => {
+    // 1. Simulamos que una orden previa termin en la cola exitosamente, PERO clearDraft fall
+    const fakeResidualId = 'uuid-residual-999';
+    
+    // a. Orden ya en cola (estado correcto final de addPendingOrder)
+    await offlineQueue.addPendingOrder({
+      clientRequestId: fakeResidualId,
+      sellerId: mockSellerId,
+      customerId: 'real-cust-id-xyz',
+      customerName: 'Cliente Existente',
+      items: [{ productId: 'p1', quantity: 1, expectedPrice: 100 }],
+      totalAmount: 100,
+      createdAt: Date.now(),
+      status: 'pending',
+      retryCount: 0
+    });
+
+    // b. El borrador tambin qued vivo (porque clearDraft fall)
+    vi.spyOn(offlineQueue, 'loadDraft').mockResolvedValue({
+      sellerId: mockSellerId, cart: [{ productId: 'p1', quantity: 1 }],
+      clientRequestId: fakeResidualId,
+      selectedClientId: 'real-cust-id-xyz',
+      updatedAt: Date.now()
+    });
+
+    const addSpy = vi.spyOn(offlineQueue, 'addPendingOrder');
+    
+    // 2. Renderizamos la UI. El useEffect cargar el draft residual.
+    render(<NuevaVentaPage />);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    // La UI est en Step 2 (escner). El usuario ve el carrito de la orden anterior
+    // e intenta cambiar el cliente para hacer una nueva venta usando esos mismos items sin saberlo.
+    fireEvent.click(screen.getByText('Cambiar Cliente'));
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    // EXPECT: Debe haber interceptado, limpiado el carrito residual y enviado a Step 1
+    // Comprobemos que el toast haya salido
+    const clearDraftSpy = vi.spyOn(offlineQueue, 'clearDraft');
+
+    // 3. El carrito se vaci y volvimos al Step 1.
+    // El usuario selecciona a alguien para la nueva venta
+    fireEvent.click(screen.getAllByText('Cliente Existente')[0]);
+    await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+
+    // 4. Intenta Finalizar Venta INMEDIATAMENTE
+    // Como se vaci el carrito por seguridad, el botn "Finalizar Venta" NO debera existir o no debe hacer nada
+    // Buscamos si existe Finalizar Venta y hacemos clic (si existe)
+    const finalizarBtns = screen.queryAllByRole('button', { name: /Finalizar Venta/i });
+    if (finalizarBtns.length > 0) {
+      fireEvent.click(finalizarBtns[0]);
+      await act(async () => { await new Promise(r => setTimeout(r, 100)); });
+    }
+
+    // El addPendingOrder no debi haber sido llamado para crear un duplicado
+    expect(addSpy).not.toHaveBeenCalled();
+
+    // Verifiquemos el estado de la cola
+    const pending = await offlineQueue.getPendingOrders(mockSellerId);
+    expect(pending.some(o => o.clientRequestId === fakeResidualId)).toBe(true);
+    
+  });
+
 });

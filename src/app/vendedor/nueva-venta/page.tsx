@@ -473,6 +473,23 @@ export default function NuevaVentaPage() {
     if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
   };
 
+    const handleSafeCustomerChange = async (callback: () => void) => {
+    if (currentCheckoutId) {
+      const pending = await getPendingOrders(sellerId);
+      if (pending.some(o => o.clientRequestId === currentCheckoutId)) {
+        addToast("Este pedido ya está en cola. Apartando carrito residual...");
+        setCartItems([]);
+        setStep(1);
+        setSelectedCustomer(null);
+        setNewCustomerData(null);
+        setCurrentCheckoutId(null);
+        try { await clearDraft(sellerId); } catch(e) {}
+        return;
+      }
+    }
+    callback();
+  };
+
   const handleCheckout = async () => {
     if ((!selectedCustomer && !newCustomerData) || cartItems.length === 0) return;
     
@@ -699,7 +716,7 @@ export default function NuevaVentaPage() {
               <div className="flex items-center justify-between px-2">
                 <p className="text-xs font-bold text-rio-muted uppercase tracking-wider">Clientes Disponibles</p>
                 <button 
-                  onClick={() => { setIsCreatingNewCustomer(true); setCurrentCheckoutId(null); }}
+                  onClick={() => handleSafeCustomerChange(() => { setIsCreatingNewCustomer(true); setCurrentCheckoutId(null); })}
                   className="text-xs font-bold text-rio-gold-dark hover:text-rio-gold-light transition-colors flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
@@ -734,7 +751,7 @@ export default function NuevaVentaPage() {
                           return;
                         }
                         setNewCustomerData({ name, phone, city, address, email });
-                        setSelectedCustomer(null); setCurrentCheckoutId(null); setStep(2);
+                        handleSafeCustomerChange(() => { setSelectedCustomer(null); setCurrentCheckoutId(null); setStep(2); });
                       }}
                       className="flex-1 py-2 text-sm text-white bg-rio-ink rounded font-bold"
                     >
@@ -750,7 +767,7 @@ export default function NuevaVentaPage() {
                 filteredCustomers.map(customer => (
                   <button
                     key={customer.id}
-                    onClick={() => { setSelectedCustomer(customer); setNewCustomerData(null); setCurrentCheckoutId(null); setStep(2); }}
+                    onClick={() => handleSafeCustomerChange(() => { setSelectedCustomer(customer); setNewCustomerData(null); setCurrentCheckoutId(null); setStep(2); })}
                     className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
                   >
                     <div>
@@ -784,7 +801,7 @@ export default function NuevaVentaPage() {
                      </span>
                    </div>
                 </div>
-                <button onClick={() => { stopScanner(); setStep(1); setCurrentCheckoutId(null); }} className="text-xs font-bold text-rio-gold-dark hover:underline">
+                <button onClick={() => handleSafeCustomerChange(() => { stopScanner(); setStep(1); setCurrentCheckoutId(null); })} className="text-xs font-bold text-rio-gold-dark hover:underline">
                   Cambiar Cliente
                 </button>
               </div>
