@@ -211,20 +211,31 @@ export default function NuevaVentaPage() {
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (manualSku.trim().length >= 1 && !scannedProduct) {
-        setIsSearchingSku(true);
-        try {
-          const res = await getPagedCatalog({ search: manualSku, limit: 5 });
-          if (res.success && res.products) {
-            setSkuSuggestions(res.products as any);
+        setIsSearchingSku(true); console.log('debounce triggered!', manualSku, sellerId, navigator.onLine);
+          try {
+            let resProducts = [];
+            if (navigator.onLine) {
+               const res = await getPagedCatalog({ search: manualSku, limit: 5 });
+               if (res.success && res.products) resProducts = res.products;
+            }
+            if (resProducts.length === 0 && sellerId) {
+               const offline = await searchOfflineProducts(manualSku, sellerId);
+               resProducts = offline.slice(0, 5);
+            }
+            setSkuSuggestions(resProducts as any);
+          } catch(e) {
+            if (sellerId) {
+              const offline = await searchOfflineProducts(manualSku, sellerId);
+              setSkuSuggestions(offline.slice(0, 5) as any);
+            }
           }
-        } catch(e) {}
-        setIsSearchingSku(false);
+          setIsSearchingSku(false);
       } else {
         setSkuSuggestions([]);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [manualSku, scannedProduct]);
+  }, [manualSku, scannedProduct, sellerId]);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isStartingRef = useRef(false);

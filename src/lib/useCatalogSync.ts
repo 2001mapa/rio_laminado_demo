@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { getSyncCatalog, getSyncCustomers } from '@/app/actions/sync';
 import { getDB, CatalogProduct, CatalogCustomer, SyncMeta } from './offlineQueue';
 
 export function useCatalogSync(sellerId?: string) {
   const [isSyncing, setIsSyncing] = useState(false);
+  const isSyncingRef = useRef(false);
   const [lastSyncDate, setLastSyncDate] = useState<number | null>(null);
 
   const loadMeta = useCallback(async (currentSellerId: string) => {
@@ -28,7 +29,9 @@ export function useCatalogSync(sellerId?: string) {
   }, [sellerId, loadMeta]);
 
   const syncCatalog = useCallback(async () => {
-    if (!sellerId || isSyncing || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+    if (!sellerId || isSyncingRef.current || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+    
+    isSyncingRef.current = true;
     setIsSyncing(true);
 
     try {
@@ -98,9 +101,10 @@ export function useCatalogSync(sellerId?: string) {
     } catch (error) {
       console.error('Catalog sync error:', error);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [isSyncing, sellerId]);
+  }, [sellerId]);
 
   // Restaura la sincronización automática
   useEffect(() => {

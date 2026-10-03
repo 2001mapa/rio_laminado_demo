@@ -39,7 +39,7 @@ describe('Phase 5: Catalog Sync', () => {
     expect(oldProd?.sku).toBe('OLD-1');
   });
 
-  it('debe aislar y limpiar clientes de cuenta previa (A->B)', async () => {
+  it('debe aislar y limpiar clientes de cuenta previa (A->B) al iniciar offline', async () => {
     const db = await getDB();
     await db!.put('sync_meta', { storeName: 'lastSellerId', lastSyncedAt: 'seller-a', isComplete: true });
     await db!.put('catalog_products', { id: 'p1', sku: 'OLD-1' } as any);
@@ -54,9 +54,25 @@ describe('Phase 5: Catalog Sync', () => {
       await new Promise(r => setTimeout(r, 100)); 
     });
 
+    // The start of sync clears old data immediately if sellerId doesn't match
     const oldCust = await db!.get('catalog_customers', 'c1');
     expect(oldCust).toBeUndefined();
     const lastSeller = await db!.get('sync_meta', 'lastSellerId');
     expect(lastSeller?.lastSyncedAt).toBe('seller-b');
+  });
+
+  it('prueba que una sola apertura haga una sola sincronización (no loop)', async () => {
+    vi.mocked(syncActions.getSyncCatalog).mockImplementation(async () => ({ success: true, products: [], hasMore: false, nextCursor: undefined }));
+    vi.mocked(syncActions.getSyncCustomers).mockImplementation(async () => ({ success: true, customers: [], hasMore: false, nextCursor: undefined }));
+
+    renderHook(() => useCatalogSync('seller-loop'));
+    
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 200)); 
+    });
+
+    // Debe llamarse 1 vez, no en bucle
+    expect(syncActions.getSyncCatalog).toHaveBeenCalledTimes(1);
+    expect(syncActions.getSyncCustomers).toHaveBeenCalledTimes(1);
   });
 });
