@@ -62,7 +62,7 @@ describe('Phase 6: Venta Rapida UI', () => {
   it('restaura el borrador al recargar (draft/queue/recarga)', async () => {
     await offlineQueue.saveDraft({
       sellerId: 'seller-1',
-      cart: [],
+      cart: [], updatedAt: Date.now(),
       newCustomerData: { name: 'Maria', phone: '321', city: 'Cali', address: 'Calle 2', email: '' }
     });
 

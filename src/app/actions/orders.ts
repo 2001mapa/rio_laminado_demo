@@ -55,11 +55,32 @@ export async function createOrder(data: {
 
     // Helper for Idempotency Content Verification
     const verifyIdempotentContent = (existingOrder: any) => {
-      if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
-        throw new BusinessLogicError('Identificador de solicitud inválido o colisión de petición.');
+      // Si el pedido original era de un cliente nuevo, su ID guardado será el uuid real asignado, no 'NEW_CUSTOMER'.
+      // En ese caso, la aserción de igualdad estricta fallaría. Validamos condicionalmente:
+      if (finalCustomerId === 'NEW_CUSTOMER') {
+        if (existingOrder.sellerId !== finalSellerId) {
+          throw new BusinessLogicError('Identificador de solicitud inválido: colisión de vendedor.');
+        }
+      } else {
+        if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
+          throw new BusinessLogicError('Identificador de solicitud inválido o colisión de petición.');
+        }
       }
       
-      const originalItems = existingOrder.originalPayload as any[] || existingOrder.items;
+      let originalItems = existingOrder.items;
+      if (existingOrder.originalPayload) {
+        if (Array.isArray(existingOrder.originalPayload)) originalItems = existingOrder.originalPayload;
+        else if (typeof existingOrder.originalPayload === 'object' && existingOrder.originalPayload.items) originalItems = existingOrder.originalPayload.items;
+      }
+      
+      if (finalCustomerId === 'NEW_CUSTOMER' && existingOrder.originalPayload && !Array.isArray(existingOrder.originalPayload) && existingOrder.originalPayload.newCustomerData) {
+         const storedNewCust = existingOrder.originalPayload.newCustomerData;
+         if (data.newCustomerData) {
+             if (storedNewCust.name !== data.newCustomerData.name || storedNewCust.phone !== data.newCustomerData.phone) {
+                 throw new BusinessLogicError('Identificador de solicitud utilizado con distintos datos de cliente nuevo.');
+             }
+         }
+      }
       
       if (originalItems.length !== data.items.length) {
         throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
@@ -91,7 +112,18 @@ export async function createOrder(data: {
       return true;
     };
 
-    // 2. Verificación de Idempotencia PRE-creación
+    // Validación de Venta Rápida
+      if (finalCustomerId === 'NEW_CUSTOMER') {
+        if (!data.newCustomerData) throw new BusinessLogicError('Faltan datos del cliente nuevo');
+        if (!data.newCustomerData.name || !data.newCustomerData.phone || !data.newCustomerData.city || !data.newCustomerData.address) {
+          throw new BusinessLogicError('Nombre, teléfono, ciudad y dirección son obligatorios para cliente nuevo');
+        }
+        if (data.newCustomerData.email) {
+          data.newCustomerData.email = data.newCustomerData.email.trim().toLowerCase();
+        }
+      }
+
+      // 2. Verificación de Idempotencia PRE-creación
     if (data.clientRequestId) {
       const existingOrder = await prisma.order.findUnique({
         where: { clientRequestId: data.clientRequestId },
@@ -226,7 +258,7 @@ export async function createOrder(data: {
               data: {
                 orderNumber,
                 clientRequestId: data.clientRequestId || undefined,
-                originalPayload: data.items as any,
+                originalPayload: { items: data.items, newCustomerData: data.newCustomerData } as any,
                 customerId: actualCustomerId,
                 sellerId: finalSellerId,
                 status: 'Reservado',

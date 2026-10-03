@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createOrder } from '@/app/actions/orders';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
 // Esta prueba debe correr con una URL de base de datos PostgreSQL de prueba aislada.
@@ -13,7 +13,7 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
 
   beforeAll(async () => {
     // Preparar datos semilla mínimos
-    const seller = await prisma.user.create({ data: { name: 'Seller Test', role: 'vendedor', email: 'test@seller.com' } });
+    const seller = await prisma.seller.create({ data: { name: 'Seller Test', email: 'test@seller.com', status: 'active', authUserId: 'test-123' } });
     sellerId = seller.id;
 
     const p = await prisma.product.create({ data: { sku: 'TEST-SKU-1', name: 'Anillo Test', category: 'Anillos', price: 100, physicalStock: 10 } });
@@ -25,7 +25,7 @@ shouldRun('Phase 6: Venta Rapida Integracion Real (PostgreSQL Aislado)', () => {
     await prisma.order.deleteMany();
     await prisma.customer.deleteMany({ where: { name: 'Integration Test Customer' } });
     await prisma.product.deleteMany({ where: { id: productId } });
-    await prisma.user.deleteMany({ where: { id: sellerId } });
+    await prisma.seller.deleteMany({ where: { id: sellerId } });
   });
 
   it('crea cliente y pedido atómicamente, asignando internalSystemStatus', async () => {
