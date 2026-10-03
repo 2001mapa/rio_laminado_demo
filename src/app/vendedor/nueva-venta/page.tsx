@@ -76,7 +76,7 @@ export default function NuevaVentaPage() {
   }, []);
 
   useEffect(() => {
-      if (offlineDraftWaiting && effectiveCustomers.length > 0) {
+      if (offlineDraftWaiting && (effectiveCustomers.length > 0 || offlineDraftWaiting.newCustomerData)) {
           const hydrate = async () => {
               const neededIds = offlineDraftWaiting.cart.map((item: any) => item.productId);
               const missingIds = neededIds.filter((id: string) => !products.find((p: any) => p.id === id));
@@ -1089,7 +1089,7 @@ export default function NuevaVentaPage() {
               </div>
               <button 
                 onClick={handleCheckout}
-                disabled={cartItems.length === 0 || !selectedCustomer || isCheckingOut}
+                disabled={cartItems.length === 0 || (!selectedCustomer && !newCustomerData) || isCheckingOut}
                 className="w-full bg-rio-gold-dark disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-rio-gold active:scale-[0.98] transition-all flex items-center justify-center"
               >
                 {isCheckingOut ? "Procesando..." : "Finalizar Venta"} <Check className="w-5 h-5 ml-2"/>

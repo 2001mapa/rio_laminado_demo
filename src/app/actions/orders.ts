@@ -76,7 +76,7 @@ export async function createOrder(data: {
       if (finalCustomerId === 'NEW_CUSTOMER' && existingOrder.originalPayload && !Array.isArray(existingOrder.originalPayload) && existingOrder.originalPayload.newCustomerData) {
          const storedNewCust = existingOrder.originalPayload.newCustomerData;
          if (data.newCustomerData) {
-             if (storedNewCust.name !== data.newCustomerData.name || storedNewCust.phone !== data.newCustomerData.phone) {
+             if (storedNewCust.name !== data.newCustomerData.name || storedNewCust.phone !== data.newCustomerData.phone || storedNewCust.city !== data.newCustomerData.city || storedNewCust.address !== data.newCustomerData.address) {
                  throw new BusinessLogicError('Identificador de solicitud utilizado con distintos datos de cliente nuevo.');
              }
          }
