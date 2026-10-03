@@ -23,16 +23,21 @@ export default function NuevaVentaPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sellerId, setSellerId] = useState<string>('');
   const effectiveCustomers = customers.length > 0 ? customers : offlineCustomers;
   useEffect(() => {
-    if (customers.length === 0) {
-      searchOfflineCustomers('', sellerId).then(res => setOfflineCustomers(res as any));
+    let active = true;
+    setOfflineCustomers([]);
+    if (customers.length === 0 && sellerId) {
+      searchOfflineCustomers('', sellerId).then(res => {
+        if (active) setOfflineCustomers(res as any);
+      });
     }
-  }, [customers]);
+    return () => { active = false; };
+  }, [customers.length, sellerId]);
   
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [sellerId, setSellerId] = useState<string>('');
   const { syncCatalog, isSyncing, lastSyncDate } = useCatalogSync(sellerId);
   const [pendingQueue, setPendingQueue] = useState<PendingOrder[]>([]);
   const [currentCheckoutId, setCurrentCheckoutId] = useState<string | null>(null);
@@ -211,7 +216,7 @@ export default function NuevaVentaPage() {
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (manualSku.trim().length >= 1 && !scannedProduct) {
-        setIsSearchingSku(true); console.log('debounce triggered!', manualSku, sellerId, navigator.onLine);
+        setIsSearchingSku(true);
           try {
             let resProducts = [];
             if (navigator.onLine) {
