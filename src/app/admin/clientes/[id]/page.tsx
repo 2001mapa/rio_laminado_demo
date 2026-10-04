@@ -59,7 +59,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
         <button onClick={() => router.back()} className="mr-3 text-rio-muted hover:text-rio-ink transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-serif font-bold text-rio-ink">Perfil de Cliente</h1>
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">Perfil de Cliente</h1>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">

@@ -30,7 +30,7 @@ export default function InventarioPage() {
   const [hasMore, setHasMore] = useState(true);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
-  const loaderRef = useRef<HTMLTableRowElement>(null);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const [totalCounts, setTotalCounts] = useState<Record<string, number>>({});
   const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({ Todos: 0, Laminado: 0, Plata: 0, Rodio: 0, 'Por revisar': 0 });
@@ -128,7 +128,7 @@ export default function InventarioPage() {
       
       {/* Header */}
       <div className="flex justify-between items-center gap-4">
-        <h1 className="text-2xl font-serif font-bold text-rio-ink">Inventario</h1>
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">Inventario</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCSV(true)}
@@ -248,7 +248,7 @@ export default function InventarioPage() {
               type="text"
               list="location-list"
               placeholder="Filtro ubicación..."
-              className="block w-48 px-4 py-2.5 border border-rio-border rounded-xl text-[13px] font-medium focus:ring-1 focus:ring-rio-gold focus:border-rio-gold bg-white text-rio-ink"
+              className="block w-full sm:w-48 px-4 py-2.5 border border-rio-border rounded-xl text-[13px] font-medium focus:ring-1 focus:ring-rio-gold focus:border-rio-gold bg-white text-rio-ink"
               value={locationFilter === 'Todas' ? '' : locationFilter}
               onChange={(e) => setLocationFilter(e.target.value || 'Todas')}
             />
@@ -258,7 +258,40 @@ export default function InventarioPage() {
           </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-rio-border overflow-hidden">
+      <div className="md:hidden space-y-3">
+        {catalogProducts.map((product) => {
+          const available = product.physicalStock - product.reservedStock;
+          return (
+            <article key={product.id} className="rounded-2xl border border-rio-border bg-rio-surface p-4 shadow-sm">
+              <div className="flex gap-3">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-rio-border bg-rio-surface-muted flex items-center justify-center">
+                  {product.imageUrl ? <img src={product.imageUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-xs font-medium text-rio-muted">Sin foto</span>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm font-bold leading-snug text-rio-ink break-words">{product.name}</h2>
+                  <p className="mt-1 text-xs font-mono text-rio-muted break-all">{product.sku}</p>
+                  <p className={`mt-1 text-xs ${product.locationCode && duplicateLocationCodes.includes(product.locationCode) ? 'font-bold text-rio-danger' : 'text-rio-muted'}`}>
+                    Ubicación: {product.locationCode || 'Sin ubicación'}{product.locationCode && duplicateLocationCodes.includes(product.locationCode) ? ' · Duplicada' : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-rio-border pt-3">
+                <span className="mr-auto text-sm font-bold text-rio-ink">{formatPrice(product.price)}</span>
+                <span className={`rounded-md border px-2 py-1 text-xs font-bold ${available <= 0 ? 'border-rio-danger/20 bg-rio-danger/10 text-rio-danger' : available <= 5 ? 'border-rio-warning/20 bg-rio-warning/10 text-rio-warning' : 'border-rio-success/20 bg-rio-success/10 text-rio-success'}`}>
+                  {available <= 0 ? 'Agotado' : available <= 5 ? 'Pocas unidades' : 'Disponible'}
+                </span>
+                {!product.isActive && <span className="rounded-md border border-rio-danger/20 bg-rio-danger/10 px-2 py-1 text-xs font-bold text-rio-danger">Inactivo</span>}
+                <button onClick={() => { setEditingProduct(product); setShowMockModal(true); }} className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-rio-border bg-white px-3 text-sm font-semibold text-rio-ink">
+                  <Edit2 className="h-4 w-4" /> Editar
+                </button>
+              </div>
+            </article>
+          );
+        })}
+        {catalogProducts.length === 0 && !isLoading && <div className="rounded-2xl border border-dashed border-rio-border bg-rio-surface p-8 text-center text-sm text-rio-muted">No se encontraron productos con los filtros seleccionados.</div>}
+      </div>
+
+      <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-rio-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-rio-border">
             <thead className="bg-rio-surface-muted">
@@ -383,17 +416,11 @@ export default function InventarioPage() {
                     </td>
                  </tr>
               )}
-            {hasMore && (
-        <tr ref={loaderRef}>
-          <td colSpan={6} className="px-6 py-10 text-center text-rio-muted">
-             Cargando más productos...
-          </td>
-        </tr>
-      )}
       </tbody>
           </table>
         </div>
       </div>
+      {hasMore && <div ref={loaderRef} className="py-4 text-center text-sm text-rio-muted">Cargando más productos...</div>}
 
       <CreateProductModal 
         isOpen={showMockModal} 

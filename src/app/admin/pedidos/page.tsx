@@ -107,11 +107,11 @@ export default function PedidosAdminPage() {
   });
 
   return (
-    <div className="p-6 md:p-10 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-rio-muted uppercase tracking-[0.15em] mb-1">Gestión</p>
-          <h1 className="text-3xl font-serif font-bold text-rio-ink">Bandeja de Pedidos</h1>
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">Bandeja de Pedidos</h1>
         </div>
         
         {/* Source Tabs */}
@@ -188,10 +188,10 @@ export default function PedidosAdminPage() {
                 <p className="text-[14px] font-bold text-rio-ink">{order.orderNumber}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <p className="text-[12px] text-rio-muted font-medium">{customer?.name}</p>
-                  {seller && <span className="bg-rio-gold/10 text-rio-gold-dark px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">POS</span>}
+                  {seller && <span className="bg-rio-gold/10 text-rio-gold-dark px-1.5 py-0.5 rounded text-xs font-bold uppercase">POS</span>}
                 </div>
-                <p className="text-[10px] text-rio-muted font-medium">{new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
-                <span className={`mt-2 inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${STATUS_CLASSES[order.status] || ''}`}>
+                <p className="text-xs text-rio-muted font-medium">{new Date(order.createdAt).toLocaleDateString('es-CO')}</p>
+                <span className={`mt-2 inline-flex items-center px-2 py-0.5 rounded border text-xs font-bold uppercase tracking-wider ${STATUS_CLASSES[order.status] || ''}`}>
                   {order.status}
                 </span>
               </div>

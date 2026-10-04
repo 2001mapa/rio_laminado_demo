@@ -116,7 +116,7 @@ export default function AdminDashboard() {
     .filter(c => c.name);
 
   return (
-    <div className="p-6 md:p-10 space-y-8">
+    <div className="p-4 md:p-8 space-y-8">
       {/* Page Header */}
       <div className="flex items-end justify-between">
         <div>
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Orders Table — takes 2/3 width */}
-        <div className="lg:col-span-2 bg-rio-surface rounded-xl border border-rio-border overflow-hidden">
+        <div className="lg:col-span-2 lg:self-start bg-rio-surface rounded-2xl border border-rio-border overflow-hidden">
           <div className="px-6 py-4 border-b border-rio-border flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div className="flex bg-rio-background rounded-lg p-1">
               <button 
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-3.5 whitespace-nowrap text-[12px] text-rio-muted">{new Date(order.createdAt).toLocaleDateString('es-CO')}</td>
                     <td className="px-6 py-3.5 whitespace-nowrap text-right">
-                      <Link href={`/admin/pedidos/${order.id}`} className="text-[12px] font-bold text-rio-gold-dark opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link href={`/admin/pedidos/${order.id}`} className="text-xs font-bold text-rio-gold-dark opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity">
                         Gestionar →
                       </Link>
                     </td>

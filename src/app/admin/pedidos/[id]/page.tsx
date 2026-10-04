@@ -128,14 +128,14 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
             <button onClick={() => router.back()} className="mr-4 p-2 hover:bg-rio-surface-muted rounded-full transition-colors">
               <ArrowLeft className="w-5 h-5 text-rio-ink" />
             </button>
-            <h1 className="text-2xl font-serif font-bold text-rio-ink">Pedido {order.number}</h1>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">Pedido {order.number}</h1>
           </div>
-          <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:flex gap-2 sm:gap-3 w-full md:w-auto md:justify-end">
             
-            <div className="relative flex-1 md:flex-none">
+            <div className="relative col-span-2 sm:col-span-1 md:flex-none">
               <button
                 onClick={() => setShowPrintSettings(!showPrintSettings)}
-                className="w-full md:w-auto flex justify-center items-center px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors"
+                className="w-full md:w-auto min-h-11 flex justify-center items-center px-3 sm:px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold whitespace-nowrap rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors"
                 aria-expanded={showPrintSettings}
               >
                 <Settings className="w-4 h-4 mr-2 text-rio-muted" />
@@ -144,7 +144,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               </button>
               
               {showPrintSettings && (
-                <div className="absolute right-0 top-full mt-2 w-[320px] bg-white border border-rio-border shadow-xl rounded-2xl p-4 z-50">
+                <div className="absolute right-0 top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white border border-rio-border shadow-xl rounded-2xl p-4 z-50">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-bold text-rio-ink">Calibración de impresión</h3>
                     <button onClick={() => setShowPrintSettings(false)} className="text-rio-muted hover:text-rio-ink">
@@ -197,7 +197,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
             <button
               onClick={() => window.print()}
-              className="flex-1 md:flex-none flex justify-center items-center px-4 py-2 border border-rio-gold-light bg-rio-gold-light/10 shadow-sm text-sm font-bold rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/20 transition-colors"
+              className="min-h-11 md:flex-none flex justify-center items-center px-2 sm:px-4 py-2 border border-rio-gold-light bg-rio-gold-light/10 shadow-sm text-sm font-bold rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/20 transition-colors"
             >
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Etiquetas
@@ -205,7 +205,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
             <Link 
               href={`/admin/pedidos/${order.id}/imprimir`}
-              className="flex-1 md:flex-none flex justify-center items-center px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors"
+              className="min-h-11 md:flex-none flex justify-center items-center px-2 sm:px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors"
             >
               <ClipboardCheck className="w-4 h-4 mr-2 text-rio-muted" />
               Hoja de Bodega

@@ -19,8 +19,8 @@ export default function ClientesPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-serif font-bold text-rio-ink">Clientes Mayoristas</h1>
-        <button onClick={() => setShowModal(true)} className="flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors">
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">Clientes Mayoristas</h1>
+        <button onClick={() => setShowModal(true)} className="flex min-h-11 items-center px-4 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors">
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Cliente
         </button>
@@ -32,7 +32,7 @@ export default function ClientesPage() {
         </div>
         <input
           type="text"
-          className="block w-full pl-10 pr-3 py-2 border border-rio-border rounded-xl leading-5 bg-rio-surface placeholder-rio-muted text-sm focus:outline-none focus:ring-1 focus:ring-rio-gold focus:border-rio-gold text-rio-ink"
+          className="block w-full pl-10 pr-3 py-2.5 border border-rio-border rounded-xl leading-5 bg-rio-surface placeholder-rio-muted text-sm focus:outline-none focus:ring-1 focus:ring-rio-gold focus:border-rio-gold text-rio-ink"
           placeholder="Buscar por nombre o correo..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}

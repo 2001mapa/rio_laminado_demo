@@ -173,13 +173,13 @@ export default function HistorialPage() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-serif font-bold text-rio-ink flex items-center gap-2">
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink flex items-center gap-2">
           <Activity className="w-6 h-6 text-rio-gold" />
           Historial de Actividad
         </h1>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-rio-border p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-rio-border p-4">
         <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-rio-muted w-4 h-4" />
@@ -188,7 +188,7 @@ export default function HistorialPage() {
               placeholder="Buscar por SKU, N° Pedido, Actor o Entidad..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-rio-background border border-rio-border rounded-lg text-sm focus:outline-none focus:border-rio-gold focus:ring-1 focus:ring-rio-gold"
+              className="w-full pl-9 pr-4 py-2.5 bg-rio-background border border-rio-border rounded-xl text-sm focus:outline-none focus:border-rio-gold focus:ring-1 focus:ring-rio-gold"
             />
           </div>
           
@@ -197,7 +197,7 @@ export default function HistorialPage() {
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="pl-9 pr-8 py-2 bg-rio-background border border-rio-border rounded-lg text-sm focus:outline-none focus:border-rio-gold appearance-none min-w-[160px]"
+              className="w-full pl-9 pr-8 py-2.5 bg-rio-background border border-rio-border rounded-xl text-sm focus:outline-none focus:border-rio-gold appearance-none md:min-w-[160px]"
             >
               <option value="">Cualquier Acción</option>
               <option value="CREATE">Creación</option>
@@ -214,18 +214,47 @@ export default function HistorialPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-rio-background border border-rio-border rounded-lg text-sm focus:outline-none focus:border-rio-gold min-w-[160px]"
+              className="w-full pl-9 pr-4 py-2.5 bg-rio-background border border-rio-border rounded-xl text-sm focus:outline-none focus:border-rio-gold md:min-w-[160px]"
             />
           </div>
           
-          <button type="submit" className="bg-rio-ink text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-rio-ink/90 transition-colors">
+          <button type="submit" className="bg-rio-ink text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-rio-ink/90 transition-colors">
             Filtrar
           </button>
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-rio-border overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="md:bg-white md:rounded-2xl md:shadow-sm md:border md:border-rio-border overflow-hidden">
+        <div className="space-y-3 md:hidden">
+          {isLoading ? <div className="rounded-2xl border border-rio-border bg-white p-8 text-center text-sm text-rio-muted">Cargando historial...</div> : events.length === 0 ? <div className="rounded-2xl border border-dashed border-rio-border bg-white p-8 text-center text-sm text-rio-muted">No se encontraron eventos con estos filtros.</div> : events.map((ev) => (
+            <article key={ev.id} className="rounded-2xl border border-rio-border bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-rio-ink">{ACTION_MAP[ev.action] || ev.action}</p>
+                  <p className="mt-1 text-xs text-rio-muted">{new Date(ev.createdAt).toLocaleString('es-CO')}</p>
+                </div>
+                <span className={classNames('shrink-0 rounded-md px-2 py-1 text-xs font-bold', ev.result === 'success' ? 'bg-rio-success/10 text-rio-success' : ev.result === 'error' ? 'bg-rio-danger/10 text-rio-danger' : 'bg-rio-warning/10 text-rio-warning')}>
+                  {ev.result === 'success' ? 'Éxito' : ev.result === 'error' ? 'Error' : ev.result}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 border-t border-rio-border pt-3 text-xs">
+                <div className="min-w-0"><p className="font-bold uppercase tracking-wide text-rio-muted">Actor</p><p className="mt-1 truncate text-rio-ink">{ev.actorName || ev.actorId || 'Desconocido'}</p></div>
+                <div className="min-w-0"><p className="font-bold uppercase tracking-wide text-rio-muted">Objetivo</p><p className="mt-1 text-rio-ink">{ENTITY_MAP[ev.entityType] || ev.entityType}</p><p className="truncate font-mono text-rio-muted">{ev.sku || ev.orderNumber || ev.entityId}</p></div>
+              </div>
+              {ev.origin && ev.origin !== 'manual' && <p className="mt-2 text-xs text-rio-gold-dark">Origen: {ORIGIN_MAP[ev.origin] || ev.origin}</p>}
+              {(ev.changes || ev.batch) && <div className="mt-3 border-t border-rio-border pt-3">
+                <button onClick={() => toggleExpand(ev.id)} aria-expanded={expandedId === ev.id} className="flex min-h-10 w-full items-center justify-between text-sm font-semibold text-rio-gold-dark">
+                  Ver detalles {expandedId === ev.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                {expandedId === ev.id && <div className="space-y-3 pt-2">
+                  {ev.batch && <div className="rounded-xl border border-rio-border bg-rio-background p-3 text-xs"><p className="font-bold">Información de lote</p><p>Archivo: {ev.batch.filename || 'N/A'}</p><p>Estado: {ev.batch.status}</p>{ev.batch.stats && <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all font-mono">{JSON.stringify(ev.batch.stats, null, 2)}</pre>}</div>}
+                  {ev.changes && <ChangesViewer changes={ev.changes} />}
+                </div>}
+              </div>}
+            </article>
+          ))}
+        </div>
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-rio-background/50 border-b border-rio-border">
