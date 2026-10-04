@@ -644,15 +644,10 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                       className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
                     >
                       {/* Fila superior de texto */}
-                      <div className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
+                      <div data-testid="barcode-label-header" className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
                         <span className="font-bold text-[9px]">#{index + 1}</span>
                         <span className="font-black text-[10px] tracking-tighter truncate mx-1">{product?.sku}</span>
                         <span className="font-bold text-[9px]">C:{item.quantity}</span>
-                          {item.sizeDetails && item.sizeDetails.length > 0 && (
-                            <span className="font-bold text-[8px] bg-gray-200 px-1 rounded truncate max-w-[40px]">
-                              {item.sizeDetails.map((s: any) => `${s.size}x${s.quantity}`).join(',')}
-                            </span>
-                          )}
                       </div>
                       
                       {/* Código de barras 1D */}
