@@ -1,0 +1,47 @@
+.brandMark {
+  animation: markEnter 420ms ease-out both;
+}
+
+.brandLetter {
+  display: inline-block;
+  animation: letterEnter 360ms ease-out both;
+}
+
+.brandAccent,
+.brandSubtitle {
+  animation: fadeEnter 450ms ease-out 540ms both;
+}
+
+.loginForm {
+  animation: formEnter 500ms ease-out 260ms both;
+}
+
+@keyframes markEnter {
+  from { opacity: 0; transform: translateY(8px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes letterEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes formEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandMark,
+  .brandLetter,
+  .brandAccent,
+  .brandSubtitle,
+  .loginForm {
+    animation: none;
+  }
+}

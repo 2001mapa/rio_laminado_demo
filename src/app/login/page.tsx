@@ -5,6 +5,9 @@ import { Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { resolveLoginDestination } from '@/app/actions/auth';
+import styles from './page.module.css';
+
+const brandLetters = Array.from('LAMINADO');
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -81,15 +84,31 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-rio-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-rio-ink text-white rounded-2xl flex items-center justify-center text-4xl font-serif font-bold mx-auto shadow-xl mb-6">
-            R
-          </div>
-          <h1 className="text-3xl font-serif font-bold text-rio-ink">Portal RIO</h1>
-          <p className="text-rio-muted mt-2">Acceso a mayoristas y equipo</p>
+        <div className="text-center mb-9">
+          <img
+            src="/icon.svg"
+            alt="RIO"
+            width={96}
+            height={96}
+            className={`w-24 h-24 rounded-2xl mx-auto shadow-xl mb-6 ${styles.brandMark}`}
+          />
+          <h1 className="text-[26px] font-semibold tracking-[0.2em] text-rio-ink" aria-label="Laminado">
+            {brandLetters.map((letter, index) => (
+              <span
+                key={`${letter}-${index}`}
+                aria-hidden="true"
+                className={styles.brandLetter}
+                style={{ animationDelay: `${140 + index * 65}ms` }}
+              >
+                {letter}
+              </span>
+            ))}
+          </h1>
+          <div className={`w-12 h-px bg-rio-gold mx-auto mt-3 ${styles.brandAccent}`} aria-hidden="true" />
+          <p className={`text-rio-muted mt-3 ${styles.brandSubtitle}`}>Acceso para clientes y equipo</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl shadow-sm border border-rio-border space-y-6">
+        <form onSubmit={handleSubmit} className={`bg-white p-8 rounded-3xl shadow-sm border border-rio-border space-y-6 ${styles.loginForm}`}>
           {error && (
             <div className="p-4 bg-rio-danger/10 text-rio-danger border border-rio-danger/20 rounded-xl text-sm font-medium text-center">
               {error}
