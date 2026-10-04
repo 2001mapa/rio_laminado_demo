@@ -20,12 +20,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RIO B2B - Portal Mayoristas",
+  title: "RIO",
   description: "Portal exclusivo de catálogo B2B y gestión de bodega RIO.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "RIO B2B",
+    title: "RIO",
   },
   icons: {
     apple: '/apple-icon.png',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FCFAF7",
+  themeColor: "#0d1216",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,

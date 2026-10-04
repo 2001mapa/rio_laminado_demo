@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" fill="#2c3e50" rx="100"/>
-  <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="200" font-weight="bold" fill="#f1c40f" text-anchor="middle" dominant-baseline="central">RIO</text>
+  <rect width="512" height="512" fill="#0d1216"/>
+  <circle cx="256" cy="256" r="220" fill="#fff"/>
+  <text x="256" y="267" text-anchor="middle" dominant-baseline="middle" font-family="Arial, Helvetica, sans-serif" font-size="202" font-weight="400" letter-spacing="-6" fill="#000">RIO</text>
 </svg>

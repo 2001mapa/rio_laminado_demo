@@ -2,13 +2,13 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'RIO B2B Pedidos',
-    short_name: 'RIO B2B',
+    name: 'RIO',
+    short_name: 'RIO',
     description: 'Aplicación de pedidos y gestión para RIO Laminado',
     start_url: '/',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#2c3e50',
+    background_color: '#0d1216',
+    theme_color: '#0d1216',
     icons: [
       {
         src: '/icon-192.png',
