@@ -54,6 +54,10 @@ export default function PerfilPage() {
 
   const ActionButtons = () => (
     <div className="space-y-3">
+      <nav aria-label="Información legal" className="flex flex-wrap justify-center gap-3 text-xs text-rio-muted">
+        <Link href="/terminos" className="underline hover:text-rio-ink">Términos y condiciones</Link>
+        <Link href="/tratamiento-de-datos" className="underline hover:text-rio-ink">Tratamiento de datos</Link>
+      </nav>
       
       <button onClick={handleLogout}
         className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"

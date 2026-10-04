@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { resolveLoginDestination } from '@/app/actions/auth';
 import styles from './page.module.css';
 
@@ -157,6 +158,10 @@ export default function LoginPage() {
         <p className="text-center text-sm text-rio-muted mt-8">
           ¿No tienes acceso? Contacta a tu asesor comercial.
         </p>
+        <nav aria-label="Información legal" className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-rio-muted">
+          <Link href="/terminos" className="underline hover:text-rio-ink">Términos y condiciones</Link>
+          <Link href="/tratamiento-de-datos" className="underline hover:text-rio-ink">Tratamiento de datos</Link>
+        </nav>
       </div>
     </div>
   );
