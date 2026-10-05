@@ -2,26 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
-import { getOfflineSellerAccess } from '@/lib/offlineQueue';
+import { getDB, getOfflineSellerAccess } from '@/lib/offlineQueue';
 import ToastContainer from '@/components/ToastContainer';
 import { OfflineSellerContext } from '@/lib/OfflineSellerContext';
 
 export default function OfflinePage() {
   const [sellerId, setSellerId] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    getOfflineSellerAccess()
-      .then(access => setSellerId(access?.sellerId ?? null))
-      .catch(() => setSellerId(null))
-      .finally(() => setChecked(true));
+    let active = true;
+    Promise.all([getOfflineSellerAccess(), getDB()])
+      .then(async ([access, db]) => {
+        const meta = access && db ? await db.get('sync_meta', 'products') : null;
+        if (!active) return;
+        setSellerId(access?.sellerId ?? null);
+        setLastSync(typeof meta?.lastSyncedAt === 'number' ? meta.lastSyncedAt : null);
+      })
+      .catch(() => { if (active) setSellerId(null); })
+      .finally(() => { if (active) setChecked(true); });
+    return () => { active = false; };
   }, []);
 
   if (!checked) return <div className="min-h-screen bg-rio-background p-6">Preparando acceso sin conexión...</div>;
   if (sellerId) return (
     <>
-      <div className="sticky top-0 z-50 bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-950">
-        Sin conexión · Venta local. Stock y precio sujetos a confirmación al sincronizar.
+      <div className="sticky top-0 z-50 bg-amber-100 px-3 py-1.5 text-center text-[11px] leading-tight font-medium text-amber-950 sm:text-xs">
+        Sin conexión: venta local. Stock y precios según la última sincronización
+        {lastSync ? ` (${new Date(lastSync).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })})` : ' (hora no disponible)'}.
       </div>
       <OfflineSellerContext.Provider value={sellerId}>
         <NuevaVentaPage />
