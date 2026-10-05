@@ -7,6 +7,8 @@ const h = vi.hoisted(() => ({
   deleteUser: vi.fn(),
   findUnique: vi.fn(),
   sellerCreate: vi.fn(),
+  orderFindMany: vi.fn(),
+  orderCount: vi.fn(),
   requireRole: vi.fn(),
   logAuditEvent: vi.fn(),
 }));
@@ -20,6 +22,7 @@ vi.mock('@supabase/supabase-js', () => ({
 vi.mock('@/lib/prisma', () => {
   const prisma: any = {
     seller: { findUnique: h.findUnique, create: h.sellerCreate },
+    order: { findMany: h.orderFindMany, count: h.orderCount },
   };
   prisma.$transaction = vi.fn(async (cb: any) => cb(prisma));
   return { prisma };
@@ -32,7 +35,7 @@ vi.mock('@/lib/audit', () => ({
   getAuditActor: vi.fn().mockResolvedValue({ id: 'admin-1', role: 'admin', name: 'Admin' }),
 }));
 
-import { createSeller, resetSellerPassword } from '@/app/actions/sellers';
+import { createSeller, resetSellerPassword, getSellerProfileOrders } from '@/app/actions/sellers';
 import { validatePassword, generatePassword } from '@/lib/passwordPolicy';
 
 const MANUAL = 'Rio Clave 2026xY'; // con espacios: debe llegar intacta, sin recortes
@@ -216,5 +219,41 @@ describe('autorización', () => {
     expect(h.updateUserById).not.toHaveBeenCalled();
     expect(h.findUnique).not.toHaveBeenCalled();
     expect(h.logAuditEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('historial del perfil de vendedor', () => {
+  it('consulta todos los pedidos de ese vendedor, incluidos los despachados', async () => {
+    h.findUnique.mockResolvedValueOnce({ id: 'seller-1' });
+    h.orderFindMany.mockResolvedValueOnce([
+      { id: 'order-1', orderNumber: 'VEN-0001', status: 'Despachado', createdAt: new Date('2026-09-20'), customer: { name: 'Cliente' }, _count: { items: 2 } }
+    ]);
+    h.orderCount.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+
+    const result = await getSellerProfileOrders('seller-1');
+    expect(result.success).toBe(true);
+    expect(result.orders[0]).toMatchObject({ number: 'VEN-0001', status: 'Despachado', itemCount: 2 });
+    expect(result).toMatchObject({ total: 1, active: 0, nextCursor: null });
+    expect(h.orderFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { sellerId: 'seller-1' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 21,
+    }));
+    expect(h.requireRole).toHaveBeenCalledWith(['admin']);
+  });
+
+  it('limita cada carga a 20 pedidos y entrega cursor para continuar', async () => {
+    h.findUnique.mockResolvedValueOnce({ id: 'seller-1' });
+    h.orderFindMany.mockResolvedValueOnce(Array.from({ length: 21 }, (_, index) => ({
+      id: `order-${index}`, orderNumber: `VEN-${index}`, status: 'Reservado',
+      createdAt: new Date('2026-10-01'), customer: { name: 'Cliente' }, _count: { items: 1 }
+    })));
+    h.orderCount.mockResolvedValueOnce(35).mockResolvedValueOnce(30);
+
+    const result = await getSellerProfileOrders('seller-1');
+    expect(result.orders).toHaveLength(20);
+    expect(result.nextCursor).toBe('order-19');
+    expect(result.total).toBe(35);
+    expect(result.active).toBe(30);
   });
 });

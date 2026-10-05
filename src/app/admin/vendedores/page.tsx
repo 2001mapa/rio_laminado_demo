@@ -1,32 +1,17 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Plus, Search, Key } from 'lucide-react';
+import { Plus, Search, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import SellerModal from '@/components/SellerModal';
-import ResetSellerPasswordModal from '@/components/ResetSellerPasswordModal';
-import { Seller } from '@/lib/types';
+import Link from 'next/link';
 
 export default function AdminVendedoresPage() {
-  const { sellers, orders, refreshData, onlineUsers } = useDemo();
+  const { sellers, refreshData, onlineUsers } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [resetSeller, setResetSeller] = useState<Seller | null>(null);
 
   const handleOpenNew = () => {
-    setSelectedSeller(null);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenReset = (seller: Seller) => {
-    setResetSeller(seller);
-    setIsResetModalOpen(true);
-  };
-
-  const handleOpenEdit = (seller: Seller) => {
-    setSelectedSeller(seller);
     setIsModalOpen(true);
   };
 
@@ -60,8 +45,6 @@ export default function AdminVendedoresPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredSellers.map((seller) => {
-          const sellerOrders = orders.filter(o => o.sellerId === seller.id);
-          
           return (
             <div key={seller.id} className="bg-rio-surface rounded-2xl shadow-sm border border-rio-border p-6 flex flex-col hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
@@ -86,44 +69,17 @@ export default function AdminVendedoresPage() {
               <p className="text-sm text-rio-muted mt-1">{seller.email}</p>
               <p className="text-[11px] text-rio-muted font-mono mt-1">ID: {seller.id.split('-')[0]}</p>
               
-              <div className="mt-4 pt-4 border-t border-rio-border flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] text-rio-muted uppercase font-bold tracking-wider">Ventas Generadas</p>
-                  <p className="text-lg font-black text-rio-ink">{sellerOrders.length}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleOpenReset(seller)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted"
-                  >
-                    <Key className="w-3.5 h-3.5" />
-                    Restablecer contraseña
-                  </button>
-                  <button
-                    onClick={() => handleOpenEdit(seller)}
-                    className="flex items-center px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted"
-                  >
-                    Editar
-                  </button>
-                </div>
-              </div>
+              <Link href={`/admin/vendedores/${seller.id}`} className="mt-4 pt-4 border-t border-rio-border flex items-center justify-between text-sm font-bold text-rio-gold-dark hover:text-rio-ink transition-colors">
+                Ver perfil y pedidos <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           );
         })}
       </div>
 
-      {resetSeller && (
-        <ResetSellerPasswordModal
-          isOpen={isResetModalOpen}
-          onClose={() => setIsResetModalOpen(false)}
-          sellerId={resetSeller.id}
-          sellerName={resetSeller.name}
-        />
-      )}
-
       <SellerModal 
         isOpen={isModalOpen}
-        sellerToEdit={selectedSeller}
+        sellerToEdit={null}
         onClose={() => setIsModalOpen(false)}
         onComplete={() => {
           setIsModalOpen(false);

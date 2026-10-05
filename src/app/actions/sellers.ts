@@ -263,3 +263,46 @@ export async function resetSellerPassword(sellerId: string, newPassword: string)
 
   return { success: true };
 }
+
+const SELLER_ORDERS_PAGE_SIZE = 20;
+
+export async function getSellerProfileOrders(sellerId: string, cursor?: string) {
+  await requireRole(['admin']);
+  const seller = await prisma.seller.findUnique({ where: { id: sellerId }, select: { id: true } });
+  if (!seller) return { success: false as const, message: 'Vendedor no encontrado.', orders: [], nextCursor: null, total: 0, active: 0 };
+
+  const [orders, total, active] = await Promise.all([
+    prisma.order.findMany({
+      where: { sellerId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+        _count: { select: { items: true } }
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: SELLER_ORDERS_PAGE_SIZE + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
+    }),
+    prisma.order.count({ where: { sellerId } }),
+    prisma.order.count({ where: { sellerId, status: { notIn: ['Cancelado', 'Despachado'] } } })
+  ]);
+  const visible = orders.slice(0, SELLER_ORDERS_PAGE_SIZE);
+  const nextCursor = orders.length > SELLER_ORDERS_PAGE_SIZE ? visible[visible.length - 1].id : null;
+  return {
+    success: true as const,
+    total,
+    active,
+    nextCursor,
+    orders: visible.map(order => ({
+      id: order.id,
+      number: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt,
+      customerName: order.customer.name,
+      itemCount: order._count.items
+    }))
+  };
+}
