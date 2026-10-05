@@ -120,7 +120,7 @@ export default function LoginPage() {
               </span>
             ))}
           </h1>
-          <div className={`w-12 h-px bg-rio-gold mx-auto mt-3 ${styles.brandAccent}`} aria-hidden="true" />
+          <div className={`w-12 h-px bg-rio-ink/40 mx-auto mt-3 ${styles.brandAccent}`} aria-hidden="true" />
           <p className={`text-rio-muted mt-3 ${styles.brandSubtitle}`}>Acceso para clientes y equipo</p>
         </div>
 
