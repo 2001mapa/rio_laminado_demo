@@ -87,8 +87,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-rio-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className={`min-h-screen bg-rio-background flex items-center justify-center p-4 ${styles.loginScene}`}>
+      <div className={styles.waveBackdrop} aria-hidden="true">
+        <svg className={`${styles.wave} ${styles.waveBack}`} viewBox="0 0 1200 420" preserveAspectRatio="none">
+          <path d="M0 125 C160 35 300 200 470 112 S790 34 960 124 S1120 180 1200 112 L1200 420 L0 420 Z" />
+        </svg>
+        <svg className={`${styles.wave} ${styles.waveMiddle}`} viewBox="0 0 1200 420" preserveAspectRatio="none">
+          <path d="M0 155 C180 250 310 40 500 150 S800 250 990 130 S1130 95 1200 155 L1200 420 L0 420 Z" />
+        </svg>
+        <svg className={`${styles.wave} ${styles.waveFront}`} viewBox="0 0 1200 420" preserveAspectRatio="none">
+          <path d="M0 190 C190 105 300 280 500 185 S810 100 1010 190 S1130 245 1200 180 L1200 420 L0 420 Z" />
+        </svg>
+      </div>
+      <div className={`w-full max-w-md ${styles.loginContent}`}>
         <div className="text-center mb-9">
           <img
             src="/icon.svg"
@@ -113,7 +124,7 @@ export default function LoginPage() {
           <p className={`text-rio-muted mt-3 ${styles.brandSubtitle}`}>Acceso para clientes y equipo</p>
         </div>
 
-        <form onSubmit={handleSubmit} className={`bg-white p-8 rounded-3xl shadow-sm border border-rio-border space-y-6 ${styles.loginForm}`}>
+        <form onSubmit={handleSubmit} className={`p-8 rounded-3xl shadow-sm border border-rio-border space-y-6 ${styles.loginForm}`}>
           {error && (
             <div className="p-4 bg-rio-danger/10 text-rio-danger border border-rio-danger/20 rounded-xl text-sm font-medium text-center">
               {error}

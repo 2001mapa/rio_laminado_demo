@@ -1,3 +1,46 @@
+.loginScene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.loginContent {
+  position: relative;
+  z-index: 1;
+}
+
+.waveBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wave {
+  position: absolute;
+  top: 36%;
+  left: -8%;
+  width: 116%;
+  height: 50%;
+  will-change: transform;
+}
+
+.waveBack {
+  fill: rgba(181, 155, 104, 0.10);
+  animation: waveDrift 18s ease-in-out infinite alternate;
+}
+
+.waveMiddle {
+  fill: rgba(113, 116, 116, 0.08);
+  animation: waveDriftReverse 23s ease-in-out infinite alternate;
+}
+
+.waveFront {
+  fill: rgba(181, 155, 104, 0.07);
+  animation: waveDrift 27s ease-in-out infinite alternate-reverse;
+}
+
 .brandMark {
   animation: markEnter 420ms ease-out both;
 }
@@ -13,7 +56,20 @@
 }
 
 .loginForm {
+  background: rgba(255, 255, 255, 0.84);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   animation: formEnter 500ms ease-out 260ms both;
+}
+
+@keyframes waveDrift {
+  from { transform: translate3d(-2%, 0, 0); }
+  to { transform: translate3d(2%, -9px, 0); }
+}
+
+@keyframes waveDriftReverse {
+  from { transform: translate3d(2%, 6px, 0); }
+  to { transform: translate3d(-2%, -6px, 0); }
 }
 
 @keyframes markEnter {
@@ -43,5 +99,10 @@
   .brandSubtitle,
   .loginForm {
     animation: none;
+  }
+
+  .wave {
+    animation: none;
+    will-change: auto;
   }
 }
