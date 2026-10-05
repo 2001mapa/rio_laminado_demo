@@ -52,6 +52,8 @@ export type OrderItem = {
   issue?: string;
   materialGroupId?: string | null;
   sizeDetails?: SizeDetail[] | null;
+  priceAtTime?: number;
+  product?: Product;
 };
 
 export type Seller = {
@@ -82,6 +84,8 @@ export type Order = {
   createdAt: string;
   status: OrderStatus;
   items: OrderItem[];
+  customer?: Customer;
+  totalAmount?: number;
   adjustmentAcknowledged?: boolean;
   carrier?: string | null;
   trackingNumber?: string | null;

@@ -220,7 +220,7 @@ export default function VendedorLayout({
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center justify-center space-x-2 md:w-1/3">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href === '/vendedor/perfil' && pathname.startsWith('/vendedor/pedido/'));
             return (
               <Link
                 key={item.name}
@@ -258,7 +258,7 @@ export default function VendedorLayout({
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-rio-surface border-t border-rio-border z-20" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex justify-around items-center h-16 max-w-md mx-auto">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href === '/vendedor/perfil' && pathname.startsWith('/vendedor/pedido/'));
             return (
               <Link
                 key={item.name}

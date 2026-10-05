@@ -726,11 +726,11 @@ export default function NuevaVentaPage() {
                 <div className="flex flex-col">
                    <h2 className="font-serif font-bold text-lg text-rio-ink">Escáner de Productos</h2>
                    <div className="flex items-center gap-2 mt-1">
-                     <button onClick={syncCatalog} disabled={isSyncing} className="flex items-center gap-1 text-[11px] text-rio-gold-dark hover:text-rio-gold transition-colors font-medium bg-rio-gold/10 px-2 py-0.5 rounded">
+                     <button onClick={syncCatalog} disabled={isSyncing} className="flex min-h-9 items-center gap-1 rounded-lg bg-rio-gold/10 px-2.5 py-1 text-xs font-semibold text-rio-gold-dark transition-colors hover:text-rio-gold disabled:opacity-60">
                        <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
                        {isSyncing ? 'Sincronizando...' : 'Actualizar Catálogo'}
                      </button>
-                     <span className="text-[10px] text-rio-muted">
+                     <span className="text-xs font-medium text-rio-muted">
                        {lastSyncDate ? `Actualizado: ${new Date(lastSyncDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'No sincronizado'}
                      </span>
                    </div>
@@ -969,8 +969,8 @@ export default function NuevaVentaPage() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden border border-rio-border rounded-xl bg-rio-background/50 p-2 space-y-2 mb-4">
               {cartItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-rio-muted p-6 text-center">
-                  <ShoppingBag className="w-8 h-8 mb-2 opacity-20" />
-                  <p className="text-xs font-medium">El pedido está vacío.<br/>Escanea prendas para comenzar.</p>
+                  <ShoppingBag className="w-8 h-8 mb-2 opacity-40" />
+                  <p className="text-sm font-medium">El pedido está vacío.<br/>Escanea prendas para comenzar.</p>
                 </div>
               ) : (
                 cartItems.map((item, index) => (
