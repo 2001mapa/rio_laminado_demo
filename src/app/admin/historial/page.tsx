@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAuditEvents } from '@/app/actions/audit';
+import { getAuditEvents, getAuditGroupDetails } from '@/app/actions/audit';
 import { ChevronDown, ChevronUp, Search, Calendar, Filter, ChevronLeft, ChevronRight, Activity, FileJson } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 
@@ -41,6 +41,52 @@ const ORIGIN_MAP: Record<string, string> = {
   MIGRATION_SCRIPT: 'Migración Histórica',
   manual: 'Manual'
 };
+
+function actionLabel(ev: any) {
+  if (ev.groupType === 'photo') return ev.successfulPhotos
+    ? `Subió ${ev.successfulPhotos} ${ev.successfulPhotos === 1 ? 'foto' : 'fotos'}`
+    : 'Carga de fotos';
+  if (ev.groupType === 'status') return `${ev.groupCount} ${ev.groupCount === 1 ? 'cambio de estado' : 'cambios de estado'}`;
+  return ACTION_MAP[ev.action] || ev.action;
+}
+
+function AuditGroupDetails({ groupKey, filters }: { groupKey: string; filters: { search: string; type: string; date: string } }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(async (offset: number) => {
+    setLoading(true);
+    const result = await getAuditGroupDetails(groupKey, filters, offset);
+    if (result.success) {
+      setItems(previous => offset === 0 ? result.events : [...previous, ...result.events]);
+      setHasMore(result.hasMore);
+      setError(false);
+    } else {
+      setError(true);
+    }
+    setLoading(false);
+  }, [groupKey, filters.search, filters.type, filters.date]);
+
+  useEffect(() => { load(0); }, [load]);
+
+  if (loading && items.length === 0) return <p className="text-sm text-rio-muted">Cargando detalles...</p>;
+  if (error && items.length === 0) return <p className="text-sm text-rio-danger">No se pudieron cargar los detalles. Cierra y vuelve a abrir este movimiento.</p>;
+
+  return <div className="space-y-2">
+    {items.map(item => <div key={item.id} className="rounded-lg border border-rio-border bg-white p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-semibold text-rio-ink">{ACTION_MAP[item.action] || item.action} · {item.sku || item.orderNumber || item.entityId}</span>
+        <span className="text-xs text-rio-muted">{new Date(item.createdAt).toLocaleString('es-CO')} · {item.actorName}</span>
+      </div>
+      {item.result !== 'success' && <p className="mt-1 text-xs text-rio-danger">Resultado: {item.result}</p>}
+      {item.changes && <div className="mt-2"><ChangesViewer changes={item.changes} /></div>}
+    </div>)}
+    {hasMore && <button type="button" disabled={loading} onClick={() => load(items.length)} className="rounded-lg border border-rio-border px-3 py-2 text-sm font-semibold text-rio-ink disabled:opacity-50">{loading ? 'Cargando...' : 'Ver más detalles'}</button>}
+    {error && items.length > 0 && <p className="text-xs text-rio-danger">No se pudieron cargar más detalles.</p>}
+  </div>;
+}
 
 
 // Helper to render object diffs in a friendly way
@@ -148,6 +194,7 @@ export default function HistorialPage() {
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
+    setExpandedId(null);
     const res = await getAuditEvents({ page, search, type, date });
     if (res.success) {
       setEvents(res.events);
@@ -203,7 +250,8 @@ export default function HistorialPage() {
               <option value="CREATE">Creación</option>
               <option value="UPDATE">Actualización</option>
               <option value="DELETE">Eliminación</option>
-              <option value="UPLOAD_PHOTO">Subida de Foto</option>
+              <option value="UPLOAD_PHOTO">Subida de Fotos</option>
+              <option value="STATUS_CHANGE">Cambios de Estado</option>
               <option value="LOGIN">Inicio de Sesión</option>
             </select>
           </div>
@@ -230,7 +278,7 @@ export default function HistorialPage() {
             <article key={ev.id} className="rounded-2xl border border-rio-border bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-rio-ink">{ACTION_MAP[ev.action] || ev.action}</p>
+                  <p className="text-sm font-bold text-rio-ink">{actionLabel(ev)}</p>
                   <p className="mt-1 text-xs text-rio-muted">{new Date(ev.createdAt).toLocaleString('es-CO')}</p>
                 </div>
                 <span className={classNames('shrink-0 rounded-md px-2 py-1 text-xs font-bold', ev.result === 'success' ? 'bg-rio-success/10 text-rio-success' : ev.result === 'error' ? 'bg-rio-danger/10 text-rio-danger' : 'bg-rio-warning/10 text-rio-warning')}>
@@ -239,16 +287,18 @@ export default function HistorialPage() {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 border-t border-rio-border pt-3 text-xs">
                 <div className="min-w-0"><p className="font-bold uppercase tracking-wide text-rio-muted">Actor</p><p className="mt-1 truncate text-rio-ink">{ev.actorName || ev.actorId || 'Desconocido'}</p></div>
-                <div className="min-w-0"><p className="font-bold uppercase tracking-wide text-rio-muted">Objetivo</p><p className="mt-1 text-rio-ink">{ENTITY_MAP[ev.entityType] || ev.entityType}</p><p className="truncate font-mono text-rio-muted">{ev.sku || ev.orderNumber || ev.entityId}</p></div>
+                <div className="min-w-0"><p className="font-bold uppercase tracking-wide text-rio-muted">Objetivo</p><p className="mt-1 text-rio-ink">{ev.groupType === 'photo' ? 'Fotografías' : (ENTITY_MAP[ev.entityType] || ev.entityType)}</p><p className="truncate font-mono text-rio-muted">{ev.groupType === 'photo' ? `${ev.successfulPhotos} cargadas${ev.failedPhotos ? ` · ${ev.failedPhotos} fallidas` : ''}` : (ev.sku || ev.orderNumber || ev.entityId)}</p></div>
               </div>
               {ev.origin && ev.origin !== 'manual' && <p className="mt-2 text-xs text-rio-gold-dark">Origen: {ORIGIN_MAP[ev.origin] || ev.origin}</p>}
-              {(ev.changes || ev.batch) && <div className="mt-3 border-t border-rio-border pt-3">
+              {(ev.groupType || ev.changes || ev.batch) && <div className="mt-3 border-t border-rio-border pt-3">
                 <button onClick={() => toggleExpand(ev.id)} aria-expanded={expandedId === ev.id} className="flex min-h-10 w-full items-center justify-between text-sm font-semibold text-rio-gold-dark">
                   Ver detalles {expandedId === ev.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
                 {expandedId === ev.id && <div className="space-y-3 pt-2">
+                  {ev.groupType ? <AuditGroupDetails groupKey={ev.id} filters={{ search, type, date }} /> : <>
                   {ev.batch && <div className="rounded-xl border border-rio-border bg-rio-background p-3 text-xs"><p className="font-bold">Información de lote</p><p>Archivo: {ev.batch.filename || 'N/A'}</p><p>Estado: {ev.batch.status}</p>{ev.batch.stats && <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all font-mono">{JSON.stringify(ev.batch.stats, null, 2)}</pre>}</div>}
                   {ev.changes && <ChangesViewer changes={ev.changes} />}
+                  </>}
                 </div>}
               </div>}
             </article>
@@ -294,7 +344,7 @@ export default function HistorialPage() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-rio-ink/5 text-rio-ink">
-                          {ACTION_MAP[ev.action] || ev.action}
+                          {actionLabel(ev)}
                         </span>
                         {ev.origin && ev.origin !== 'manual' && (
                           <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase bg-rio-gold-light/30 text-rio-gold-dark">
@@ -303,9 +353,9 @@ export default function HistorialPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-rio-ink">
-                        <div className="font-medium">{ENTITY_MAP[ev.entityType] || ev.entityType}</div>
+                        <div className="font-medium">{ev.groupType === 'photo' ? 'Fotografías' : (ENTITY_MAP[ev.entityType] || ev.entityType)}</div>
                         <div className="text-xs text-rio-muted font-mono truncate max-w-[150px]" title={ev.entityId}>
-                          {ev.sku || ev.orderNumber || ev.entityId}
+                          {ev.groupType === 'photo' ? `${ev.successfulPhotos} cargadas${ev.failedPhotos ? ` · ${ev.failedPhotos} fallidas` : ''}` : (ev.sku || ev.orderNumber || ev.entityId)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm">
@@ -319,7 +369,7 @@ export default function HistorialPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {(ev.changes || ev.batch) && (
+                        {(ev.groupType || ev.changes || ev.batch) && (
                           <button
                             onClick={() => toggleExpand(ev.id)}
                             className="p-1.5 text-rio-muted hover:text-rio-ink hover:bg-rio-background rounded transition-colors inline-flex"
@@ -329,7 +379,7 @@ export default function HistorialPage() {
                         )}
                       </td>
                     </tr>
-                    {expandedId === ev.id && (ev.changes || ev.batch) && (
+                    {expandedId === ev.id && (ev.groupType || ev.changes || ev.batch) && (
                       <tr className="bg-rio-background/30 border-b border-rio-border">
                         <td colSpan={6} className="p-4 text-sm">
                           <div className="bg-white border border-rio-border rounded-lg p-4 max-w-full overflow-x-auto shadow-inner">
@@ -337,6 +387,7 @@ export default function HistorialPage() {
                               <FileJson className="w-4 h-4 text-rio-gold" />
                               Detalles adicionales
                             </h4>
+                            {ev.groupType ? <AuditGroupDetails groupKey={ev.id} filters={{ search, type, date }} /> : <>
                             {ev.batch && (
                               <div className="mb-4">
                                 <div className="text-xs font-bold text-rio-muted uppercase mb-1">Información de Lote</div>
@@ -357,6 +408,7 @@ export default function HistorialPage() {
                                 <ChangesViewer changes={ev.changes} />
                               </div>
                             )}
+                            </>}
                           </div>
                         </td>
                       </tr>
