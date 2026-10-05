@@ -2,9 +2,8 @@
 
 import { useDemo } from '@/lib/DemoContext';
 import { PUBLIC_STATES } from '@/lib/order-status';
-import { Package, MapPin, Phone, Mail, ChevronRight, LogOut, RefreshCw } from 'lucide-react';
+import { Package, MapPin, Phone, Mail, ChevronRight, LogOut } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 
 export default function PerfilPage() {
 
@@ -23,13 +22,11 @@ export default function PerfilPage() {
     window.location.href = '/login';
   };
 
-  const { currentCustomer, orders, isLoaded, customers } = useDemo();
+  const { currentCustomer, orders, isLoaded } = useDemo();
   
 
   const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  ;
 
   if (!isLoaded) {
     return <div className="min-h-[50vh] flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
@@ -54,9 +51,12 @@ export default function PerfilPage() {
 
   const ActionButtons = () => (
     <div className="space-y-3">
-      <nav aria-label="Información legal" className="flex flex-wrap justify-center gap-3 text-xs text-rio-muted">
-        <Link href="/terminos" className="underline hover:text-rio-ink">Términos y condiciones</Link>
-        <Link href="/tratamiento-de-datos" className="underline hover:text-rio-ink">Tratamiento de datos</Link>
+      <nav aria-label="Información legal" className="rounded-xl border border-rio-border bg-rio-surface p-4">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-rio-muted">Información legal</p>
+        <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-rio-ink">
+          <Link href="/terminos" className="underline underline-offset-2 hover:text-rio-gold-dark">Términos y condiciones</Link>
+          <Link href="/tratamiento-de-datos" className="underline underline-offset-2 hover:text-rio-gold-dark">Tratamiento de datos</Link>
+        </div>
       </nav>
       
       <button onClick={handleLogout}
@@ -80,11 +80,11 @@ export default function PerfilPage() {
               {currentCustomer.name.charAt(0)}
             </div>
             <h1 className="text-xl md:text-2xl font-serif font-bold text-rio-ink leading-tight">{currentCustomer.name}</h1>
-            <div className="mt-2.5 inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rio-gold-light/20 text-rio-gold-dark border border-rio-gold-light/50">
+            <div className="mt-2.5 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rio-gold-light/20 text-rio-gold-dark border border-rio-gold-light/50">
               Mayorista {currentCustomer.showDiscount && `(${currentCustomer.discount}% dcto)`}
             </div>
             
-            <div className="mt-6 md:mt-8 flex flex-col space-y-3.5 text-[13px] text-left mx-auto">
+            <div className="mt-6 md:mt-8 flex flex-col space-y-3.5 text-sm text-left mx-auto">
               <div className="flex items-center text-rio-ink font-medium">
                 <Mail className="w-4 h-4 mr-3 text-rio-muted" strokeWidth={1.5} />
                 <span className="truncate">{currentCustomer.email}</span>
@@ -119,26 +119,26 @@ export default function PerfilPage() {
                 <Link 
                   href={`/cliente/pedido/${order.id}`} 
                   key={order.id}
-                  className="flex items-center justify-between p-4 md:p-5 bg-rio-surface rounded-2xl border border-rio-border shadow-sm active:scale-[0.98] md:hover:scale-[1.01] transition-all group hover:border-rio-gold/40 hover:shadow-md"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 p-4 md:p-5 bg-rio-surface rounded-2xl border border-rio-border shadow-sm active:scale-[0.98] md:hover:scale-[1.01] transition-all group hover:border-rio-gold/40 hover:shadow-md"
                 >
-                  <div className="flex items-center">
+                  <div className="flex min-w-0 items-center">
                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-rio-background flex items-center justify-center mr-3.5 md:mr-4 shrink-0 border border-rio-border group-hover:bg-rio-gold/5 transition-colors">
                       <Package className="w-4 h-4 md:w-5 md:h-5 text-rio-gold-dark" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[13px] md:text-sm font-bold text-rio-ink leading-none mb-1.5 md:mb-2">{order.number}</p>
                       <p className="text-[11px] md:text-[12px] font-medium text-rio-muted leading-none">
                         {new Date(order.createdAt).toLocaleDateString('es-CO')}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex flex-wrap items-center gap-2">
                     {!order.adjustmentAcknowledged && order.items.some(i => !!i.adjustmentReason) && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-rio-warning/10 text-rio-warning border border-rio-warning/20 mr-2 md:mr-3">
+                      <span className="text-xs font-bold uppercase tracking-wide px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-rio-warning/10 text-rio-warning border border-rio-warning/20">
                         Ajustado
                       </span>
                     )}
-                    <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md border mr-2 md:mr-4 ${
+                    <span className={`text-xs font-bold uppercase tracking-wide px-2 md:px-2.5 py-0.5 md:py-1 rounded-md border ${
                       order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :
                       order.status === 'Cancelado' ? 'bg-rio-danger/10 text-rio-danger border-rio-danger/20' :
                       order.status === 'Verificado' || order.status === 'Despachado' || order.status === 'Empacado' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' :

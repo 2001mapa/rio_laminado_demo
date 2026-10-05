@@ -37,12 +37,12 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="p-4 pb-20 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <button onClick={() => router.back()} className="mr-4 text-rio-muted hover:text-rio-ink transition-colors">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex min-w-0 items-center">
+          <button aria-label="Volver" onClick={() => router.back()} className="mr-4 shrink-0 text-rio-muted hover:text-rio-ink transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-serif font-bold text-rio-ink">Pedido #{order.number}</h1>
+          <h1 className="min-w-0 break-words text-xl font-serif font-bold text-rio-ink">Pedido #{order.number}</h1>
         </div>
         <div className="text-right">
           <p className="text-sm font-semibold text-rio-ink">
@@ -51,7 +51,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      <div className="bg-rio-surface p-6 rounded-2xl shadow-sm border border-rio-border mb-8">
+      <div className="bg-rio-surface p-4 sm:p-6 rounded-2xl shadow-sm border border-rio-border mb-8">
         {order.status === 'Cancelado' ? (
           <div className="bg-rio-danger/10 border border-rio-danger/20 p-6 rounded-xl text-center">
             <p className="text-lg font-bold text-rio-danger mb-2">{publicStateStr}</p>
@@ -59,7 +59,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
           </div>
         ) : (
           <div>
-            <div className="bg-rio-surface-muted/50 p-6 rounded-xl border border-rio-border text-center mb-8">
+            <div className="bg-rio-surface-muted/50 p-4 sm:p-6 rounded-xl border border-rio-border text-center mb-8">
               <p className="text-xl font-bold text-rio-ink mb-2">{publicStateStr}</p>
               <p className="text-sm font-medium text-rio-muted max-w-sm mx-auto leading-relaxed">{publicMessageStr}</p>
               
@@ -86,7 +86,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
             <div className="mt-10 mb-6">
               
               {/* Desktop Stepper */}
-              <div className="hidden sm:block relative px-4">
+              <div className="hidden lg:block relative px-4">
                 <div className="absolute top-3.5 left-12 right-12 h-1 bg-rio-border z-0 rounded-full"></div>
                 <div 
                   className="absolute top-3.5 left-12 h-1 bg-rio-ink z-0 rounded-full transition-all duration-500 ease-in-out"
@@ -107,7 +107,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                           {isCompleted && <Check className="w-4 h-4" strokeWidth={3} />}
                         </div>
                         <span className={`text-[11px] uppercase font-bold text-center leading-tight ${
-                          isCurrent ? 'text-rio-ink' : isCompleted ? 'text-rio-muted' : 'text-rio-border'
+                          isCurrent ? 'text-rio-ink' : 'text-rio-muted'
                         }`}>
                           {milestone}
                         </span>
@@ -118,7 +118,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
               </div>
 
               {/* Mobile Stepper */}
-              <div className="sm:hidden flex flex-col space-y-6 px-4">
+              <div className="lg:hidden flex flex-col space-y-6 px-4">
                 {PUBLIC_MILESTONES.map((milestone, idx) => {
                   const currentIndex = getMilestoneIndex(publicStateStr);
                   const isCompleted = idx <= currentIndex;
@@ -138,7 +138,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                         {isCompleted && <Check className="w-4 h-4" strokeWidth={3} />}
                       </div>
                       <span className={`ml-4 mt-1.5 text-[12px] uppercase font-bold tracking-wide ${
-                        isCurrent ? 'text-rio-ink' : isCompleted ? 'text-rio-muted' : 'text-rio-border'
+                        isCurrent ? 'text-rio-ink' : 'text-rio-muted'
                       }`}>
                         {milestone}
                       </span>
@@ -185,14 +185,14 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
             const isAdjusted = item.originalQuantity !== undefined && item.originalQuantity !== item.quantity;
             
             return (
-              <div key={item.id} className="bg-white p-5 rounded-xl border border-rio-border flex flex-col sm:flex-row gap-5 sm:items-center shadow-sm">
-                <div className="flex items-center gap-5 flex-1">
-                  <div className="w-20 h-20 rounded-lg bg-rio-surface-muted overflow-hidden shrink-0 border border-rio-border/50">
-                    <img src={product.imageUrl || undefined} alt="" className="w-full h-full object-cover mix-blend-multiply" />
+              <div key={item.id} className="bg-white p-4 sm:p-5 rounded-xl border border-rio-border flex flex-col lg:flex-row gap-4 lg:gap-5 lg:items-center shadow-sm">
+                <div className="flex min-w-0 items-center gap-3 sm:gap-5 flex-1">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-rio-surface-muted overflow-hidden shrink-0 border border-rio-border/50">
+                    {product.imageUrl && <img src={product.imageUrl} alt="" className="w-full h-full object-cover mix-blend-multiply" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[11px] font-mono font-semibold text-rio-muted block mb-1">{product.sku}</span>
-                    <p className="text-base font-semibold text-rio-ink truncate mb-1.5">{product.name}</p>
+                    <span className="text-xs font-mono font-semibold text-rio-muted block mb-1 break-all">{product.sku}</span>
+                    <p className="text-sm sm:text-base font-semibold text-rio-ink break-words mb-1.5">{product.name}</p>
                     {item.sizeDetails && item.sizeDetails.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {item.sizeDetails.map((s: any, idx: number) => (
@@ -204,21 +204,21 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
                 
-                <div className="flex flex-col gap-2 shrink-0 sm:min-w-[240px]">
+                <div className="flex w-full min-w-0 flex-col gap-2 lg:w-60 lg:shrink-0">
                   <div className="bg-rio-surface p-4 rounded-xl border border-rio-border">
                     {isAdjusted ? (
                       <div className="space-y-2">
-                        <p className="text-[13px] font-medium text-rio-muted flex justify-between">
+                        <p className="text-[13px] font-medium text-rio-muted flex justify-between gap-2">
                           <span>Cant. solicitada:</span>
                           <span className="line-through">{item.originalQuantity}</span>
                         </p>
-                        <p className="text-[14px] font-bold text-rio-ink flex justify-between">
+                        <p className="text-[14px] font-bold text-rio-ink flex justify-between gap-2">
                           <span>Cant. confirmada:</span>
                           <span>{item.quantity}</span>
                         </p>
                       </div>
                     ) : (
-                      <p className="text-[14px] font-bold text-rio-ink text-center sm:text-left">
+                      <p className="text-[14px] font-bold text-rio-ink text-left">
                         Cantidad solicitada: {item.quantity} {item.quantity === 1 ? 'unidad' : 'unidades'}
                       </p>
                     )}

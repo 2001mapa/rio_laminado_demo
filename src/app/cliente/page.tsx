@@ -694,6 +694,7 @@ function ProductModal({
       >
         <div key={product.id} className="animate-fade-in flex flex-col flex-1 min-h-0">
           <button
+            aria-label="Cerrar detalle de producto"
             onClick={handleCloseModal}
             className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
           >
@@ -707,7 +708,7 @@ function ProductModal({
           )}
 
         <div 
-          className="relative aspect-[9/16] max-h-[55vh] w-full bg-white shrink-0 rounded-t-2xl z-30"
+          className="relative aspect-[9/16] max-h-[45vh] sm:max-h-[55vh] w-full bg-white shrink-0 rounded-t-2xl z-30"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -716,12 +717,14 @@ function ProductModal({
           {images.length > 1 && zoomState.scale === 1 && (
             <>
               <button 
+                aria-label="Imagen anterior"
                 onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-40 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full text-rio-ink shadow-sm hover:bg-white transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button 
+                aria-label="Imagen siguiente"
                 onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1)); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 z-40 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full text-rio-ink shadow-sm hover:bg-white transition-colors"
               >
