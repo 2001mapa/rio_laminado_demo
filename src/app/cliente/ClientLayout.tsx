@@ -30,8 +30,10 @@ export default function ClienteLayout({
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (!session || session.user.user_metadata?.role !== 'cliente') {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      // Cuentas antiguas de clientes solo guardaban el rol en user_metadata.
+      const role = user?.app_metadata?.role || user?.user_metadata?.role;
+      if (error || !user || role !== 'cliente') {
         console.log('[Layout Cliente] No session or wrong role');
         router.push('/login');
       } else {

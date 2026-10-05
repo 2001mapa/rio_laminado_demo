@@ -31,7 +31,7 @@ export default function VendedorLayout({
     const checkAuth = async () => {
       const supabase = createClient();
       const { data, error } = await supabase.auth.getUser();
-      const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role;
+      const role = data.user?.app_metadata?.role;
       if (error || !data.user || role !== 'vendedor') {
         await clearOfflineSellerAccess().catch(() => {});
         router.push('/login');

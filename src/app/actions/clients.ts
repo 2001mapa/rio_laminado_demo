@@ -90,6 +90,7 @@ export async function createCustomer(data: {
         email: dummyEmail,
         password: data.temporaryPassword,
         email_confirm: true,
+        app_metadata: { role: 'cliente' },
         user_metadata: {
           role: 'cliente',
           name: data.name,

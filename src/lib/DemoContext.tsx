@@ -123,7 +123,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     async function processSession(session: any) {
       if (session?.user) {
         setCurrentUserAuthId(session.user.id);
-        const role = session.user.user_metadata?.role || 'admin';
+        // Compatibilidad con clientes antiguos; admin y vendedor solo usan app_metadata.
+        const role = session.user.app_metadata?.role || (session.user.user_metadata?.role === 'cliente' ? 'cliente' : null);
         const metaUsername = session.user.user_metadata?.username?.toLowerCase().trim();
         const emailPrefix = session.user.email?.split('@')[0]?.toLowerCase().trim();
         const username = metaUsername || emailPrefix;

@@ -28,7 +28,7 @@ export async function resolveLoginDestination() {
   if (!user || !role) {
     return { success: false, message: 'Usuario sin rol asignado o perfil inválido.' };
   }
-  if (status !== 'active' && role !== 'admin') {
+  if (status !== 'active') {
     return { success: false, message: 'Tu cuenta ha sido suspendida.' };
   }
   const targetPath = role === 'admin' ? '/admin' : role === 'vendedor' ? '/vendedor' : '/cliente';

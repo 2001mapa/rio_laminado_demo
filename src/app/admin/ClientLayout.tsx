@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff, History } from 'lucide-react';
+import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff, History, ShieldCheck } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 import { getAdminLatestOrderIds } from '@/app/actions/queries';
+import { canManageAdmins } from '@/app/actions/admins';
 import { useDemo } from '@/lib/DemoContext';
 
 export default function AdminLayout({
@@ -35,6 +36,7 @@ export default function AdminLayout({
   };
 
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isPrimaryAdmin, setIsPrimaryAdmin] = useState(false);
   
   const [soundEnabled, setSoundEnabled] = useState(false);
   const knownOrderIdsRef = useRef<Set<string> | null>(null);
@@ -43,13 +45,14 @@ export default function AdminLayout({
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (!session || session.user.user_metadata?.role !== 'admin') {
+      if (error || !user || user.app_metadata?.role !== 'admin' || user.app_metadata?.adminDisabled === true) {
         console.log('[Layout Admin] No session or wrong role');
         router.push('/login');
       } else {
         setIsAuthorized(true);
+        setIsPrimaryAdmin(await canManageAdmins());
       }
     };
     checkAuth();
@@ -191,6 +194,7 @@ export default function AdminLayout({
     { name: 'Inventario', href: '/admin/inventario', icon: PackageSearch },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },
     { name: 'Vendedores', href: '/admin/vendedores', icon: Store },
+    ...(isPrimaryAdmin ? [{ name: 'Administradores', href: '/admin/administradores', icon: ShieldCheck }] : []),
     { name: 'Historial', href: '/admin/historial', icon: History },
   ];
 

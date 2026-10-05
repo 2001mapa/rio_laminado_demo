@@ -23,7 +23,7 @@ export async function getSessionUser(): Promise<{ user: User | null; role: Role 
     let role = (user.app_metadata?.role as Role) || null;
 
     if (role === 'admin') {
-      return { user, role, status: 'active' };
+      return { user, role, status: user.app_metadata?.adminDisabled === true ? 'suspended' : 'active' };
     }
 
     let status = 'suspended'; // Default to closed
@@ -64,7 +64,7 @@ export async function requireRole(allowedRoles: Role[]): Promise<{ user: User, r
   if (!role) {
     throw new Error('No autorizado: Rol o perfil no encontrado');
   }
-  if (status !== 'active' && role !== 'admin') {
+  if (status !== 'active') {
     throw new Error('No autorizado: Tu cuenta ha sido suspendida.');
   }
   if (!allowedRoles.includes(role)) {
