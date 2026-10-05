@@ -1,5 +1,6 @@
 'use client';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Printer } from 'lucide-react';
+import Link from 'next/link';
 
 import { useDemo } from '@/lib/DemoContext';
 import { getOrderById } from '@/app/actions/orders';
@@ -51,18 +52,29 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
   });
 
   return (
-    <div className="bg-white text-black p-4 max-w-3xl mx-auto print:p-0 print:max-w-none font-sans text-sm">
-      <div className="mb-4 print:hidden flex justify-between items-center">
-        <div>
-          <button 
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-black text-white font-medium rounded-lg text-sm"
-          >
-            Imprimir Hoja
+    <div className="min-h-screen bg-rio-background px-4 py-6 font-sans text-sm text-rio-ink md:px-8 md:py-8 print:min-h-0 print:bg-white print:p-0">
+      <div className="mx-auto max-w-5xl print:max-w-none">
+      <div className="mb-6 print:hidden">
+        <Link href={`/admin/pedidos/${resolvedParams.id}`} className="inline-flex items-center gap-2 rounded-lg px-1 py-2 text-sm font-semibold text-rio-muted hover:text-rio-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rio-ink">
+          <ArrowLeft className="h-4 w-4" /> Volver al pedido
+        </Link>
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-rio-muted">Documento de bodega</p>
+            <h1 className="mt-1 font-serif text-2xl font-bold text-rio-ink md:text-3xl">Vista previa de la hoja</h1>
+            <p className="mt-1 text-sm text-rio-muted">Pedido {order.number} · {order.items.length} referencias · {order.items.reduce((sum: number, item: any) => sum + item.quantity, 0)} unidades</p>
+          </div>
+          <button onClick={() => window.print()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rio-ink px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rio-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rio-ink">
+            <Printer className="h-4 w-4" /> Imprimir hoja
           </button>
-          <p className="text-xs text-gray-500 mt-2">Esta vista simula un talonario de bodega (compacto).</p>
         </div>
       </div>
+
+      <section aria-label="Vista previa de hoja de bodega" className="rounded-2xl border border-rio-border bg-white p-3 shadow-sm md:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+        <div className="mb-4 flex items-center gap-2 border-b border-rio-border pb-4 text-xs text-rio-muted print:hidden">
+          <FileText className="h-4 w-4 text-rio-gold-dark" />
+          <span>Previsualización del documento compacto. Revisa los datos antes de imprimir.</span>
+        </div>
 
       {/* TICKET / TALONARIO COMPACTO */}
       <div className={`border-2 border-black p-4 ${styles.printSheet}`}>
@@ -166,6 +178,8 @@ export default function PrintableOrderPage({ params }: { params: Promise<{ id: s
             <span className={styles.signatureLine} aria-hidden="true" />
           </div>
         </div>
+      </div>
+      </section>
       </div>
     </div>
   );

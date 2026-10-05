@@ -5,6 +5,7 @@ import { X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { createSingleProduct, updateProductAction } from '@/app/actions/inventory';
 import { uploadProductPhoto } from '@/app/actions/photos';
 import { compressImage } from '@/lib/imageCompression';
+import { confirmRio } from '@/lib/confirm';
 
 export default function CreateProductModal({ 
   isOpen, 
@@ -71,7 +72,12 @@ export default function CreateProductModal({
 
       if (isEdit) {
          if (initialData.material !== productData.material && initialData.reservedStock > 0) {
-            if (!confirm(`Este producto está reservado en pedidos. ¿Seguro que deseas cambiar el material de ${initialData.material} a ${productData.material}?`)) {
+            if (!await confirmRio({
+              title: 'Cambiar material reservado',
+              description: `Este producto está reservado en pedidos. ¿Deseas cambiar el material de ${initialData.material} a ${productData.material}?`,
+              confirmLabel: 'Cambiar material',
+              tone: 'warning',
+            })) {
                return;
             }
          }

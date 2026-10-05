@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ScanLine, User, LogOut, Bell, BellOff, Package } from 'lucide-react';
 import { classNames } from '@/lib/utils';
-import ToastContainer from '@/components/ToastContainer';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState, useRef } from 'react';
 import { getSellerOrderStates } from '@/app/actions/queries';
@@ -301,7 +300,6 @@ export default function VendedorLayout({
         </div>
       </nav>
 
-      <ToastContainer />
     </div>
   );
 }

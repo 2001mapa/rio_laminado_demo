@@ -10,6 +10,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { createScanConfirmation } from '@/lib/scanConfirmation';
 import type { CameraDevice } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
+import { confirmRio } from '@/lib/confirm';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { getExactProductBySku, getPagedCatalog, getProductsByIds } from '@/app/actions/queries';
@@ -196,7 +197,7 @@ export default function NuevaVentaPage() {
   };
   
   const handleDiscard = async (orderId: string) => {
-      if (confirm("¿Seguro que deseas descartar este borrador fallido?")) {
+      if (await confirmRio({ title: 'Descartar pedido de la cola', description: 'Este pedido fallido se eliminará de la cola local. Esta acción no borra pedidos ya enviados.', confirmLabel: 'Descartar', tone: 'danger' })) {
          await removePendingOrder(orderId);
          if (sellerId) getPendingOrders(sellerId).then(setPendingQueue);
       }

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'react-qr-code';
+import { confirmRio } from '@/lib/confirm';
 
 export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -446,8 +447,8 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                 
                 {order.status !== 'Cancelado' && order.status !== 'Despachado' && (
                   <button 
-                    onClick={() => {
-                      if(confirm('¿Estás seguro de cancelar este pedido? Esta acción es irreversible.')) {
+                    onClick={async () => {
+                      if(await confirmRio({ title: 'Cancelar pedido', description: 'Esta acción es irreversible y liberará las unidades reservadas.', confirmLabel: 'Cancelar pedido', tone: 'danger' })) {
                         handleTransition('CANCEL');
                       }
                     }}

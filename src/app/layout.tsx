@@ -3,6 +3,8 @@ import { Manrope, Montserrat, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { DemoProvider } from "@/lib/DemoContext";
 import PwaUpdater from "@/components/PwaUpdater";
+import ToastContainer from "@/components/ToastContainer";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const manrope = Manrope({
   variable: "--font-sans",
@@ -56,6 +58,8 @@ export default function RootLayout({
         <DemoProvider>
         <PwaUpdater />
           {children}
+          <ToastContainer />
+          <ConfirmDialog />
         </DemoProvider>
       </body>
     </html>

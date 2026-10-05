@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 import { getDB, getOfflineSellerAccess } from '@/lib/offlineQueue';
-import ToastContainer from '@/components/ToastContainer';
 import { OfflineSellerContext } from '@/lib/OfflineSellerContext';
 
 export default function OfflinePage() {
@@ -35,7 +34,6 @@ export default function OfflinePage() {
       <OfflineSellerContext.Provider value={sellerId}>
         <NuevaVentaPage />
       </OfflineSellerContext.Provider>
-      <ToastContainer />
     </>
   );
 

@@ -49,5 +49,8 @@ describe('Hoja de pedido imprimible', () => {
     expect(screen.queryByText(/Ordenado por recorrido de bodega/i)).toBeNull();
     expect(screen.getAllByText('Preparado por')).toHaveLength(1);
     expect(screen.getByText('UNIDADES:').parentElement?.textContent).toContain('105');
+    expect(screen.getByRole('link', { name: 'Volver al pedido' }).getAttribute('href')).toBe(`/admin/pedidos/${printOrder.id}`);
+    expect(screen.getByRole('button', { name: 'Imprimir hoja' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Vista previa de hoja de bodega' })).toBeTruthy();
   });
 });

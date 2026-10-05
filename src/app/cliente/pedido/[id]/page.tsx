@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { PUBLIC_STATES, PUBLIC_MESSAGES, PUBLIC_MILESTONES, getMilestoneIndex } from '@/lib/order-status';
+import { confirmRio } from '@/lib/confirm';
 
 export default function PedidoClientePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -22,8 +23,8 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
 
   const totalUnits = order.items.reduce((acc, item) => acc + item.quantity, 0);
 
-  const handleCancel = () => {
-    if (confirm('¿Seguro que deseas cancelar este pedido? Las unidades reservadas se liberarán.')) {
+  const handleCancel = async () => {
+    if (await confirmRio({ title: 'Cancelar pedido', description: 'Las unidades reservadas se liberarán. Si deseas cambiar el pedido, consulta primero con tu asesor.', confirmLabel: 'Cancelar pedido', tone: 'danger' })) {
       transitionOrder(order.id, 'CANCEL');
     }
   };

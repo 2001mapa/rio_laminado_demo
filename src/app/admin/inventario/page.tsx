@@ -256,7 +256,7 @@ export default function InventarioPage() {
       </div>
       
       {/* Search and Filters Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
          <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-rio-muted" />
             <input 
@@ -280,13 +280,13 @@ export default function InventarioPage() {
               <option value="Sin ubicación" />
             </datalist>
           </div>
-         <label className="flex flex-col gap-1 text-xs font-semibold text-rio-muted">
-           <span>Ordenar inventario</span>
+         <label className="block w-full sm:w-52">
+           <span className="sr-only">Ordenar inventario</span>
            <select
              aria-label="Ordenar inventario"
              value={sortBy}
              onChange={event => setSortBy(event.target.value as 'recent' | 'location_asc')}
-             className="w-full sm:w-52 rounded-xl border border-rio-border bg-white px-3 py-2.5 text-[13px] font-medium text-rio-ink focus:border-rio-gold focus:ring-1 focus:ring-rio-gold"
+             className="w-full rounded-xl border border-rio-border bg-white px-3 py-2.5 text-[13px] font-medium text-rio-ink focus:border-rio-gold focus:ring-1 focus:ring-rio-gold"
            >
              <option value="recent">Orden habitual</option>
              <option value="location_asc">Ubicación: menor a mayor</option>

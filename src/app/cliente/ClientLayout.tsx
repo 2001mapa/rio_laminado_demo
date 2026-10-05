@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LayoutGrid, Search, ShoppingBag, User, LogOut, PackageSearch, X } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { useDemo } from '@/lib/DemoContext';
-import ToastContainer from '@/components/ToastContainer';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { getClientOrderStatuses, getClientActiveProductsDigest } from '@/app/actions/queries';
@@ -320,8 +319,6 @@ export default function ClienteLayout({
         </div>
       </nav>
 
-      {/* Toast notifications */}
-      <ToastContainer />
     </div>
   );
 }
