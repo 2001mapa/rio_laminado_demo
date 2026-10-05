@@ -30,7 +30,10 @@ export default function InventarioPage() {
   const [hasMore, setHasMore] = useState(true);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const loaderRef = useRef<HTMLDivElement>(null);
+  const requestGeneration = useRef(0);
+  const requestInFlight = useRef(false);
 
   const [totalCounts, setTotalCounts] = useState<Record<string, number>>({});
   const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({ Todos: 0, Laminado: 0, Plata: 0, Rodio: 0, 'Por revisar': 0 });
@@ -38,6 +41,7 @@ export default function InventarioPage() {
   const [duplicateLocationCodes, setDuplicateLocationCodes] = useState<string[]>([]);
   const [search, setSearch] = useState<string>('');
   const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
+  const [sortBy, setSortBy] = useState<'recent' | 'location_asc'>('recent');
 
   const fetchCounts = async () => {
     const res = await getAdminMaterialCounts();
@@ -55,8 +59,11 @@ export default function InventarioPage() {
   }, []);
 
   
-  const fetchProducts = async (reset = false) => {
+  const fetchProducts = async (reset = false, generation = requestGeneration.current) => {
+    if (!reset && requestInFlight.current) return;
+    requestInFlight.current = true;
     setIsLoading(true);
+    setLoadError('');
     try {
       const res: any = await getPagedCatalog({
         material: activeMaterial === 'Todos' ? undefined : activeMaterial,
@@ -64,26 +71,43 @@ export default function InventarioPage() {
         limit: 50,
         cursor: reset ? undefined : cursor,
         location: locationFilter === 'Todas' ? undefined : locationFilter,
+        sortBy: sortBy === 'location_asc' ? sortBy : undefined,
       });
-      if (res.success) {
+      if (generation === requestGeneration.current && res.success) {
         setCatalogProducts(prev => reset ? res.products : [...prev, ...res.products]);
         setHasMore(res.hasMore ?? false);
         setCursor(res.nextCursor);
+      } else if (generation === requestGeneration.current) {
+        setLoadError(res.error || 'No se pudo cargar el inventario.');
+        setHasMore(false);
       }
     } catch (error) {
       console.error(error);
+      if (generation === requestGeneration.current) {
+        setLoadError('No se pudo cargar el inventario.');
+        setHasMore(false);
+      }
     } finally {
-      setIsLoading(false);
+      if (generation === requestGeneration.current) {
+        requestInFlight.current = false;
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
+    const generation = ++requestGeneration.current;
+    requestInFlight.current = true;
+    setCatalogProducts([]);
+    setLoadError('');
+    setCursor(undefined);
+    setHasMore(false);
     const timeout = setTimeout(() => {
-      fetchProducts(true);
+      fetchProducts(true, generation);
     }, 300);
     return () => clearTimeout(timeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeMaterial, search, locationFilter]);
+  }, [activeMaterial, search, locationFilter, sortBy]);
 
   useEffect(() => {
     const currentLoader = loaderRef.current;
@@ -99,7 +123,7 @@ export default function InventarioPage() {
 
     return () => observer.unobserve(currentLoader);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, hasMore, cursor, activeMaterial, search]);
+  }, [isLoading, hasMore, cursor, activeMaterial, search, locationFilter, sortBy]);
 
     useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -256,7 +280,23 @@ export default function InventarioPage() {
               <option value="Sin ubicación" />
             </datalist>
           </div>
+         <label className="flex flex-col gap-1 text-xs font-semibold text-rio-muted">
+           <span>Ordenar inventario</span>
+           <select
+             aria-label="Ordenar inventario"
+             value={sortBy}
+             onChange={event => setSortBy(event.target.value as 'recent' | 'location_asc')}
+             className="w-full sm:w-52 rounded-xl border border-rio-border bg-white px-3 py-2.5 text-[13px] font-medium text-rio-ink focus:border-rio-gold focus:ring-1 focus:ring-rio-gold"
+           >
+             <option value="recent">Orden habitual</option>
+             <option value="location_asc">Ubicación: menor a mayor</option>
+           </select>
+         </label>
       </div>
+
+      {loadError && <div role="alert" className="rounded-xl border border-rio-danger/20 bg-rio-danger/10 p-4 text-sm text-rio-danger">
+        {loadError} <button onClick={() => fetchProducts(true)} className="ml-2 font-bold underline">Reintentar</button>
+      </div>}
 
       <div className="md:hidden space-y-3">
         {catalogProducts.map((product) => {
@@ -288,7 +328,7 @@ export default function InventarioPage() {
             </article>
           );
         })}
-        {catalogProducts.length === 0 && !isLoading && <div className="rounded-2xl border border-dashed border-rio-border bg-rio-surface p-8 text-center text-sm text-rio-muted">No se encontraron productos con los filtros seleccionados.</div>}
+        {catalogProducts.length === 0 && !isLoading && !loadError && <div className="rounded-2xl border border-dashed border-rio-border bg-rio-surface p-8 text-center text-sm text-rio-muted">No se encontraron productos con los filtros seleccionados.</div>}
       </div>
 
       <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-rio-border overflow-hidden">
@@ -409,7 +449,7 @@ export default function InventarioPage() {
                   </td>
                 </tr>
               ))}
-              {catalogProducts.length === 0 && (
+              {catalogProducts.length === 0 && !isLoading && !loadError && (
                  <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-rio-muted text-sm font-medium">
                        No se encontraron productos con los filtros seleccionados.

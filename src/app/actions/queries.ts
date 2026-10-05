@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { unstable_noStore as noStore } from 'next/cache'
 
 import { requireRole } from '@/utils/auth-helpers'
@@ -302,7 +303,8 @@ export async function getPagedCatalog({
   search, 
   location, 
   limit = 24, 
-  cursor 
+  cursor,
+  sortBy
 }: { 
   material?: string;
   category?: string;
@@ -310,10 +312,14 @@ export async function getPagedCatalog({
   location?: string;
   limit?: number;
   cursor?: string;
+  sortBy?: 'location_asc';
 }) {
   noStore();
   try {
     const { role } = await requireRole(['admin', 'vendedor', 'cliente']);
+    if (sortBy && (sortBy !== 'location_asc' || role !== 'admin')) {
+      return { success: false, error: 'Orden no permitido' };
+    }
     
     // Build where clause
     const baseWhere: any = {};
@@ -407,6 +413,49 @@ export async function getPagedCatalog({
       ];
     } else if (material && material !== 'Todos') {
       where.material = material;
+    }
+
+    if (sortBy === 'location_asc') {
+      const filters: Prisma.Sql[] = [Prisma.sql`TRUE`];
+      if (category && category !== 'Todos') {
+        filters.push(search ? Prisma.sql`p."category" = ${category}` : Prisma.sql`p."category" >= ${category}`);
+      }
+      if (search) filters.push(Prisma.sql`(strpos(lower(p."name"), lower(${search})) > 0 OR strpos(lower(p."sku"), lower(${search})) > 0)`);
+      if (location === 'Sin ubicación') filters.push(Prisma.sql`(p."locationCode" IS NULL OR p."locationCode" = '')`);
+      else if (location && location !== 'Todas') filters.push(Prisma.sql`p."locationCode" = ${location}`);
+      if (material === 'Por revisar') {
+        filters.push(Prisma.sql`(p."material" = 'Por revisar' OR p."locationCode" IS NULL OR p."locationCode" = '' OR p."imageUrl" IS NULL OR EXISTS (
+          SELECT 1 FROM "Product" other WHERE other."locationCode" = p."locationCode" AND other.id <> p.id AND other."locationCode" <> ''
+        ))`);
+      } else if (material && material !== 'Todos') filters.push(Prisma.sql`p."material" = ${material}`);
+
+      const pageSize = Math.min(200, Math.max(1, Math.trunc(limit) || 24));
+      const page = await prisma.$queryRaw<{ id: string }[]>`
+        WITH ordered AS (
+          SELECT p.id,
+            CASE WHEN btrim(p."locationCode") ~ '^[0-9]+$' THEN 0
+                 WHEN nullif(btrim(p."locationCode"), '') IS NULL THEN 2 ELSE 1 END AS bucket,
+            CASE WHEN btrim(p."locationCode") ~ '^[0-9]+$' THEN btrim(p."locationCode")::numeric ELSE -1::numeric END AS location_number,
+            coalesce(lower(btrim(p."locationCode")), '') AS location_label
+          FROM "Product" p
+          WHERE ${Prisma.join(filters, ' AND ')}
+        )
+        SELECT id FROM ordered
+        WHERE ${cursor ? Prisma.sql`(bucket, location_number, location_label, id) >
+          (SELECT bucket, location_number, location_label, id FROM ordered WHERE id = ${cursor})` : Prisma.sql`TRUE`}
+        ORDER BY bucket, location_number, location_label, id
+        LIMIT ${pageSize + 1}
+      `;
+      const pageIds = page.slice(0, pageSize).map(row => row.id);
+      const pageProducts = await prisma.product.findMany({ where: { id: { in: pageIds } } });
+      const byId = new Map(pageProducts.map(product => [product.id, product]));
+      return {
+        success: true,
+        products: pageIds.map(id => byId.get(id)).filter((product): product is NonNullable<typeof product> => !!product),
+        hasMore: page.length > pageSize,
+        nextCursor: pageIds.at(-1),
+        availableMaterials
+      };
     }
 
     // Paginación continua saltando agotados
