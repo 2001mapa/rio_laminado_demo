@@ -110,6 +110,68 @@ export async function getAdminStats() {
   }
 }
 
+export type DashboardPeriod = 'today' | '7d' | '30d';
+
+export async function getAdminDashboard(period: DashboardPeriod = '7d') {
+  noStore();
+  try {
+    await requireRole(['admin']);
+    if (!['today', '7d', '30d'].includes(period)) return { success: false, error: 'Período inválido' };
+
+    const now = new Date();
+    const colombiaToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    colombiaToday.setUTCMinutes(colombiaToday.getUTCMinutes() - 300);
+    if (now < colombiaToday) colombiaToday.setUTCDate(colombiaToday.getUTCDate() - 1);
+    const start = new Date(colombiaToday);
+    if (period === '7d') start.setUTCDate(start.getUTCDate() - 6);
+    if (period === '30d') start.setUTCDate(start.getUTCDate() - 29);
+    const previousStart = new Date(start.getTime() - (now.getTime() - start.getTime()));
+    const periodWhere = { createdAt: { gte: start, lte: now }, status: { not: 'Cancelado' } };
+    const previousWhere = { createdAt: { gte: previousStart, lt: start }, status: { not: 'Cancelado' } };
+    const urgentWhere = { status: { in: ['Reservado', 'Pendiente de verificación'] } };
+    const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const [reserved, olderReserved, pendingVerify, pendingErp, urgentCount, urgentOrders,
+      directOrders, sellerOrders, currentOrders, previousOrders, units, topProductGroups,
+      topClientGroups, stockRows, lastInventoryUpdate] = await Promise.all([
+      prisma.order.count({ where: { status: 'Reservado' } }),
+      prisma.order.count({ where: { status: 'Reservado', createdAt: { lt: cutoff24h } } }),
+      prisma.order.count({ where: { status: 'Pendiente de verificación' } }),
+      prisma.customer.count({ where: { internalSystemStatus: 'Pendiente' } }),
+      prisma.order.count({ where: urgentWhere }),
+      prisma.order.findMany({ where: urgentWhere, orderBy: { createdAt: 'asc' }, take: 5, select: { id: true, orderNumber: true, status: true, createdAt: true, customer: { select: { name: true } } } }),
+      prisma.order.findMany({ where: { sellerId: null }, orderBy: { createdAt: 'desc' }, take: 8, select: { id: true, orderNumber: true, status: true, createdAt: true, customer: { select: { name: true } } } }),
+      prisma.order.findMany({ where: { sellerId: { not: null } }, orderBy: { createdAt: 'desc' }, take: 8, select: { id: true, orderNumber: true, status: true, createdAt: true, customer: { select: { name: true } } } }),
+      prisma.order.count({ where: periodWhere }),
+      prisma.order.count({ where: previousWhere }),
+      prisma.orderItem.aggregate({ where: { order: periodWhere }, _sum: { quantity: true } }),
+      prisma.orderItem.groupBy({ by: ['productId'], where: { order: periodWhere }, _sum: { quantity: true }, orderBy: { _sum: { quantity: 'desc' } }, take: 4 }),
+      prisma.order.groupBy({ by: ['customerId'], where: periodWhere, _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 4 }),
+      prisma.product.findMany({ where: { isActive: true }, select: { physicalStock: true, reservedStock: true } }),
+      prisma.auditEvent.findFirst({ where: { action: { in: ['BULK_UPLOAD', 'UPDATE_INVENTORY'] }, result: 'success' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } })
+    ]);
+    const [productDetails, customerDetails] = await Promise.all([
+      prisma.product.findMany({ where: { id: { in: topProductGroups.map(p => p.productId) } }, select: { id: true, name: true, sku: true, imageUrl: true } }),
+      prisma.customer.findMany({ where: { id: { in: topClientGroups.map(c => c.customerId) } }, select: { id: true, name: true, city: true } })
+    ]);
+    const productsById = new Map(productDetails.map(p => [p.id, p]));
+    const customersById = new Map(customerDetails.map(c => [c.id, c]));
+    return { success: true, data: {
+      reserved, olderReserved, pendingVerify, pendingErp, urgentCount, urgentOrders, directOrders, sellerOrders,
+      currentOrders, previousOrders, totalUnits: units._sum.quantity || 0,
+      topProducts: topProductGroups.map(p => ({ ...productsById.get(p.productId), id: p.productId, qty: p._sum.quantity || 0 })),
+      topClients: topClientGroups.map(c => ({ ...customersById.get(c.customerId), id: c.customerId, orderCount: c._count.id })),
+      outOfStockCount: stockRows.filter(p => p.physicalStock - p.reservedStock <= 0).length,
+      lowStockCount: stockRows.filter(p => p.physicalStock - p.reservedStock > 0 && p.physicalStock - p.reservedStock <= 5).length,
+      lastInventoryUpdate: lastInventoryUpdate?.createdAt || null,
+      periodStart: start,
+      periodEnd: now
+    } };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'No se pudo cargar el panel' };
+  }
+}
+
 export async function getPagedAdminOrders({ status, search, limit = 50, cursor }: { status?: string, search?: string, limit?: number, cursor?: string }) {
   noStore();
   try {

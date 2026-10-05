@@ -6,7 +6,7 @@ import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 let mockSyncCalled = false;
 let mockSyncUuid = '';
 let mockAddPendingOrder = vi.fn();
-const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn() }));
+const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), getCameras: vi.fn() }));
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
@@ -75,7 +75,7 @@ vi.mock('html5-qrcode', () => ({
         step: () => 0.5, value: () => 1, apply: cameraMocks.applyZoom,
       }) };
     }
-    static getCameras() { return Promise.resolve([{ id: 'cam-main', label: 'Cámara principal' }, { id: 'cam-wide', label: 'Gran angular' }]); }
+    static getCameras() { cameraMocks.getCameras(); return Promise.resolve([{ id: 'cam-main', label: 'Cámara principal' }, { id: 'cam-wide', label: 'Gran angular' }]); }
   }
 }));
 
@@ -89,6 +89,13 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
   it('ofrece zoom real y permite cambiar de lente cuando el navegador lo soporta', async () => {
     cameraMocks.applyZoom.mockResolvedValue(undefined);
     cameraMocks.starts.mockClear();
+    cameraMocks.getCameras.mockClear();
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn().mockResolvedValue([
+        { kind: 'videoinput', deviceId: 'cam-main', label: 'Cámara principal' },
+        { kind: 'videoinput', deviceId: 'cam-wide', label: 'Gran angular' },
+      ])
+    } });
     render(<NuevaVentaPage />);
     fireEvent.click((await screen.findAllByText(/Cliente UI/i))[0]);
     fireEvent.click(await screen.findByRole('button', { name: 'Activar Lector QR' }));
@@ -97,6 +104,7 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     await waitFor(() => expect(cameraMocks.applyZoom).toHaveBeenCalledWith(2));
     fireEvent.change(screen.getByRole('combobox', { name: 'Elegir cámara' }), { target: { value: 'cam-wide' } });
     await waitFor(() => expect(cameraMocks.starts).toHaveBeenCalledWith({ deviceId: { exact: 'cam-wide' } }));
+    expect(cameraMocks.getCameras).not.toHaveBeenCalled();
   });
 
   it('Verifica que Reintentar desaparece en rechazos de negocio (failed_fatal) y se permite Descartar', async () => {

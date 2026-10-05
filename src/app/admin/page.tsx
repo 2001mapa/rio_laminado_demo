@@ -1,12 +1,10 @@
 'use client';
 
-import { useDemo } from '@/lib/DemoContext';
 import { Package, Clock, CheckCircle, AlertTriangle, ArrowRight, TrendingUp, BarChart2, Star, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { StatCardSkeleton, OrderCardSkeleton } from '@/components/Skeletons';
-import { formatPrice } from '@/lib/utils';
-import { getAdminStats } from '@/app/actions/queries';
+import { getAdminDashboard, type DashboardPeriod } from '@/app/actions/queries';
 
 const STATUS_CLASSES: Record<string, string> = {
   'Reservado': 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light',
@@ -20,19 +18,24 @@ const STATUS_CLASSES: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
-  const { orders, customers, products, isLoaded } = useDemo();
   const [orderView, setOrderView] = useState<'clientes' | 'vendedores'>('clientes');
+  const [period, setPeriod] = useState<DashboardPeriod>('7d');
   const [stats, setStats] = useState<any>(null);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    getAdminStats().then(res => {
-      if (res.success) {
-        setStats(res.stats);
-      }
-    });
-  }, []);
+    let active = true;
+    getAdminDashboard(period).then(res => {
+      if (!active) return;
+      if (res.success) { setStats(res.data); setError(''); }
+      else { setStats(null); setError(res.error || 'No se pudo cargar el panel'); }
+    }).catch(() => { if (active) { setStats(null); setError('No se pudo cargar el panel'); } });
+    return () => { active = false; };
+  }, [period, reloadKey]);
 
-  if (!isLoaded || !stats) {
+  if (error) return <div className="p-8 rounded-xl bg-rio-surface border border-rio-border"><p className="text-rio-danger">{error}</p><button onClick={() => { setError(''); setReloadKey(k => k + 1); }} className="mt-4 text-sm underline">Reintentar</button></div>;
+  if (!stats) {
     return (
       <div className="p-6 md:p-10 space-y-8">
         <div className="h-8 w-64 bg-rio-border rounded-lg animate-pulse" />
@@ -55,70 +58,15 @@ export default function AdminDashboard() {
     );
   }
 
-  const {
-    newOrders,
-    inPrepOrders,
-    pendingVerify,
-    verifiedOrders,
-    totalOrders,
-    totalUnitsSold,
-    validOrdersCount,
-    lowStockCount,
-    outOfStockCount
-  } = stats;
-
-  const urgentOrders = orders.filter(o =>
-    o.status === 'Reservado' || o.status === 'Pendiente de verificación'
-  );
-
-  const displayedOrders = orders
-    .filter(o => orderView === 'clientes' ? !o.sellerId : !!o.sellerId)
-    .slice(0, 8);
-
-  // --- DATA SCIENCE METRICS ---
-  // Since we don't have ALL orders in memory anymore, we calculate top products/clients based on the recent loaded orders
-  // This is actually better as it shows recent trends!
-  const productSales: Record<string, number> = {};
-  
-  orders.forEach(order => {
-    if (order.status !== 'Cancelado') {
-      order.items.forEach(item => {
-        productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
-      });
-    }
-  });
-
-  const validOrders = orders.filter(o => o.status !== 'Cancelado');
-  const avgUnitsPerOrder = validOrdersCount > 0 ? Math.round(totalUnitsSold / validOrdersCount) : 0;
-
-  const topProducts = Object.entries(productSales)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([id, qty]) => {
-      const p = products.find(prod => prod.id === id);
-      return { ...p, qty };
-    })
-    .filter(p => p.sku); // ensure it exists
-
-  const clientFrequency: Record<string, number> = {};
-  validOrders.forEach(o => {
-    if (o.customerId) {
-      clientFrequency[o.customerId] = (clientFrequency[o.customerId] || 0) + 1;
-    }
-  });
-  const topClients = Object.entries(clientFrequency)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([id, count]) => {
-      const c = customers.find(cust => cust.id === id);
-      return { ...c, orderCount: count };
-    })
-    .filter(c => c.name);
+  const displayedOrders = orderView === 'clientes' ? stats.directOrders : stats.sellerOrders;
+  const avgUnitsPerOrder = stats.currentOrders > 0 ? Math.round(stats.totalUnits / stats.currentOrders) : 0;
+  const topProducts = stats.topProducts;
+  const topClients = stats.topClients;
 
   return (
     <div className="p-4 md:p-8 space-y-8">
       {/* Page Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-rio-muted uppercase tracking-[0.15em] mb-1">Panel de Control</p>
           <h1 className="text-3xl font-serif font-bold text-rio-ink">Resumen de Operación</h1>
@@ -131,13 +79,19 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Nuevos / Confirmados" value={newOrders} total={totalOrders} icon={Package} accent="gold" />
-        <StatCard title="En Preparación" value={inPrepOrders} total={totalOrders} icon={Clock} accent="ink" />
-        <StatCard title="Para Verificar" value={pendingVerify} total={totalOrders} icon={AlertTriangle} accent="warning" />
-        <StatCard title="Verificados" value={verifiedOrders} total={totalOrders} icon={CheckCircle} accent="success" />
+      <div className="flex flex-wrap gap-2" aria-label="Período de análisis">
+        {([['today', 'Hoy'], ['7d', '7 días'], ['30d', '30 días']] as const).map(([key, label]) => (
+          <button key={key} onClick={() => { setPeriod(key); setStats(null); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${period === key ? 'bg-rio-ink text-white border-rio-ink' : 'bg-rio-surface text-rio-muted border-rio-border'}`}>{label}</button>
+        ))}
       </div>
+      {/* Cifras operativas actuales, independientes del período */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Reservados por confirmar" value={stats.reserved} icon={Package} accent="gold" />
+        <StatCard title="Reservados más de 24 h" value={stats.olderReserved} icon={Clock} accent="warning" />
+        <StatCard title="Referencias agotadas" value={stats.outOfStockCount} icon={AlertTriangle} accent="warning" />
+        <StatCard title="Clientes pendientes ERP" value={stats.pendingErp} icon={Users} accent="ink" />
+      </div>
+      <p className="text-xs text-rio-muted">Cifras operativas actuales. Inventario actualizado: {stats.lastInventoryUpdate ? new Date(stats.lastInventoryUpdate).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : 'sin registro de actualización'}.</p>
 
       {/* Main 2-column layout on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -171,7 +125,8 @@ export default function AdminDashboard() {
               Ver bandeja completa →
             </Link>
           </div>
-          <table className="min-w-full">
+          <div className="overflow-x-auto">
+          <table className="min-w-[620px] w-full">
             <thead>
               <tr className="bg-rio-background border-b border-rio-border">
                 <th className="px-6 py-3 text-left text-[10px] font-bold text-rio-muted uppercase tracking-wider">Pedido</th>
@@ -189,12 +144,11 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               )}
-              {displayedOrders.map(order => {
-                const customer = customers.find(c => c.id === order.customerId);
+              {displayedOrders.map((order: any) => {
                 return (
                   <tr key={order.id} className="hover:bg-rio-background transition-colors group">
-                    <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-bold text-rio-ink">{order.number}</td>
-                    <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-rio-muted font-medium max-w-[160px] truncate">{customer?.name || '—'}</td>
+                    <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-bold text-rio-ink">{order.orderNumber}</td>
+                    <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-rio-muted font-medium max-w-[160px] truncate">{order.customer?.name || '—'}</td>
                     <td className="px-6 py-3.5 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${STATUS_CLASSES[order.status] || ''}`}>
                         {order.status}
@@ -211,6 +165,7 @@ export default function AdminDashboard() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Right column — urgent + quick stats */}
@@ -220,17 +175,16 @@ export default function AdminDashboard() {
             <div className="px-5 py-4 border-b border-rio-border flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-rio-warning animate-pulse" />
               <h2 className="text-xs font-bold text-rio-ink uppercase tracking-wider">Requieren Atención</h2>
-              <span className="ml-auto text-xs font-bold bg-rio-warning/10 text-rio-warning px-2 py-0.5 rounded-full">{urgentOrders.length}</span>
+              <span className="ml-auto text-xs font-bold bg-rio-warning/10 text-rio-warning px-2 py-0.5 rounded-full">{stats.urgentCount}</span>
             </div>
-            {urgentOrders.length === 0 ? (
+            {stats.urgentCount === 0 ? (
               <div className="px-5 py-8 text-center">
                 <CheckCircle className="w-6 h-6 text-rio-success mx-auto mb-2 opacity-50" />
                 <p className="text-xs text-rio-muted font-medium">Todo al día</p>
               </div>
             ) : (
               <div className="divide-y divide-rio-border">
-                {urgentOrders.slice(0, 5).map(order => {
-                  const customer = customers.find(c => c.id === order.customerId);
+                {stats.urgentOrders.map((order: any) => {
                   return (
                     <Link
                       key={order.id}
@@ -238,8 +192,8 @@ export default function AdminDashboard() {
                       className="flex items-center justify-between px-5 py-3.5 hover:bg-rio-background transition-colors group"
                     >
                       <div>
-                        <p className="text-[13px] font-bold text-rio-ink leading-none">{order.number}</p>
-                        <p className="text-[11px] text-rio-muted mt-0.5 truncate max-w-[130px]">{customer?.name}</p>
+                        <p className="text-[13px] font-bold text-rio-ink leading-none">{order.orderNumber}</p>
+                        <p className="text-[11px] text-rio-muted mt-0.5 truncate max-w-[130px]">{order.customer?.name} · {order.status}</p>
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-rio-muted group-hover:text-rio-gold-dark transition-colors shrink-0" />
                     </Link>
@@ -271,19 +225,26 @@ export default function AdminDashboard() {
 
       {/* --- BUSINESS INTELLIGENCE SECTION --- */}
       <div className="pt-4">
-        <h2 className="text-xl font-serif font-bold text-rio-ink mb-6 flex items-center gap-2">
-          <BarChart2 className="w-5 h-5 text-rio-gold-dark" /> Inteligencia de Negocio
+        <h2 className="text-xl font-serif font-bold text-rio-ink mb-2 flex items-center gap-2">
+          <BarChart2 className="w-5 h-5 text-rio-gold-dark" /> Actividad del período
         </h2>
+        <p className="text-xs text-rio-muted mb-5">Pedidos registrados en la plataforma; no equivalen a facturación del sistema externo. Se excluyen cancelados.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Pedidos del período</p><p className="text-2xl font-bold text-rio-ink">{stats.currentOrders}</p><p className="text-xs text-rio-muted">Período anterior: {stats.previousOrders}</p></div>
+          <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Unidades solicitadas</p><p className="text-2xl font-bold text-rio-ink">{stats.totalUnits}</p></div>
+          <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Unidades por pedido</p><p className="text-2xl font-bold text-rio-ink">{avgUnitsPerOrder}</p></div>
+        </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
           {/* Top Products */}
           <div className="bg-rio-surface rounded-xl border border-rio-border overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-rio-border flex items-center gap-2 bg-rio-background">
               <Star className="w-4 h-4 text-rio-gold-dark" />
-              <h3 className="text-sm font-bold text-rio-ink">Prendas Más Vendidas</h3>
+              <h3 className="text-sm font-bold text-rio-ink">Referencias más solicitadas</h3>
             </div>
             <div className="p-5 flex-1 space-y-4">
-              {topProducts.map((p, i) => (
+              {topProducts.length === 0 && <p className="text-sm text-rio-muted">Sin pedidos en este período.</p>}
+              {topProducts.map((p: any, i: number) => (
                 <div key={p.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-bold text-rio-muted w-4">{i + 1}</span>
@@ -311,10 +272,11 @@ export default function AdminDashboard() {
           <div className="bg-rio-surface rounded-xl border border-rio-border overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-rio-border flex items-center gap-2 bg-rio-background">
               <Users className="w-4 h-4 text-rio-ink" />
-              <h3 className="text-sm font-bold text-rio-ink">Clientes Frecuentes</h3>
+              <h3 className="text-sm font-bold text-rio-ink">Clientes con más pedidos</h3>
             </div>
             <div className="p-5 flex-1 space-y-4">
-              {topClients.map((c, i) => (
+              {topClients.length === 0 && <p className="text-sm text-rio-muted">Sin pedidos en este período.</p>}
+              {topClients.map((c: any, i: number) => (
                 <div key={c.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-rio-ink/5 flex items-center justify-center text-xs font-serif font-bold text-rio-ink border border-rio-ink/10">
@@ -322,7 +284,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <p className="text-[12px] font-bold text-rio-ink line-clamp-1">{c.name}</p>
-                      <p className="text-[10px] text-rio-muted truncate max-w-[120px]">{c.address || c.email || 'Sin ubicación'}</p>
+                      <p className="text-[10px] text-rio-muted truncate max-w-[120px]">{c.city || 'Ciudad no registrada'}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -347,20 +309,20 @@ export default function AdminDashboard() {
                   <span className="text-3xl font-black text-rio-ink leading-none">{avgUnitsPerOrder}</span>
                   <span className="text-xs text-rio-muted font-medium mb-1">prendas / pedido</span>
                 </div>
-                <p className="text-[10px] text-rio-success font-medium mt-1">Métrica clave de rentabilidad B2B</p>
+                <p className="text-[10px] text-rio-muted font-medium mt-1">Volumen operativo, no margen ni rentabilidad.</p>
               </div>
 
               <div className="pt-4 border-t border-rio-border space-y-3">
                 <div className="flex justify-between items-center">
                   <p className="text-[12px] font-medium text-rio-ink">Referencias Agotadas</p>
-                  <span className={`text-[12px] font-bold px-2 py-0.5 rounded ${outOfStockCount > 0 ? 'bg-rio-danger/10 text-rio-danger' : 'bg-rio-success/10 text-rio-success'}`}>
-                    {outOfStockCount}
+                  <span className={`text-[12px] font-bold px-2 py-0.5 rounded ${stats.outOfStockCount > 0 ? 'bg-rio-danger/10 text-rio-danger' : 'bg-rio-success/10 text-rio-success'}`}>
+                    {stats.outOfStockCount}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <p className="text-[12px] font-medium text-rio-ink">A punto de agotarse (&le;5)</p>
-                  <span className={`text-[12px] font-bold px-2 py-0.5 rounded ${lowStockCount > 0 ? 'bg-rio-warning/10 text-rio-warning' : 'bg-rio-success/10 text-rio-success'}`}>
-                    {lowStockCount}
+                  <span className={`text-[12px] font-bold px-2 py-0.5 rounded ${stats.lowStockCount > 0 ? 'bg-rio-warning/10 text-rio-warning' : 'bg-rio-success/10 text-rio-success'}`}>
+                    {stats.lowStockCount}
                   </span>
                 </div>
               </div>
@@ -384,10 +346,9 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ title, value, total, icon: Icon, accent }: {
-  title: string; value: number; total: number; icon: any; accent: 'gold' | 'ink' | 'warning' | 'success';
+function StatCard({ title, value, icon: Icon, accent }: {
+  title: string; value: number; icon: any; accent: 'gold' | 'ink' | 'warning' | 'success';
 }) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   const accentClasses = {
     gold: { bar: 'bg-rio-gold', text: 'text-rio-gold-dark' },
     ink: { bar: 'bg-rio-ink', text: 'text-rio-ink' },
@@ -403,10 +364,7 @@ function StatCard({ title, value, total, icon: Icon, accent }: {
       </div>
       <div>
         <p className="text-4xl font-serif font-bold text-rio-ink leading-none">{value}</p>
-        <div className="mt-3 h-1 bg-rio-border rounded-full overflow-hidden">
-          <div className={`h-full rounded-full ${accentClasses.bar} transition-all duration-700`} style={{ width: `${pct}%` }} />
-        </div>
-        <p className="text-[10px] text-rio-muted mt-1 font-medium">{pct}% del total</p>
+        <div className={`mt-3 h-1 w-8 rounded-full ${accentClasses.bar}`} />
       </div>
     </div>
   );

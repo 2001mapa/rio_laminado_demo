@@ -288,8 +288,10 @@ export default function NuevaVentaPage() {
 
   const loadCameraControls = async (scanner: Html5Qrcode, requestedCameraId?: string) => {
     try {
-      const devices = await Html5Qrcode.getCameras();
-      setCameraDevices(devices);
+      // getCameras() abre otro getUserMedia() y puede interrumpir el stream trasero en iOS.
+      // La cámara ya está autorizada y activa: basta con enumerar los dispositivos.
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setCameraDevices(devices.filter(device => device.kind === 'videoinput' && device.deviceId).map(device => ({ id: device.deviceId, label: device.label })));
       setSelectedCameraId(scanner.getRunningTrackSettings().deviceId || requestedCameraId || '');
     } catch {
       setCameraDevices([]);
