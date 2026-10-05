@@ -57,12 +57,21 @@ export interface SyncMeta {
   isComplete: boolean;
 }
 
+export interface OfflineSellerAccess {
+  key: string;
+  sellerId: string;
+  verifiedAt: number;
+}
+
+export const OFFLINE_ACCESS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+
 export interface RioDB extends DBSchema {
   drafts: { key: string; value: DraftOrder; };
   pending_orders: { key: string; value: PendingOrder; indexes: { 'by-seller': string }; };
   catalog_products: { key: string; value: CatalogProduct; indexes: { 'by-sku': string }; };
   catalog_customers: { key: string; value: CatalogCustomer; };
   sync_meta: { key: string; value: SyncMeta; };
+  offline_access: { key: string; value: OfflineSellerAccess; };
 }
 
 let dbPromise: Promise<IDBPDatabase<RioDB>> | null = null;
@@ -70,7 +79,7 @@ let dbPromise: Promise<IDBPDatabase<RioDB>> | null = null;
 export function getDB() {
   if (typeof window === 'undefined') return null;
   if (!dbPromise) {
-          dbPromise = openDB<RioDB>('rio-offline-db', 3, {
+          dbPromise = openDB<RioDB>('rio-offline-db', 4, {
         upgrade(db, oldVersion, newVersion, transaction) {
           if (!db.objectStoreNames.contains('drafts')) {
             db.createObjectStore('drafts', { keyPath: 'sellerId' });
@@ -89,10 +98,49 @@ export function getDB() {
           if (!db.objectStoreNames.contains('sync_meta')) {
             db.createObjectStore('sync_meta', { keyPath: 'storeName' });
           }
+          if (!db.objectStoreNames.contains('offline_access')) {
+            db.createObjectStore('offline_access', { keyPath: 'key' });
+          }
         },
       });
   }
   return dbPromise;
+}
+
+// This is only a local, time-limited permission to use cached data. It never
+// authorizes an API request; the server must authenticate every queued order.
+export async function recordOfflineSellerAccess(sellerId: string) {
+  if (!sellerId) return;
+  return withWriteTracking(async () => {
+    const db = await getDB();
+    if (db) {
+      await db.put('offline_access', { key: 'seller', sellerId, verifiedAt: Date.now() });
+      localStorage.removeItem('rio-offline-access-revoked');
+    }
+  });
+}
+
+export async function clearOfflineSellerAccess() {
+  // Revocation remains effective even if IndexedDB deletion fails.
+  localStorage.setItem('rio-offline-access-revoked', '1');
+  return withWriteTracking(async () => {
+    const db = await getDB();
+    if (db) await db.delete('offline_access', 'seller');
+  });
+}
+
+export async function getOfflineSellerAccess(): Promise<OfflineSellerAccess | null> {
+  if (localStorage.getItem('rio-offline-access-revoked') === '1') return null;
+  const db = await getDB();
+  if (!db) return null;
+  const access = await db.get('offline_access', 'seller');
+  if (!access || !access.sellerId || access.verifiedAt > Date.now() ||
+      Date.now() - access.verifiedAt > OFFLINE_ACCESS_MAX_AGE_MS) return null;
+  const owner = await db.get('sync_meta', 'lastSellerId');
+  const catalog = await db.get('sync_meta', 'products');
+  const customers = await db.get('sync_meta', 'customers');
+  if (owner?.lastSyncedAt !== access.sellerId || !catalog?.isComplete || !customers?.isComplete) return null;
+  return access;
 }
 
 export function emitWriteStart() {

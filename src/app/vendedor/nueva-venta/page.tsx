@@ -15,10 +15,12 @@ import { useCatalogSync } from '@/lib/useCatalogSync';
 import { searchOfflineProducts, searchOfflineCustomers, getOfflineProductsByIds } from '@/lib/offlineQueue';
 import { useRouter } from 'next/navigation';
 import { isValidQuickCustomer, normalizeQuickCustomer, type QuickCustomerData } from '@/lib/quickCustomer';
+import { useOfflineSellerId } from '@/lib/OfflineSellerContext';
 
 const emptyQuickCustomer: QuickCustomerData = { name: '', phone: '', city: '', address: '', document: '' };
 
 export default function NuevaVentaPage() {
+  const offlineSellerId = useOfflineSellerId();
   const router = useRouter();
   const { customers, products, checkoutSeller, syncPendingOrders } = useDemo();
     const [offlineCustomers, setOfflineCustomers] = useState<Customer[]>([]);
@@ -56,13 +58,12 @@ export default function NuevaVentaPage() {
   const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string, newCustomerData?: QuickCustomerData} | null>(null);
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-       if (data.user) {
-          setSellerId(data.user.id);
-          getPendingOrders(data.user.id).then(setPendingQueue);
+    const initialize = (id: string) => {
+          setSellerId(id);
+          getPendingOrders(id).then(setPendingQueue);
           
           if (!isDraftLoaded) {
-             loadDraft(data.user.id).then(draft => {
+             loadDraft(id).then(draft => {
                    if (draft && draft.cart && draft.cart.length > 0) {
                        setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId, newCustomerData: draft.newCustomerData });
                        if (draft.clientRequestId) {
@@ -73,11 +74,19 @@ export default function NuevaVentaPage() {
                    }
                });
           }
+    };
+    if (offlineSellerId) {
+       initialize(offlineSellerId);
+       return;
+    }
+    createClient().auth.getUser().then(({ data }) => {
+       if (data.user) {
+          initialize(data.user.id);
        } else {
           setIsDraftLoaded(true);
        }
-    });
-  }, []);
+    }).catch(() => setIsDraftLoaded(true));
+  }, [offlineSellerId]);
 
   useEffect(() => {
       if (offlineDraftWaiting && (effectiveCustomers.length > 0 || offlineDraftWaiting.newCustomerData)) {
@@ -87,13 +96,20 @@ export default function NuevaVentaPage() {
               
               let currentProducts = [...products];
               if (missingIds.length > 0) {
-                  try {
-                      const res = await getProductsByIds(missingIds);
-                      if (res.success && res.products) {
-                          currentProducts = [...currentProducts, ...(res.products as any[])];
+                  if (navigator.onLine) {
+                      try {
+                          const res = await getProductsByIds(missingIds);
+                          if (res.success && res.products) {
+                              currentProducts = [...currentProducts, ...(res.products as any[])];
+                          }
+                      } catch (e) {
+                          // Fall back to the last complete catalog for this seller.
                       }
-                  } catch (e) {
-                      // Offline: remains blocked by missing catalog, warning stays visible
+                  }
+                  const stillMissing = missingIds.filter(id => !currentProducts.some(p => p.id === id));
+                  if (stillMissing.length > 0 && sellerId) {
+                      const cached = await getOfflineProductsByIds(stillMissing, sellerId);
+                      currentProducts = [...currentProducts, ...(cached as any[])];
                   }
               }
 
@@ -136,7 +152,7 @@ export default function NuevaVentaPage() {
           };
           hydrate();
       }
-    }, [products, customers, offlineCustomers, offlineDraftWaiting]);
+    }, [products, customers, offlineCustomers, offlineDraftWaiting, sellerId]);
 
   useEffect(() => {
     // Si offlineDraftWaiting tiene valor, significa que el catálogo no cargó y no hemos podido rehidratar.

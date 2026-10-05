@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { createClient } from '@/utils/supabase/client';
+import { clearOfflineSellerAccess } from '@/lib/offlineQueue';
 
 const normalizeSearch = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CO');
 
@@ -30,6 +31,7 @@ export default function VendedorPerfilPage() {
   });
 
   const handleLogout = async () => {
+    await clearOfflineSellerAccess().catch(() => {});
     if (typeof window !== 'undefined' && 'caches' in window) {
       const keys = await caches.keys();
       for (const key of keys) {

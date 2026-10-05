@@ -10,6 +10,8 @@ import { useEffect, useState, useRef } from 'react';
 import { getSellerOrderStates } from '@/app/actions/queries';
 import { useDemo } from '@/lib/DemoContext';
 import { addToast } from '@/lib/toast';
+import { useCatalogSync } from '@/lib/useCatalogSync';
+import { clearOfflineSellerAccess, recordOfflineSellerAccess } from '@/lib/offlineQueue';
 
 export default function VendedorLayout({
   children,
@@ -19,6 +21,8 @@ export default function VendedorLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [verifiedSellerId, setVerifiedSellerId] = useState('');
+  const { lastSyncDate } = useCatalogSync(verifiedSellerId);
   const { refreshData } = useDemo();
   
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -27,17 +31,26 @@ export default function VendedorLayout({
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      const role = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role;
-      if (!session || role !== 'vendedor') {
+      const { data, error } = await supabase.auth.getUser();
+      const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role;
+      if (error || !data.user || role !== 'vendedor') {
+        await clearOfflineSellerAccess().catch(() => {});
         router.push('/login');
       } else {
+        setVerifiedSellerId(data.user.id);
         setIsAuthorized(true);
       }
     };
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    if (verifiedSellerId && lastSyncDate) {
+      recordOfflineSellerAccess(verifiedSellerId).catch(() => {
+        addToast('No se pudo preparar el acceso sin conexión en este dispositivo.');
+      });
+    }
+  }, [verifiedSellerId, lastSyncDate]);
 
   let audioCtxRef = useRef<any>(null);
   const getAudioCtx = () => {
@@ -193,6 +206,7 @@ export default function VendedorLayout({
   ];
 
   const handleLogout = async () => {
+    await clearOfflineSellerAccess().catch(() => {});
     if (typeof window !== 'undefined' && 'caches' in window) {
       const keys = await caches.keys();
       for (const key of keys) {
@@ -204,6 +218,13 @@ export default function VendedorLayout({
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = '/login';
+  };
+
+  const openSaleOffline = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!navigator.onLine) {
+      event.preventDefault();
+      window.location.assign('/offline');
+    }
   };
 
   return (
@@ -225,6 +246,7 @@ export default function VendedorLayout({
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={item.href === '/vendedor/nueva-venta' ? openSaleOffline : undefined}
                 className={classNames(
                   "px-4 py-2 rounded-xl flex items-center gap-2 transition-all font-semibold text-sm",
                   isActive 
@@ -263,6 +285,7 @@ export default function VendedorLayout({
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={item.href === '/vendedor/nueva-venta' ? openSaleOffline : undefined}
                 className={classNames(
                   "relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
                   isActive ? "text-rio-gold-dark" : "text-rio-muted hover:text-rio-ink"

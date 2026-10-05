@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { resolveLoginDestination } from '@/app/actions/auth';
 import styles from './page.module.css';
+import { clearOfflineSellerAccess } from '@/lib/offlineQueue';
 
 const brandLetters = Array.from('LAMINADO');
 
@@ -45,6 +46,9 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+
+      // A new authenticated session must never inherit another seller's offline access.
+      await clearOfflineSellerAccess().catch(() => {});
 
       // Safe Instrumentation Logging
       const cookieNames1 = document.cookie.split(';').map(c => c.trim().split('=')[0]).filter(c => c.startsWith('sb-'));

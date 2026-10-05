@@ -1,6 +1,35 @@
 "use client";
 
+import { useEffect, useState } from 'react';
+import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
+import { getOfflineSellerAccess } from '@/lib/offlineQueue';
+import ToastContainer from '@/components/ToastContainer';
+import { OfflineSellerContext } from '@/lib/OfflineSellerContext';
+
 export default function OfflinePage() {
+  const [sellerId, setSellerId] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    getOfflineSellerAccess()
+      .then(access => setSellerId(access?.sellerId ?? null))
+      .catch(() => setSellerId(null))
+      .finally(() => setChecked(true));
+  }, []);
+
+  if (!checked) return <div className="min-h-screen bg-rio-background p-6">Preparando acceso sin conexión...</div>;
+  if (sellerId) return (
+    <>
+      <div className="sticky top-0 z-50 bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-950">
+        Sin conexión · Venta local. Stock y precio sujetos a confirmación al sincronizar.
+      </div>
+      <OfflineSellerContext.Provider value={sellerId}>
+        <NuevaVentaPage />
+      </OfflineSellerContext.Provider>
+      <ToastContainer />
+    </>
+  );
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-rio-background text-rio-ink p-4">
       <div className="bg-white p-8 rounded-xl shadow-sm text-center max-w-md">
@@ -9,8 +38,7 @@ export default function OfflinePage() {
         </svg>
         <h1 className="text-2xl font-serif font-bold mb-2">Estás sin conexión</h1>
         <p className="text-sm text-gray-600 mb-6">
-          Esta página requiere conexión a internet para cargar los datos más recientes. 
-          En este momento, la aplicación B2B de RIO no puede conectarse al servidor.
+          Para vender sin internet, entra una vez como vendedor con conexión y deja que termine la descarga del catálogo. El acceso local dura 48 horas y solo funciona en este dispositivo.
         </p>
         <button 
           onClick={() => window.location.reload()}
