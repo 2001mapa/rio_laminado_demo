@@ -51,7 +51,7 @@ export default function MassPrintPage() {
   const [offsetX, setOffsetX] = useState<number>(3.2);
   const [offsetY, setOffsetY] = useState<number>(1.6);
   const [gapY, setGapY] = useState<number>(3.0);
-  const [gapX, setGapX] = useState<number>(3.0);
+  const [gapX, setGapX] = useState<number>(1.5);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -128,6 +128,7 @@ export default function MassPrintPage() {
 
   const uniqueReferencesInBatch = new Set(currentBatchLabels.map(l => l.product.id)).size;
   const totalLabels = labelsToPrint.length;
+  const printRowHeight = Math.max(16, 15 + gapY);
 
   // -- SELECTION HANDLERS --
   const handleToggleSelect = (id: string) => {
@@ -433,11 +434,11 @@ export default function MassPrintPage() {
       </div>
 
       {/* RENDER FÍSICO DE ETIQUETAS (IMPRESIÓN TÉRMICA) */}
-      <div className="hidden print:block bg-white w-max">
+      <div className="hidden print:block bg-white">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page { 
-              size: 103mm auto;
+              size: 103mm ${printRowHeight}mm;
               margin: 0; 
             }
             body { 
@@ -447,14 +448,16 @@ export default function MassPrintPage() {
             }
           }
         `}} />
-        <div 
-          className="grid grid-cols-3"
-          style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
-        >
-          {currentBatchLabels.map((item, i) => (
+        {Array.from({ length: Math.ceil(currentBatchLabels.length / 3) }, (_, row) => (
+          <div
+            key={row}
+            className="grid grid-cols-3"
+            style={{ width: '103mm', height: `${printRowHeight}mm`, paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, columnGap: `${gapX}mm`, breakAfter: row < Math.ceil(currentBatchLabels.length / 3) - 1 ? 'page' : 'auto', breakInside: 'avoid' }}
+          >
+          {currentBatchLabels.slice(row * 3, row * 3 + 3).map((item, i) => (
             <div 
               key={item.product.id + '-' + i} 
-              className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+              className="w-[32mm] h-[15mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
             >
                 <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
                   {item.product.sku && (
@@ -476,7 +479,8 @@ export default function MassPrintPage() {
                 </div>
             </div>
           ))}
-        </div>
+          </div>
+        ))}
       </div>
     </>
   );

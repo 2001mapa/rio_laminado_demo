@@ -7,14 +7,12 @@ import { NEXT_ALLOWED_ACTION } from '@/lib/order-status';
 import { Activity, ArrowLeft, CheckSquare, Printer, ClipboardCheck, PackageCheck, AlertTriangle, Edit2, X, Settings, ChevronDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import QRCode from 'react-qr-code';
 import { confirmRio } from '@/lib/confirm';
 
 export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { orders, customers, products, transitionOrder, updateOrder } = useDemo();
-  const router = useRouter();
   const [fetchedOrder, setFetchedOrder] = useState<any>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState('');
@@ -22,7 +20,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [offsetX, setOffsetX] = useState<number>(3.2);
   const [offsetY, setOffsetY] = useState<number>(1.6);
   const [gapY, setGapY] = useState<number>(3.0);
-  const [gapX, setGapX] = useState<number>(3.0);
+  const [gapX, setGapX] = useState<number>(1.5);
   
   useEffect(() => {
     getOrderById(resolvedParams.id).then((res: any) => {
@@ -92,6 +90,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     if (locA && !locB) return -1;
     return locA.localeCompare(locB);
   });
+  const printRowHeight = Math.max(16, 15 + gapY);
 
   const handleSaveAdjustment = () => {
     if (!order || !adjustingItem) return;
@@ -124,19 +123,22 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     <>
       {/* Screen Layout - Hidden on Print */}
       <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 pb-20 font-sans print:hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center">
-            <button onClick={() => router.back()} className="mr-4 p-2 hover:bg-rio-surface-muted rounded-full transition-colors">
+        <div className="space-y-5 border-b border-rio-border pb-5">
+          <div className="flex items-center gap-3">
+            <Link href="/admin/pedidos" aria-label="Volver a todos los pedidos" className="shrink-0 p-2 hover:bg-rio-surface-muted rounded-full transition-colors">
               <ArrowLeft className="w-5 h-5 text-rio-ink" />
-            </button>
-            <h1 className="text-2xl md:text-3xl font-serif font-bold text-rio-ink">Pedido {order.number}</h1>
+            </Link>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-rio-muted">Detalle del pedido</p>
+              <h1 className="text-2xl md:text-3xl leading-tight font-serif font-bold text-rio-ink">Pedido <span className="whitespace-nowrap">{order.number}</span></h1>
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:flex gap-2 sm:gap-3 w-full md:w-auto md:justify-end">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 w-full">
             
-            <div className="relative col-span-2 sm:col-span-1 md:flex-none">
+            <div className="relative">
               <button
                 onClick={() => setShowPrintSettings(!showPrintSettings)}
-                className="w-full md:w-auto min-h-11 flex justify-center items-center px-3 sm:px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold whitespace-nowrap rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors"
+                className="w-full min-h-11 flex justify-center items-center px-3 sm:px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold whitespace-nowrap rounded-xl text-rio-ink bg-white hover:bg-rio-surface-muted transition-colors"
                 aria-expanded={showPrintSettings}
               >
                 <Settings className="w-4 h-4 mr-2 text-rio-muted" />
@@ -198,7 +200,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
             <button
               onClick={() => window.print()}
-              className="min-h-11 md:flex-none flex justify-center items-center px-2 sm:px-4 py-2 border border-rio-gold-light bg-rio-gold-light/10 shadow-sm text-sm font-bold rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/20 transition-colors"
+              className="min-h-11 flex justify-center items-center px-2 sm:px-4 py-2 border border-rio-gold-light bg-rio-gold-light/10 shadow-sm text-sm font-bold rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/20 transition-colors"
             >
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Etiquetas
@@ -206,7 +208,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
 
             <Link 
               href={`/admin/pedidos/${order.id}/imprimir`}
-              className="min-h-11 md:flex-none flex justify-center items-center px-2 sm:px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors"
+              className="min-h-11 flex justify-center items-center px-2 sm:px-4 py-2 border border-rio-border shadow-sm text-sm font-semibold rounded-xl text-rio-ink bg-rio-surface hover:bg-rio-surface-muted transition-colors"
             >
               <ClipboardCheck className="w-4 h-4 mr-2 text-rio-muted" />
               Hoja de Bodega
@@ -591,11 +593,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       
         
 
-      <div className="hidden print:block bg-white w-max">
+      <div className="hidden print:block bg-white">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page { 
-              size: 103mm auto;
+              size: 103mm ${printRowHeight}mm;
               margin: 0; 
             }
             body { 
@@ -629,11 +631,13 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           
           return (
             <div>
-              <div 
+              {Array.from({ length: Math.ceil(elements.length / 3) }, (_, row) => (
+              <div
+                key={row}
                 className="grid grid-cols-3"
-                style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
+                style={{ width: '103mm', height: `${printRowHeight}mm`, paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, columnGap: `${gapX}mm`, breakAfter: row < Math.ceil(elements.length / 3) - 1 ? 'page' : 'auto', breakInside: 'avoid' }}
               >
-                {elements.map((el, i) => {
+                {elements.slice(row * 3, row * 3 + 3).map((el, i) => {
                   if (el.type === 'marker') {
                     return (
                       <div key={`marker-${i}`} className="w-[32mm] h-[16mm] break-inside-avoid flex items-center justify-center text-black border-2 border-black border-dashed p-[1mm]">
@@ -646,7 +650,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   return (
                     <div 
                       key={item.id} 
-                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
+                      className="w-[32mm] h-[15mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
                     >
                       {/* Fila superior de texto */}
                       <div data-testid="barcode-label-header" className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
@@ -672,6 +676,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   );
                 })}
               </div>
+              ))}
             </div>
           );
         })()}
