@@ -34,6 +34,8 @@ export default function EditCustomerModal({
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       address: formData.get('address') as string,
+      city: formData.get('city') as string,
+      document: formData.get('document') as string,
     };
 
     try {
@@ -89,8 +91,18 @@ export default function EditCustomerModal({
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Ciudad o Dirección (Opcional)</label>
+              <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Dirección de envío</label>
               <input name="address" type="text" defaultValue={customer.address || ''} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Ciudad</label>
+                <input name="city" type="text" defaultValue={customer.city || ''} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" />
+              </div>
+              <div>
+                <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">NIT o documento</label>
+                <input name="document" type="text" defaultValue={customer.document || ''} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" />
+              </div>
             </div>
           </div>
 

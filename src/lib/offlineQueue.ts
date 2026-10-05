@@ -1,10 +1,12 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { Customer } from './types';
+import type { QuickCustomerData } from './quickCustomer';
 
 // En este formato minimizamos los datos almacenados
 export interface DraftOrder {
   sellerId: string;
   selectedClientId?: string;
+  newCustomerData?: QuickCustomerData;
   cart: { productId: string; quantity: number; sizes?: any }[];
   updatedAt: number;
   clientRequestId?: string;
@@ -15,6 +17,7 @@ export interface PendingOrder {
   sellerId: string;
   customerId: string;
   customerName: string;
+  newCustomerData?: QuickCustomerData;
   items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: any }[];
   status: 'pending' | 'syncing' | 'failed_recoverable' | 'failed_fatal' | 'failed_intervention' | 'conflict';
   conflicts?: { productId?: string; reason: string; currentStock?: number; currentPrice?: number }[];

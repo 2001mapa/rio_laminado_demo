@@ -16,6 +16,9 @@ model Customer {
   email        String?   @unique
   phone        String?
   address      String?
+  city         String?
+  document     String?
+  internalSystemStatus String @default("Registrado")
   discount     Int       @default(0)
   showDiscount Boolean   @default(false)
   status       String    @default("active")

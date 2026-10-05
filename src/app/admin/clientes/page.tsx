@@ -10,10 +10,14 @@ export default function ClientesPage() {
   const { customers, refreshData, onlineUsers } = useDemo();
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [pendingOnly, setPendingOnly] = useState(false);
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCustomers = customers.filter(c =>
+    (!pendingOnly || c.internalSystemStatus === 'Pendiente') && (
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.document || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   return (
@@ -39,6 +43,11 @@ export default function ClientesPage() {
         />
       </div>
 
+      <label className="flex w-fit items-center gap-2 text-sm font-semibold text-rio-ink">
+        <input type="checkbox" checked={pendingOnly} onChange={e => setPendingOnly(e.target.checked)} className="h-4 w-4 accent-rio-ink" />
+        Solo clientes por crear en el sistema
+      </label>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredCustomers.map(customer => (
           <div key={customer.id} className="bg-rio-surface rounded-2xl shadow-sm border border-rio-border p-6 flex flex-col hover:shadow-md transition-shadow">
@@ -54,14 +63,18 @@ export default function ClientesPage() {
                 )}
               </div>
               <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${
-                customer.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'
+                !customer.authUserId && !customer.username ? 'bg-rio-surface-muted text-rio-muted border-rio-border' : customer.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'
               }`}>
-                {customer.status === 'active' ? 'Activo' : 'Suspendido'}
+                {!customer.authUserId && !customer.username ? 'Sin portal' : customer.status === 'active' ? 'Activo' : 'Suspendido'}
               </span>
             </div>
             
             <h3 className="font-bold text-rio-ink line-clamp-1">{customer.name}</h3>
-            <p className="text-sm text-rio-muted mt-1">{customer.email}</p>
+            {customer.internalSystemStatus === 'Pendiente' && (
+              <span className="mt-2 inline-flex w-fit rounded-md border border-rio-warning/40 bg-rio-warning/10 px-2 py-1 text-xs font-bold text-rio-ink">Cliente por crear en el sistema</span>
+            )}
+            {!customer.authUserId && !customer.username && <p className="mt-1 text-xs text-rio-muted">Sin acceso al portal</p>}
+            <p className="text-sm text-rio-muted mt-1">{customer.email || 'Sin correo registrado'}</p>
             <p className="text-sm text-rio-muted">{customer.phone}</p>
             
             <div className="mt-4 pt-4 border-t border-rio-border flex justify-between items-center">

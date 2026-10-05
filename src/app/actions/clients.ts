@@ -9,6 +9,32 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
 
 import { requireRole } from '@/utils/auth-helpers'
+import { getAuditActor, logAuditEvent } from '@/lib/audit'
+
+export async function updateCustomerInternalStatus(customerId: string) {
+  await requireRole(['admin']);
+  const actor = await getAuditActor();
+  try {
+    const customer = await prisma.$transaction(async tx => {
+      const current = await tx.customer.findUnique({ where: { id: customerId } });
+      if (!current) throw new Error('Cliente no encontrado');
+      if (current.internalSystemStatus !== 'Pendiente') return current;
+      const updated = await tx.customer.update({
+        where: { id: customerId },
+        data: { internalSystemStatus: 'Registrado' }
+      });
+      await logAuditEvent(actor, {
+        action: 'REGISTER_IN_ERP', entityType: 'CUSTOMER', entityId: customerId,
+        changes: { internalSystemStatus: { before: 'Pendiente', after: 'Registrado' } }
+      }, tx);
+      return updated;
+    });
+    return { success: true, customer };
+  } catch (error) {
+    console.error('Error updating ERP status:', error);
+    return { success: false, message: 'No se pudo actualizar el estado del cliente.' };
+  }
+}
 
 export async function createCustomer(data: {
   name: string;
@@ -130,6 +156,8 @@ export async function updateCustomerDataAction(id: string, data: {
   email?: string;
   phone?: string;
   address?: string;
+  city?: string;
+  document?: string;
 }) {
   await requireRole(['admin']);
   try {
@@ -139,7 +167,9 @@ export async function updateCustomerDataAction(id: string, data: {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.email !== undefined && { email: data.email || null }),
         ...(data.phone !== undefined && { phone: data.phone || null }),
-        ...(data.address !== undefined && { address: data.address || null })
+        ...(data.address !== undefined && { address: data.address || null }),
+        ...(data.city !== undefined && { city: data.city.trim() || null }),
+        ...(data.document !== undefined && { document: data.document.trim() || null })
       }
     });
     return { success: true, message: 'Datos actualizados exitosamente.', customer };

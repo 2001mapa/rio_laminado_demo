@@ -328,8 +328,12 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               <h3 className="text-sm font-bold text-rio-ink uppercase tracking-wider mb-4">Cliente Mayorista</h3>
               <div className="space-y-2 text-sm font-medium">
                 <p className="text-rio-ink font-bold text-base">{customer?.name}</p>
+                {customer?.internalSystemStatus === 'Pendiente' && <p className="w-fit rounded-md border border-rio-warning/40 bg-rio-warning/10 px-2 py-1 text-xs font-bold text-rio-ink">Cliente por crear en el sistema</p>}
+                {!customer?.authUserId && !customer?.username && <p className="text-xs text-rio-muted">Sin acceso al portal</p>}
                 <p className="text-rio-muted">{customer?.email}</p>
                 <p className="text-rio-muted">{customer?.phone}</p>
+                {customer?.document && <p className="text-rio-muted">NIT/documento: {customer.document}</p>}
+                {customer?.city && <p className="text-rio-muted">{customer.city}</p>}
                 <p className="text-rio-muted leading-snug">{customer?.address}</p>
               </div>
             </div>

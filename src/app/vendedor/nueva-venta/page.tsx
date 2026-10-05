@@ -14,6 +14,9 @@ import { getExactProductBySku, getPagedCatalog, getProductsByIds } from '@/app/a
 import { useCatalogSync } from '@/lib/useCatalogSync';
 import { searchOfflineProducts, searchOfflineCustomers, getOfflineProductsByIds } from '@/lib/offlineQueue';
 import { useRouter } from 'next/navigation';
+import { isValidQuickCustomer, normalizeQuickCustomer, type QuickCustomerData } from '@/lib/quickCustomer';
+
+const emptyQuickCustomer: QuickCustomerData = { name: '', phone: '', city: '', address: '', document: '' };
 
 export default function NuevaVentaPage() {
   const router = useRouter();
@@ -22,6 +25,9 @@ export default function NuevaVentaPage() {
   
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [newCustomerData, setNewCustomerData] = useState<QuickCustomerData | null>(null);
+  const [quickCustomerForm, setQuickCustomerForm] = useState<QuickCustomerData>(emptyQuickCustomer);
+  const [showQuickCustomerForm, setShowQuickCustomerForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sellerId, setSellerId] = useState<string>('');
   const effectiveCustomers = customers.length > 0 ? customers : offlineCustomers;
@@ -47,7 +53,7 @@ export default function NuevaVentaPage() {
   
 
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
-  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string} | null>(null);
+  const [offlineDraftWaiting, setOfflineDraftWaiting] = useState<{cart: any[], clientId?: string, newCustomerData?: QuickCustomerData} | null>(null);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => {
@@ -58,7 +64,7 @@ export default function NuevaVentaPage() {
           if (!isDraftLoaded) {
              loadDraft(data.user.id).then(draft => {
                    if (draft && draft.cart && draft.cart.length > 0) {
-                       setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId });
+                       setOfflineDraftWaiting({ cart: draft.cart, clientId: draft.selectedClientId, newCustomerData: draft.newCustomerData });
                        if (draft.clientRequestId) {
                            setCurrentCheckoutId(draft.clientRequestId);
                        }
@@ -74,7 +80,7 @@ export default function NuevaVentaPage() {
   }, []);
 
   useEffect(() => {
-      if (offlineDraftWaiting && effectiveCustomers.length > 0) {
+      if (offlineDraftWaiting && (effectiveCustomers.length > 0 || offlineDraftWaiting.newCustomerData)) {
           const hydrate = async () => {
               const neededIds = offlineDraftWaiting.cart.map((item: any) => item.productId);
               const missingIds = neededIds.filter((id: string) => !products.find((p: any) => p.id === id));
@@ -112,7 +118,12 @@ export default function NuevaVentaPage() {
                   if (restoredCart.length > 0) {
                       setCartItems(restoredCart as any[]);
                   }
-                  if (offlineDraftWaiting.clientId) {
+                  if (offlineDraftWaiting.newCustomerData) {
+                     setNewCustomerData(offlineDraftWaiting.newCustomerData);
+                     setQuickCustomerForm(offlineDraftWaiting.newCustomerData);
+                     setSelectedCustomer(null);
+                     setStep(2);
+                  } else if (offlineDraftWaiting.clientId) {
                      const cust = effectiveCustomers.find(c => c.id === offlineDraftWaiting.clientId);
                      if (cust) {
                          setSelectedCustomer(cust || null);
@@ -125,18 +136,19 @@ export default function NuevaVentaPage() {
           };
           hydrate();
       }
-    }, [products, customers, offlineDraftWaiting]);
+    }, [products, customers, offlineCustomers, offlineDraftWaiting]);
 
   useEffect(() => {
     // Si offlineDraftWaiting tiene valor, significa que el catálogo no cargó y no hemos podido rehidratar.
     // Prohibimos guardar/sobrescribir para proteger el borrador original de IDB.
     if (!isDraftLoaded || !sellerId || offlineDraftWaiting) return;
     
-    if (cartItems.length > 0 || selectedCustomer) {
+    if (cartItems.length > 0 || selectedCustomer || newCustomerData) {
        const minimalCart = cartItems.map(item => ({ productId: item.product.id, quantity: item.quantity, sizes: item.sizes }));
        saveDraft({ 
            sellerId, 
            selectedClientId: selectedCustomer?.id, 
+           newCustomerData: newCustomerData || undefined,
            cart: minimalCart, 
            updatedAt: Date.now(),
            clientRequestId: currentCheckoutId || undefined 
@@ -146,7 +158,7 @@ export default function NuevaVentaPage() {
     } else {
        clearDraft(sellerId).catch(() => {});
     }
-  }, [cartItems, selectedCustomer, sellerId, isDraftLoaded, offlineDraftWaiting]);
+  }, [cartItems, selectedCustomer, newCustomerData, sellerId, isDraftLoaded, offlineDraftWaiting]);
 
   useEffect(() => {
     const refreshQueue = () => {
@@ -187,13 +199,18 @@ export default function NuevaVentaPage() {
         }) as CartItem[];
         setCartItems(hydratedCart);
         
-        // Seleccionar cliente original
-        let cust = effectiveCustomers.find((c: any) => c.id === order.customerId);
-        if (!cust) {
-            // No selecciones silenciosamente un cliente distinto
-            cust = { id: order.customerId, name: order.customerName, status: 'active', email: null, phone: null } as any;
+        if (order.newCustomerData) {
+            setNewCustomerData(order.newCustomerData);
+            setQuickCustomerForm(order.newCustomerData);
+            setSelectedCustomer(null);
+        } else {
+            let cust = effectiveCustomers.find((c: any) => c.id === order.customerId);
+            if (!cust) {
+                cust = { id: order.customerId, name: order.customerName, status: 'active', email: null, phone: null } as any;
+            }
+            setSelectedCustomer(cust || null);
+            setNewCustomerData(null);
         }
-        setSelectedCustomer(cust || null);
         
         setCurrentCheckoutId(null);
         setStep(2);
@@ -248,7 +265,7 @@ export default function NuevaVentaPage() {
 
   const filteredCustomers = effectiveCustomers.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Stop scanner when unmounting or leaving step 2
@@ -469,19 +486,35 @@ export default function NuevaVentaPage() {
   };
 
   const handleCheckout = async () => {
-    if (!selectedCustomer || cartItems.length === 0) return;
+    if ((!selectedCustomer && !newCustomerData) || cartItems.length === 0) return;
+    if (!sellerId) {
+      addToast('Espera a que termine de cargar tu sesión antes de finalizar la venta.');
+      return;
+    }
     
     // Si ya existe en la cola, bloquemos la creación de uno nuevo
-    console.log('CHECKOUT CLICK:', { currentCheckoutId, pendingQueueIds: pendingQueue.map(o => o.clientRequestId) });
     if (currentCheckoutId) {
-          const idbQueue = await getPendingOrders(sellerId);
+          let idbQueue: PendingOrder[];
+          try {
+            idbQueue = await getPendingOrders(sellerId);
+          } catch {
+            addToast('No se pudo verificar la cola local. Intenta de nuevo.');
+            return;
+          }
           if (idbQueue.some(o => o.clientRequestId === currentCheckoutId)) {
               addToast("Este pedido ya está en la cola de envíos.");
+              try {
+                await clearDraft(sellerId);
+              } catch {
+                addToast('El pedido está seguro en cola, pero el borrador residual no pudo eliminarse y podría reaparecer.');
+              }
               
               // Opcionalmente limpiar el carrito porque ya lo capturó el IDB
               setCartItems([]);
               setStep(1);
               setSelectedCustomer(null);
+              setNewCustomerData(null);
+              setCurrentCheckoutId(null);
               return;
           }
       }
@@ -514,7 +547,8 @@ export default function NuevaVentaPage() {
           try {
               await saveDraft({
                 sellerId,
-                selectedClientId: selectedCustomer.id,
+                selectedClientId: selectedCustomer?.id,
+                newCustomerData: newCustomerData || undefined,
                 cart: minimalCart,
                 updatedAt: Date.now(),
                 clientRequestId
@@ -533,8 +567,9 @@ export default function NuevaVentaPage() {
     const pendingOrder: PendingOrder = {
       clientRequestId,
       sellerId,
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
+      customerId: selectedCustomer?.id || 'NEW_CUSTOMER',
+      customerName: selectedCustomer?.name || newCustomerData!.name,
+      newCustomerData: newCustomerData || undefined,
       items: cartItems.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -558,6 +593,8 @@ export default function NuevaVentaPage() {
       setCartItems([]);
       setStep(1);
       setSelectedCustomer(null);
+      setNewCustomerData(null);
+      setCurrentCheckoutId(null);
       addToast("Borrador guardado localmente.");
       
       await syncPendingOrders(clientRequestId);
@@ -570,6 +607,35 @@ export default function NuevaVentaPage() {
     } finally {
       setIsCheckingOut(false);
     }
+  };
+
+  const handleSafeCustomerChange = async (next: () => void) => {
+    if (currentCheckoutId && sellerId) {
+      let alreadyQueued: boolean;
+      try {
+        alreadyQueued = (await getPendingOrders(sellerId)).some(o => o.clientRequestId === currentCheckoutId);
+      } catch {
+        addToast('No se pudo verificar la cola local. Intenta de nuevo antes de cambiar de cliente.');
+        return;
+      }
+      if (alreadyQueued && cartItems.length > 0) {
+        try {
+          await clearDraft(sellerId);
+        } catch {
+          addToast('El pedido está en cola, pero el borrador residual no pudo eliminarse. No cambies de cliente todavía.');
+          return;
+        }
+        setCartItems([]);
+        setSelectedCustomer(null);
+        setNewCustomerData(null);
+        setCurrentCheckoutId(null);
+        setStep(1);
+        addToast('Este pedido ya está en cola. Se retiró el carrito residual antes de cambiar de cliente.');
+        return;
+      }
+    }
+    setCurrentCheckoutId(null);
+    next();
   };
 
   const updateCartItemQuantity = (productId: string, delta: number) => {
@@ -692,6 +758,66 @@ export default function NuevaVentaPage() {
           </div>
 
           <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => handleSafeCustomerChange(() => {
+                setSelectedCustomer(null);
+                setQuickCustomerForm(newCustomerData || emptyQuickCustomer);
+                setShowQuickCustomerForm(true);
+              })}
+              className="flex w-full items-center justify-between rounded-2xl border border-rio-gold-light bg-rio-gold-light/10 p-4 text-left transition-colors hover:bg-rio-gold-light/20"
+            >
+              <span>
+                <span className="block text-sm font-bold text-rio-ink">Cliente Nuevo</span>
+                <span className="mt-1 block text-xs text-rio-muted">Registrar datos rápidos para esta venta, incluso sin conexión.</span>
+              </span>
+              <UserPlus className="ml-3 h-5 w-5 shrink-0 text-rio-gold-dark" />
+            </button>
+
+            {showQuickCustomerForm && (
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  const normalized = normalizeQuickCustomer(quickCustomerForm);
+                  if (!isValidQuickCustomer(normalized)) {
+                    addToast('Completa nombre, teléfono, ciudad y dirección válidos.');
+                    return;
+                  }
+                  handleSafeCustomerChange(() => {
+                    setSelectedCustomer(null);
+                    setNewCustomerData(normalized);
+                    setQuickCustomerForm(normalized);
+                    setShowQuickCustomerForm(false);
+                    setStep(2);
+                  });
+                }}
+                className="space-y-3 rounded-2xl border border-rio-border bg-white p-4 shadow-sm"
+              >
+                <p className="text-sm font-bold text-rio-ink">Datos del cliente nuevo</p>
+                {([
+                  ['name', 'Nombre o razón social', 'text'],
+                  ['phone', 'Teléfono', 'tel'],
+                  ['city', 'Ciudad', 'text'],
+                  ['address', 'Dirección de envío', 'text'],
+                  ['document', 'NIT o documento (opcional)', 'text'],
+                ] as const).map(([field, label, type]) => (
+                  <label key={field} className="block text-xs font-semibold text-rio-ink">
+                    {label}
+                    <input
+                      type={type}
+                      required={field !== 'document'}
+                      maxLength={field === 'address' ? 250 : field === 'name' ? 120 : field === 'city' ? 100 : field === 'phone' ? 30 : 40}
+                      value={quickCustomerForm[field] || ''}
+                      onChange={e => setQuickCustomerForm(prev => ({ ...prev, [field]: e.target.value }))}
+                      className="mt-1 block w-full rounded-xl border border-rio-border bg-rio-background px-3 py-2.5 text-sm text-rio-ink focus:border-rio-gold-dark focus:outline-none"
+                    />
+                  </label>
+                ))}
+                <p className="text-xs text-rio-muted">El administrador verá este cliente como Pendiente de registrar en su sistema. El pedido solo se confirmará al sincronizar.</p>
+                <button type="submit" className="min-h-11 w-full rounded-xl bg-rio-ink px-4 py-2 text-sm font-bold text-white">Continuar con la venta</button>
+              </form>
+            )}
+
             <p className="text-xs font-bold text-rio-muted uppercase tracking-wider px-2">Clientes Disponibles</p>
             {filteredCustomers.length === 0 ? (
               <div className="text-center py-8 bg-rio-surface-muted rounded-2xl border border-rio-border border-dashed">
@@ -701,12 +827,17 @@ export default function NuevaVentaPage() {
               filteredCustomers.map(customer => (
                 <button
                   key={customer.id}
-                  onClick={() => { setSelectedCustomer(customer); setStep(2); }}
+                  onClick={() => handleSafeCustomerChange(() => {
+                    setNewCustomerData(null);
+                    setShowQuickCustomerForm(false);
+                    setSelectedCustomer(customer);
+                    setStep(2);
+                  })}
                   className="w-full bg-white p-4 rounded-2xl border border-rio-border text-left hover:border-rio-gold-light hover:shadow-md transition-all group flex items-center justify-between"
                 >
                   <div>
                     <p className="font-bold text-rio-ink text-sm group-hover:text-rio-gold-dark transition-colors">{customer.name}</p>
-                    <p className="text-xs text-rio-muted mt-1">{customer.email}</p>
+                    <p className="text-xs text-rio-muted mt-1">{customer.email || customer.phone || 'Sin correo registrado'}</p>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-rio-background flex items-center justify-center group-hover:bg-rio-gold-light/20 transition-colors">
                     <Plus className="w-4 h-4 text-rio-gold-dark" />
@@ -735,7 +866,7 @@ export default function NuevaVentaPage() {
                      </span>
                    </div>
                 </div>
-                <button onClick={() => { stopScanner(); setStep(1); }} className="text-xs font-bold text-rio-gold-dark hover:underline">
+                <button onClick={() => handleSafeCustomerChange(() => { stopScanner(); setShowQuickCustomerForm(!!newCustomerData); setStep(1); })} className="text-xs font-bold text-rio-gold-dark hover:underline">
                   Cambiar Cliente
                 </button>
               </div>
@@ -744,7 +875,8 @@ export default function NuevaVentaPage() {
               <div className="p-4 border-b border-rio-border bg-rio-surface flex items-center justify-between z-20 shrink-0">
                 <div className="flex-1">
                   <p className="text-[10px] uppercase font-bold text-rio-muted">Cliente Seleccionado</p>
-                  <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name}</p>
+                  <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name || newCustomerData?.name}</p>
+                  {newCustomerData && <p className="text-xs text-rio-muted">Cliente nuevo · Pendiente de registro administrativo</p>}
                 </div>
               </div>
 
@@ -1034,7 +1166,7 @@ export default function NuevaVentaPage() {
               </div>
               <button 
                 onClick={handleCheckout}
-                disabled={cartItems.length === 0 || !selectedCustomer || isCheckingOut}
+                disabled={cartItems.length === 0 || (!selectedCustomer && !newCustomerData) || isCheckingOut}
                 className="w-full bg-rio-gold-dark disabled:bg-rio-border disabled:text-rio-muted text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-rio-gold active:scale-[0.98] transition-all flex items-center justify-center"
               >
                 {isCheckingOut ? "Procesando..." : "Finalizar Venta"} <Check className="w-5 h-5 ml-2"/>

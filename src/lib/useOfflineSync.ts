@@ -86,6 +86,7 @@ export async function executeSync(
             try {
               const res = await deps.createOrderAction({
                 customerId: order.customerId,
+                newCustomerData: order.newCustomerData,
                 items: order.items,
                 clientRequestId: order.clientRequestId
               });

@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 import * as offlineQueue from '@/lib/offlineQueue';
 
 // Mock dependencies
 let mockDraft: any = undefined;
+let mockCustomers: any[] = [];
 
 vi.mock('@/lib/offlineQueue', () => ({
   getPendingOrders: vi.fn().mockResolvedValue([]),
@@ -39,7 +40,7 @@ vi.mock('@/app/actions/queries', () => ({
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
-    customers: [{ id: 'C1', name: 'Joyería de Prueba', email: 'test@joyeria.com' }],
+    customers: mockCustomers,
     products: [], // El catálogo inicial está vacío (parcial)
     checkoutSeller: async () => {},
     syncPendingOrders: async () => {}
@@ -62,6 +63,9 @@ vi.mock('html5-qrcode', () => ({
 
 describe('Flujo de Borrador e Hidratación', () => {
   beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    mockCustomers = [{ id: 'C1', name: 'Joyería de Prueba', email: 'test@joyeria.com' }];
     // 1. Estado inicial simulado del borrador (como si el vendedor Ángel hubiera agregado y recargado)
     mockDraft = {
       sellerId: 'seller-angel',
@@ -98,6 +102,17 @@ describe('Flujo de Borrador e Hidratación', () => {
     expect(screen.queryByText(/T7/)).not.toBeNull();
     
     // 6. Comprobamos que saveDraft NO se haya llamado durante la hidratación inicial para borrarlo
+    expect(offlineQueue.clearDraft).not.toHaveBeenCalled();
+  });
+
+  it('restaura un cliente nuevo aunque no se haya descargado el catálogo de clientes', async () => {
+    mockCustomers = [];
+    mockDraft.selectedClientId = undefined;
+    mockDraft.newCustomerData = { name: 'Joyería Nueva', phone: '3124560359', city: 'Medellín', address: 'Calle 10 # 20-30' };
+
+    render(<NuevaVentaPage />);
+    await waitFor(() => expect(screen.getByText('Joyería Nueva')).toBeTruthy());
+    expect(screen.getByText('Anillo de Prueba')).toBeTruthy();
     expect(offlineQueue.clearDraft).not.toHaveBeenCalled();
   });
 });

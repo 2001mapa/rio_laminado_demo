@@ -25,6 +25,9 @@ export type Customer = {
   status: 'active' | 'suspended';
   phone: string;
   address: string;
+  city?: string | null;
+  document?: string | null;
+  internalSystemStatus?: 'Pendiente' | 'Registrado';
 };
 
 export type OrderStatus = 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 
 let mockSyncCalled = false;
@@ -164,6 +164,38 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
          // El botón Finalizar Venta sigue presente porque el carrito NO se vació
          expect(screen.getByText(/Finalizar Venta/i)).toBeTruthy();
       });
+  });
+
+  it('incluye los datos del cliente nuevo en el pedido pendiente', async () => {
+    cleanup();
+    mockAddPendingOrder.mockClear();
+    render(<NuevaVentaPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Cliente Nuevo/i }));
+    fireEvent.change(screen.getByLabelText('Nombre o razón social'), { target: { value: 'Joyería Nueva' } });
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '3124560359' } });
+    fireEvent.change(screen.getByLabelText('Ciudad'), { target: { value: 'Medellín' } });
+    fireEvent.change(screen.getByLabelText('Dirección de envío'), { target: { value: 'Calle 10 # 20-30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar con la venta' }));
+
+    await waitFor(() => expect(screen.getByText(/Escáner de Productos/i)).toBeTruthy());
+    expect(screen.getByText('Joyería Nueva')).toBeTruthy();
+
+    const skuInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
+    fireEvent.change(skuInput, { target: { value: 'SKU1' } });
+    fireEvent.submit(skuInput.closest('form')!);
+    await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar a la Orden' }));
+    fireEvent.click(screen.getByText('Finalizar Venta'));
+
+    await waitFor(() => expect(mockAddPendingOrder).toHaveBeenCalled());
+    expect(mockAddPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
+      customerId: 'NEW_CUSTOMER',
+      customerName: 'Joyería Nueva',
+      newCustomerData: expect.objectContaining({
+        name: 'Joyería Nueva', phone: '3124560359', city: 'Medellín', address: 'Calle 10 # 20-30'
+      })
+    }));
   });
 
 });

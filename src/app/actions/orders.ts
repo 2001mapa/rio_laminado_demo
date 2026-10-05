@@ -17,9 +17,11 @@ import { OrderTransitionAction, getNextState } from '@/lib/order-status';
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
 import { logAuditEvent, getAuditActor } from '@/lib/audit'
+import { isValidQuickCustomer, normalizeQuickCustomer, type QuickCustomerData } from '@/lib/quickCustomer'
 
 export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
+  newCustomerData?: QuickCustomerData;
   items: { productId: string; quantity: number; expectedPrice?: number; sizeDetails?: { size: string, quantity: number }[] }[];
   clientRequestId?: string;
 }) {
@@ -29,16 +31,30 @@ export async function createOrder(data: {
     let finalCustomerId: string;
     let finalSellerId: string | null = null;
     let discount = 0;
+    const rawQuickCustomer = data.newCustomerData as any;
+    if (rawQuickCustomer && (
+      ['name', 'phone', 'city', 'address'].some(field => typeof rawQuickCustomer[field] !== 'string') ||
+      (rawQuickCustomer.document != null && typeof rawQuickCustomer.document !== 'string')
+    )) throw new BusinessLogicError('Datos del cliente nuevo inválidos.');
+    const quickCustomer = data.newCustomerData ? normalizeQuickCustomer(data.newCustomerData) : null;
 
     // 1. Resolver identidades de forma segura
     if (role === 'cliente') {
+      if (quickCustomer) throw new BusinessLogicError('El cliente no puede crear un perfil mediante un pedido.');
       const customer = await prisma.customer.findUnique({ where: { authUserId: user.id } });
       if (!customer) throw new BusinessLogicError('Perfil de cliente no encontrado');
       finalCustomerId = customer.id;
       // Para pedidos directos de cliente, sellerId siempre es null
     } else {
-      if (!data.customerId) throw new BusinessLogicError('Se requiere el ID del cliente para crear el pedido');
-      finalCustomerId = data.customerId;
+      if (quickCustomer) {
+        if (role !== 'vendedor') throw new BusinessLogicError('Solo un vendedor puede registrar un cliente para venta rápida.');
+        if (data.customerId && data.customerId !== 'NEW_CUSTOMER') throw new BusinessLogicError('Cliente ambiguo.');
+        if (!isValidQuickCustomer(quickCustomer)) throw new BusinessLogicError('Datos del cliente nuevo incompletos o inválidos.');
+        finalCustomerId = 'NEW_CUSTOMER';
+      } else {
+        if (!data.customerId || data.customerId === 'NEW_CUSTOMER') throw new BusinessLogicError('Se requiere el ID del cliente para crear el pedido');
+        finalCustomerId = data.customerId;
+      }
       
       if (role === 'vendedor') {
         const seller = await prisma.seller.findUnique({ where: { authUserId: user.id } });
@@ -54,11 +70,21 @@ export async function createOrder(data: {
 
     // Helper for Idempotency Content Verification
     const verifyIdempotentContent = (existingOrder: any) => {
-      if (existingOrder.customerId !== finalCustomerId || existingOrder.sellerId !== finalSellerId) {
+      if (existingOrder.sellerId !== finalSellerId || (!quickCustomer && existingOrder.customerId !== finalCustomerId)) {
         throw new BusinessLogicError('Identificador de solicitud inválido o colisión de petición.');
       }
-      
-      const originalItems = existingOrder.originalPayload as any[] || existingOrder.items;
+
+      const payload = existingOrder.originalPayload as any;
+      const originalQuickCustomer = Array.isArray(payload) ? null : payload?.newCustomerData;
+      if (quickCustomer) {
+        if (!originalQuickCustomer || JSON.stringify(originalQuickCustomer) !== JSON.stringify(quickCustomer)) {
+          throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para otro cliente.');
+        }
+      } else if (originalQuickCustomer) {
+        throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para otro cliente.');
+      }
+
+      const originalItems = (Array.isArray(payload) ? payload : payload?.items) || existingOrder.items;
       
       if (originalItems.length !== data.items.length) {
         throw new BusinessLogicError('El identificador de solicitud ya fue utilizado para un pedido con distinto contenido.');
@@ -104,10 +130,10 @@ export async function createOrder(data: {
     }
 
     // Obtener detalles del cliente para aplicar descuentos reales
-    const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
-    if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
-    if (targetCustomer.showDiscount) {
-      discount = targetCustomer.discount / 100;
+    if (!quickCustomer) {
+      const targetCustomer = await prisma.customer.findUnique({ where: { id: finalCustomerId } });
+      if (!targetCustomer) throw new BusinessLogicError('Cliente objetivo no encontrado');
+      if (targetCustomer.showDiscount) discount = targetCustomer.discount / 100;
     }
 
     // Retry loop for unique constraint violations
@@ -161,6 +187,18 @@ export async function createOrder(data: {
               throw new BusinessLogicError("Conflictos en el inventario o precios.", 'CONFLICT_ERROR', conflicts);
             }
 
+            const createdCustomer = quickCustomer ? await tx.customer.create({
+              data: {
+                name: quickCustomer.name,
+                phone: quickCustomer.phone,
+                city: quickCustomer.city,
+                address: quickCustomer.address,
+                document: quickCustomer.document || null,
+                internalSystemStatus: 'Pendiente',
+                status: 'active',
+              }
+            }) : null;
+
             for (const item of data.items) {
               const product = await tx.product.findUnique({ where: { id: item.productId } });
               if (!product) continue;
@@ -208,8 +246,8 @@ export async function createOrder(data: {
               data: {
                 orderNumber,
                 clientRequestId: data.clientRequestId || undefined,
-                originalPayload: data.items as any,
-                customerId: finalCustomerId,
+                originalPayload: (quickCustomer ? { items: data.items, newCustomerData: quickCustomer } : data.items) as any,
+                customerId: createdCustomer?.id || finalCustomerId,
                 sellerId: finalSellerId,
                 status: 'Reservado',
                 totalAmount: totalAmount,

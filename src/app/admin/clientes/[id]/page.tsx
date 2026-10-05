@@ -1,7 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { updateCustomerStatusAction, getCustomerProfile } from '@/app/actions/clients';
+import { updateCustomerStatusAction, updateCustomerInternalStatus, getCustomerProfile } from '@/app/actions/clients';
 import EditCustomerModal from '@/components/EditCustomerModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import { useState } from 'react';
@@ -49,6 +49,16 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
     }
   };
 
+  const handleMarkRegistered = async () => {
+    const res = await updateCustomerInternalStatus(customer.id);
+    if (res.success) {
+      addToast('Cliente marcado como registrado en el sistema.');
+      await refreshData();
+    } else {
+      addToast(res.message || 'No se pudo actualizar el cliente.');
+    }
+  };
+
   
   const activeOrders = customerOrders.filter(o => !['Cancelado', 'Despachado'].includes(o.status));
   const totalOrders = customerOrders.length;
@@ -78,9 +88,15 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               )}
             </div>
             <h2 className="text-xl font-bold text-rio-ink">{customer.name}</h2>
+            {customer.internalSystemStatus === 'Pendiente' && (
+              <div className="mt-3">
+                <span className="rounded-md border border-rio-warning/40 bg-rio-warning/10 px-2 py-1 text-xs font-bold text-rio-ink">Cliente por crear en el sistema</span>
+              </div>
+            )}
+            {!customer.authUserId && !customer.username && <p className="mt-2 text-xs font-semibold text-rio-muted">Sin acceso al portal</p>}
             
-            <div className={`mt-3 inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${customer.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'}`}>
-              {customer.status === 'active' ? 'Acceso Activo' : 'Acceso Suspendido'}
+            <div className={`mt-3 inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${!customer.authUserId && !customer.username ? 'bg-rio-surface-muted text-rio-muted border-rio-border' : customer.status === 'active' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' : 'bg-rio-danger/10 text-rio-danger border-rio-danger/20'}`}>
+              {!customer.authUserId && !customer.username ? 'Sin cuenta de acceso' : customer.status === 'active' ? 'Acceso Activo' : 'Acceso Suspendido'}
             </div>
             
             <div className="mt-2 text-xs font-semibold text-rio-muted flex items-center justify-center gap-1.5">
@@ -126,6 +142,13 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
           {/* Quick Actions */}
           <div className="bg-rio-surface p-5 rounded-2xl shadow-sm border border-rio-border space-y-2">
             <h3 className="text-[11px] font-bold text-rio-muted uppercase tracking-wider mb-3">Acciones de Acceso</h3>
+            {customer.internalSystemStatus === 'Pendiente' && (
+              <button onClick={handleMarkRegistered} className="w-full rounded-xl bg-rio-ink p-3 text-sm font-bold text-white hover:bg-rio-ink/90">Marcar como registrado en el sistema</button>
+            )}
+            {!customer.authUserId && !customer.username ? (
+              <p className="text-sm text-rio-muted">Este cliente fue creado para un pedido y todavía no tiene cuenta para entrar al portal.</p>
+            ) : (
+              <>
             
             <button onClick={handleToggleStatus} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">
               {customer.status === 'active' ? <UserX className="w-4 h-4 mr-3 text-rio-danger" /> : <UserCheck className="w-4 h-4 mr-3 text-rio-success" />}
@@ -146,6 +169,8 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               <ShieldAlert className="w-4 h-4 mr-3 text-rio-muted" />
               Verificar Documentación
             </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -173,6 +198,8 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
                 <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Dirección / Ciudad de Envío</p>
                 <p className="font-medium text-rio-ink">{customer.address}</p>
               </div>
+              {customer.city && <div><p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Ciudad</p><p className="font-medium text-rio-ink">{customer.city}</p></div>}
+              {customer.document && <div><p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">NIT o documento</p><p className="font-medium text-rio-ink">{customer.document}</p></div>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-rio-border">
