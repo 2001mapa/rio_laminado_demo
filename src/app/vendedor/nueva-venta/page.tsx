@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useDemo, CartItem } from '@/lib/DemoContext';
 import { Customer, Product } from '@/lib/types';
 import { Html5Qrcode } from 'html5-qrcode';
+import type { CameraDevice } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -235,6 +236,10 @@ export default function NuevaVentaPage() {
 
 
   const [isScanning, setIsScanning] = useState(false);
+  const [cameraDevices, setCameraDevices] = useState<CameraDevice[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
+  const [zoomValue, setZoomValue] = useState(1);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
@@ -279,6 +284,44 @@ export default function NuevaVentaPage() {
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
 
+  const loadCameraControls = async (scanner: Html5Qrcode, requestedCameraId?: string) => {
+    try {
+      const devices = await Html5Qrcode.getCameras();
+      setCameraDevices(devices);
+      setSelectedCameraId(scanner.getRunningTrackSettings().deviceId || requestedCameraId || '');
+    } catch {
+      setCameraDevices([]);
+    }
+
+    try {
+      const zoom = scanner.getRunningTrackCameraCapabilities().zoomFeature();
+      if (zoom.isSupported()) {
+        const min = zoom.min();
+        const max = Math.min(zoom.max(), 3);
+        if (Number.isFinite(min) && Number.isFinite(max) && max > min) {
+          setZoomRange({ min, max, step: zoom.step() || 0.1 });
+          setZoomValue(Math.min(max, Math.max(min, zoom.value() ?? min)));
+          return;
+        }
+      }
+    } catch {
+      // El navegador puede ofrecer video sin exponer controles de zoom.
+    }
+    setZoomRange(null);
+  };
+
+  const changeZoom = async (value: number) => {
+    const scanner = scannerRef.current;
+    if (!scanner || !zoomRange) return;
+    const nextValue = Math.min(zoomRange.max, Math.max(zoomRange.min, value));
+    try {
+      await scanner.getRunningTrackCameraCapabilities().zoomFeature().apply(nextValue);
+      setZoomValue(nextValue);
+    } catch {
+      addToast('Esta cámara no permitió ajustar el zoom. Prueba otra cámara o aléjate un poco del QR.');
+    }
+  };
+
   const filteredCustomers = effectiveCustomers.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (c.email || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -302,7 +345,7 @@ export default function NuevaVentaPage() {
     };
   }, []); // <-- Empty array is critical! Only runs on unmount.
 
-    const startScanner = async () => {
+    const startScanner = async (cameraId?: string) => {
     if (isStartingRef.current) return;
     isStartingRef.current = true;
     
@@ -317,10 +360,11 @@ export default function NuevaVentaPage() {
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(scannerRegionId);
       }
+      const scanner = scannerRef.current;
 
       // Intentar primero con facingMode environment (estándar y más compatible con iOS/Safari)
-      await scannerRef.current.start(
-        { facingMode: "environment" },
+      await scanner.start(
+        cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" },
         { fps: 10, qrbox: safeQrbox },
         (decodedText) => {
           if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
@@ -329,6 +373,7 @@ export default function NuevaVentaPage() {
         (error) => {}
       );
       setIsScanning(true);
+      await loadCameraControls(scanner, cameraId);
     } catch (err: any) {
       console.error("Error starting scanner with environment", err);
       // Fallback: listar cámaras e intentar con el primer deviceId disponible
@@ -348,6 +393,7 @@ export default function NuevaVentaPage() {
             (error) => {}
           );
           setIsScanning(true);
+          if (scannerRef.current) await loadCameraControls(scannerRef.current, cameraId);
           isStartingRef.current = false;
           return;
         }
@@ -373,8 +419,15 @@ export default function NuevaVentaPage() {
         try { scannerRef.current.clear(); } catch(e) {}
         scannerRef.current = null;
         setIsScanning(false);
+        setZoomRange(null);
       }
     }
+  };
+
+  const switchCamera = async (cameraId: string) => {
+    if (!cameraId || cameraId === selectedCameraId) return;
+    await stopScanner();
+    await startScanner(cameraId);
   };
 
     const handleScan = async (sku: string) => {
@@ -970,19 +1023,28 @@ export default function NuevaVentaPage() {
                     <Camera className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="font-semibold text-sm mb-4">Cámara lista para escanear</p>
                     <button 
-                      onClick={startScanner}
+                      onClick={() => startScanner()}
                       className="bg-white text-black font-bold px-6 py-3 rounded-full hover:scale-105 transition-transform"
                     >
                       Activar Lector QR
                     </button>
                   </div>
                 ) : (
-                  <button 
-                    onClick={stopScanner}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-4 py-2 rounded-full z-20 border border-white/20"
-                  >
-                    Pausar Cámara
-                  </button>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex w-[min(90%,20rem)] flex-col items-center gap-2 text-white">
+                    {cameraDevices.length > 1 && (
+                      <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className="w-full rounded-xl border border-white/30 bg-black/80 px-3 py-2 text-xs font-semibold text-white">
+                        {cameraDevices.map((camera, index) => <option key={camera.id} value={camera.id}>{camera.label || `Cámara ${index + 1}`}</option>)}
+                      </select>
+                    )}
+                    {zoomRange && (
+                      <div className="flex w-full items-center gap-2 rounded-xl border border-white/30 bg-black/80 px-3 py-2 text-xs font-semibold">
+                        <span>Zoom</span>
+                        <input aria-label="Zoom de cámara" type="range" min={zoomRange.min} max={zoomRange.max} step={zoomRange.step} value={zoomValue} onChange={event => changeZoom(Number(event.target.value))} className="min-w-0 flex-1" />
+                        <span>{zoomValue.toFixed(1)}×</span>
+                      </div>
+                    )}
+                    <button onClick={stopScanner} className="bg-black/70 backdrop-blur-md text-white text-[11px] font-bold px-4 py-2 rounded-full border border-white/20">Pausar Cámara</button>
+                  </div>
                 )}
 
                 {scannedProduct && (
