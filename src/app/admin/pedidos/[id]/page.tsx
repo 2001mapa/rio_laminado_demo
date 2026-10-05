@@ -20,7 +20,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [offsetX, setOffsetX] = useState<number>(3.2);
   const [offsetY, setOffsetY] = useState<number>(1.6);
   const [gapY, setGapY] = useState<number>(3.0);
-  const [gapX, setGapX] = useState<number>(1.5);
+  const [gapX, setGapX] = useState<number>(3.0);
   
   useEffect(() => {
     getOrderById(resolvedParams.id).then((res: any) => {
@@ -90,7 +90,6 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     if (locA && !locB) return -1;
     return locA.localeCompare(locB);
   });
-  const printRowHeight = Math.max(16, 15 + gapY);
 
   const handleSaveAdjustment = () => {
     if (!order || !adjustingItem) return;
@@ -593,11 +592,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
       
         
 
-      <div className="hidden print:block bg-white">
+      <div className="hidden print:block bg-white w-max">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page { 
-              size: 103mm ${printRowHeight}mm;
+              size: 103mm auto;
               margin: 0; 
             }
             body { 
@@ -631,13 +630,11 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           
           return (
             <div>
-              {Array.from({ length: Math.ceil(elements.length / 3) }, (_, row) => (
               <div
-                key={row}
                 className="grid grid-cols-3"
-                style={{ width: '103mm', height: `${printRowHeight}mm`, paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, columnGap: `${gapX}mm`, breakAfter: row < Math.ceil(elements.length / 3) - 1 ? 'page' : 'auto', breakInside: 'avoid' }}
+                style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
               >
-                {elements.slice(row * 3, row * 3 + 3).map((el, i) => {
+                {elements.map((el, i) => {
                   if (el.type === 'marker') {
                     return (
                       <div key={`marker-${i}`} className="w-[32mm] h-[16mm] break-inside-avoid flex items-center justify-center text-black border-2 border-black border-dashed p-[1mm]">
@@ -650,7 +647,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   return (
                     <div 
                       key={item.id} 
-                      className="w-[32mm] h-[15mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
+                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
                     >
                       {/* Fila superior de texto */}
                       <div data-testid="barcode-label-header" className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
@@ -676,7 +673,6 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   );
                 })}
               </div>
-              ))}
             </div>
           );
         })()}
