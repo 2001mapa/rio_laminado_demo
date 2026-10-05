@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useDemo, CartItem } from '@/lib/DemoContext';
 import { Customer, Product } from '@/lib/types';
 import { Html5Qrcode } from 'html5-qrcode';
+import { createScanConfirmation } from '@/lib/scanConfirmation';
 import type { CameraDevice } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
 import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
@@ -281,6 +282,7 @@ export default function NuevaVentaPage() {
   }, [manualSku, scannedProduct, sellerId]);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scanConfirmationRef = useRef(createScanConfirmation());
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
 
@@ -357,6 +359,7 @@ export default function NuevaVentaPage() {
     };
 
     try {
+      scanConfirmationRef.current.reset();
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(scannerRegionId);
       }
@@ -367,6 +370,7 @@ export default function NuevaVentaPage() {
         cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" },
         { fps: 10, qrbox: safeQrbox },
         (decodedText) => {
+          if (!scanConfirmationRef.current.accept(decodedText)) return;
           if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
           handleScan(decodedText);
         },
@@ -387,6 +391,7 @@ export default function NuevaVentaPage() {
             { deviceId: { exact: cameraId } },
             { fps: 10, qrbox: safeQrbox },
             (decodedText) => {
+              if (!scanConfirmationRef.current.accept(decodedText)) return;
               if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
               handleScan(decodedText);
             },
@@ -408,6 +413,7 @@ export default function NuevaVentaPage() {
   };
 
   const stopScanner = async () => {
+    scanConfirmationRef.current.reset();
     if (scannerRef.current && isScanning) {
       try {
         if (scannerRef.current.getState() === 2 /* SCANNING */ || scannerRef.current.getState() === 3 /* PAUSED */) {
