@@ -2,9 +2,10 @@
 
 import { useDemo } from '@/lib/DemoContext';
 import { createSeller, updateSeller } from '@/app/actions/sellers';
-import { X, Loader2, Copy, CheckCircle } from 'lucide-react';
+import { X, Loader2, Copy, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Seller } from '@/lib/types';
+import { validatePassword, generatePassword, PASSWORD_RULE_MESSAGE } from '@/lib/passwordPolicy';
 
 export default function SellerModal({ 
   isOpen, 
@@ -27,6 +28,8 @@ export default function SellerModal({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('active');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -42,14 +45,35 @@ export default function SellerModal({
       setError('');
       setSuccessData(null);
       setCopied(false);
+      setPassword('');
+      setShowPassword(false);
     }
   }, [isOpen, sellerToEdit]);
 
   if (!isOpen) return null;
 
+  const clearSecrets = () => {
+    setPassword('');
+    setShowPassword(false);
+    setSuccessData(null);
+    setCopied(false);
+  };
+
+  const handleGeneratePassword = () => {
+    // Solo rellena el campo: el admin puede editarlo antes de enviar.
+    setPassword(generatePassword());
+    setShowPassword(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+
+    if (!sellerToEdit) {
+      const passwordError = validatePassword(password);
+      if (passwordError) { setError(passwordError); return; }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -62,12 +86,12 @@ export default function SellerModal({
           onComplete(); // Cerramos directo tras editar
         }
       } else {
-        // Modo Creación
-        const res = await createSeller({ name, email });
+        // Modo Creación: se envía exactamente la contraseña escrita por el admin.
+        const res = await createSeller({ name, email, password });
         if (!res.success) {
           setError(res.message || 'Error desconocido');
         } else {
-          setSuccessData({ ...(res.seller as Seller), tempPassword: (res as any).tempPassword });
+          setSuccessData({ ...(res.seller as Seller), tempPassword: password });
         }
       }
     } catch (err) {
@@ -82,15 +106,18 @@ export default function SellerModal({
     const baseUrl = window.location.origin;
     const inviteUrl = `${baseUrl}/login`;
     
+    // Solo portapapeles: la clave nunca va en una URL ni en parámetros de consulta.
     navigator.clipboard.writeText(
-      `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO.\n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}\nCorreo: ${successData.email}\nContraseña temporal: ${successData.tempPassword}`
+      `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO.\n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}\nCorreo: ${successData.email}\nContraseña: ${successData.tempPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
 
   const handleClose = () => {
-    if (successData) {
+    const wasCreated = !!successData;
+    clearSecrets();
+    if (wasCreated) {
       onComplete();
     } else {
       onClose();
@@ -119,7 +146,7 @@ export default function SellerModal({
 
             {!sellerToEdit && (
               <div className="bg-rio-gold-light/10 border border-rio-gold-light rounded-xl p-3 text-xs text-rio-ink leading-relaxed">
-                <strong>Acceso Seguro:</strong> Se creará una cuenta real con contraseña temporal. Podrás compartirle las credenciales para que inicie sesión y registre ventas.
+                <strong>Acceso Seguro:</strong> Se creará una cuenta real con la contraseña que definas aquí. Podrás compartirle las credenciales para que inicie sesión y registre ventas.
               </div>
             )}
 
@@ -134,6 +161,38 @@ export default function SellerModal({
                 <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-rio-border rounded-xl p-2.5 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold" placeholder="vendedor@empresa.com" />
               </div>
 
+              {!sellerToEdit && (
+                <div>
+                  <label htmlFor="seller-password" className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Contraseña Inicial *</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        id="seller-password"
+                        required
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        autoComplete="new-password"
+                        className="w-full border border-rio-border rounded-xl p-2.5 pr-10 text-sm bg-rio-background focus:ring-1 focus:ring-rio-gold focus:border-rio-gold"
+                        placeholder="Escribe la contraseña"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-rio-muted hover:text-rio-ink"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <button type="button" onClick={handleGeneratePassword} className="px-3 py-2 border border-rio-border text-xs font-bold text-rio-ink rounded-xl hover:bg-rio-surface-muted">
+                      Generar
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-rio-muted mt-1.5">{PASSWORD_RULE_MESSAGE}</p>
+                </div>
+              )}
+
               {sellerToEdit && (
                 <div>
                   <label className="block text-[11px] uppercase font-bold text-rio-muted tracking-wider mb-1.5">Estado en la empresa</label>
@@ -146,7 +205,7 @@ export default function SellerModal({
             </div>
 
             <div className="mt-6 flex gap-3 pt-4 border-t border-rio-border">
-              <button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 py-3 border border-rio-border text-rio-ink rounded-xl text-sm font-semibold hover:bg-rio-surface-muted transition-colors">
+              <button type="button" onClick={handleClose} disabled={isSubmitting} className="flex-1 py-3 border border-rio-border text-rio-ink rounded-xl text-sm font-semibold hover:bg-rio-surface-muted transition-colors">
                 Cancelar
               </button>
               <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-rio-ink text-white rounded-xl text-sm font-bold hover:bg-rio-ink/90 transition-colors flex justify-center items-center">
@@ -164,12 +223,12 @@ export default function SellerModal({
             </div>
 
             <div className="bg-rio-background border border-rio-border rounded-xl p-4 text-left">
-              <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Credenciales Generadas:</p>
+              <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-2">Credenciales (se muestran solo ahora):</p>
               <p className="text-sm text-rio-ink font-serif italic mb-4">
                 {`¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO. Ingresa aquí:`}<br/><br/>
                 URL: <span className="font-mono text-rio-gold-dark text-xs">{window.location.origin}/login</span><br/>
                 Correo: <span className="font-mono text-rio-gold-dark text-xs">{successData.email}</span><br/>
-                Clave temporal: <span className="font-mono text-rio-gold-dark text-xs font-bold">{successData.tempPassword}</span>
+                Contraseña inicial: <span className="font-mono text-rio-gold-dark text-xs font-bold">{successData.tempPassword}</span>
               </p>
               <button 
                 onClick={copyInviteLink}

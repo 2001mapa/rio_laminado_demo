@@ -1,6 +1,6 @@
 'use server';
 import { logAuditEvent, getAuditActor } from '@/lib/audit';
-import crypto from 'crypto';
+import { validatePassword, describeAuthPasswordError } from '@/lib/passwordPolicy';
 
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
@@ -23,10 +23,7 @@ function isValidEmail(email: string) {
   return re.test(email);
 }
 
-export async function createSeller(data: {
-  name: string;
-  email: string;
-}) {
+export async function createSeller(data: { name: string; email: string; password?: string }) {
   await requireRole(['admin']);
   
   const trimmedName = data.name?.trim();
@@ -34,6 +31,11 @@ export async function createSeller(data: {
   
   if (!trimmedName) return { success: false, message: 'El nombre es obligatorio.' };
   if (!normalizedEmail || !isValidEmail(normalizedEmail)) return { success: false, message: 'Correo electrónico inválido.' };
+
+  const passwordError = validatePassword(data.password);
+  if (passwordError) return { success: false, message: passwordError };
+  // La contraseña elegida por el admin se usa tal cual: no se recorta ni se sustituye.
+  const password = data.password as string;
 
   try {
     const existing = await prisma.seller.findUnique({
@@ -46,19 +48,20 @@ export async function createSeller(data: {
 
     const adminAuthClient = getAdminClient();
     
-    const tempPassword = 'V-' + crypto.randomBytes(6).toString('hex').toUpperCase() + '*Ab1';
     let authUser = null;
     let newlyCreated = false;
 
     const { data: createdUser, error: createError } = await adminAuthClient.auth.admin.createUser({
       email: normalizedEmail,
-      password: tempPassword,
+      password,
       email_confirm: true,
       user_metadata: { name: trimmedName, role: 'vendedor' },
       app_metadata: { role: 'vendedor' }
     });
 
     if (createError) {
+      const policyMessage = describeAuthPasswordError(createError);
+      if (policyMessage) return { success: false, message: policyMessage };
       return { success: false, message: `La cuenta ya existe en autenticación o hubo un error: ${createError.message}` };
     }
     
@@ -83,8 +86,7 @@ export async function createSeller(data: {
 
       return { 
         success: true, 
-        seller,
-        tempPassword
+        seller
       };
     } catch (dbError: any) {
       // Compensación manual si falla la base de datos
@@ -208,4 +210,56 @@ export async function updateSeller(id: string, data: {
     console.error('Error updating seller:', error);
     return { success: false, message: `Error general: ${error.message}` };
   }
+}
+
+export async function resetSellerPassword(sellerId: string, newPassword: string) {
+  await requireRole(['admin']);
+
+  const passwordError = validatePassword(newPassword);
+  if (passwordError) return { success: false, message: passwordError };
+
+  let seller;
+  try {
+    seller = await prisma.seller.findUnique({ where: { id: sellerId } });
+  } catch {
+    return { success: false, message: 'No se pudo consultar el vendedor. La contraseña NO fue cambiada.' };
+  }
+
+  if (!seller) {
+    return { success: false, message: 'Vendedor no encontrado. La contraseña NO fue cambiada.' };
+  }
+  if (!seller.authUserId) {
+    return { success: false, message: 'El vendedor no tiene una cuenta de autenticación vinculada (authUserId). La contraseña NO fue cambiada.' };
+  }
+
+  try {
+    const adminAuthClient = getAdminClient();
+    const { error } = await adminAuthClient.auth.admin.updateUserById(seller.authUserId, {
+      password: newPassword
+    });
+    if (error) {
+      const policyMessage = describeAuthPasswordError(error);
+      return { success: false, message: policyMessage ?? `Error de Supabase Auth: ${error.message}. La contraseña NO fue cambiada.` };
+    }
+  } catch (authEx: any) {
+    return { success: false, message: `Excepción de Supabase Auth: ${authEx?.message ?? 'desconocida'}. No se pudo confirmar el cambio de contraseña.` };
+  }
+
+  // La contraseña ya cambió en Auth. La auditoría nunca incluye la clave.
+  try {
+    const actor = await getAuditActor();
+    await logAuditEvent(actor, {
+      action: 'RESET_SELLER_PASSWORD',
+      entityType: 'SELLER',
+      entityId: sellerId,
+      changes: { authUserId: seller.authUserId }
+    });
+  } catch {
+    return {
+      success: true,
+      auditWarning: 'La contraseña se cambió, pero no se pudo registrar el evento de auditoría.'
+    };
+  }
+
+  return { success: true };
 }

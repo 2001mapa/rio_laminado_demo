@@ -1,9 +1,10 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Key } from 'lucide-react';
 import { useState } from 'react';
 import SellerModal from '@/components/SellerModal';
+import ResetSellerPasswordModal from '@/components/ResetSellerPasswordModal';
 import { Seller } from '@/lib/types';
 
 export default function AdminVendedoresPage() {
@@ -11,10 +12,17 @@ export default function AdminVendedoresPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetSeller, setResetSeller] = useState<Seller | null>(null);
 
   const handleOpenNew = () => {
     setSelectedSeller(null);
     setIsModalOpen(true);
+  };
+
+  const handleOpenReset = (seller: Seller) => {
+    setResetSeller(seller);
+    setIsResetModalOpen(true);
   };
 
   const handleOpenEdit = (seller: Seller) => {
@@ -83,17 +91,35 @@ export default function AdminVendedoresPage() {
                   <p className="text-[10px] text-rio-muted uppercase font-bold tracking-wider">Ventas Generadas</p>
                   <p className="text-lg font-black text-rio-ink">{sellerOrders.length}</p>
                 </div>
-                <button 
-                  onClick={() => handleOpenEdit(seller)}
-                  className="flex items-center px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted"
-                >
-                  Editar
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenReset(seller)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    Restablecer contraseña
+                  </button>
+                  <button
+                    onClick={() => handleOpenEdit(seller)}
+                    className="flex items-center px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted"
+                  >
+                    Editar
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {resetSeller && (
+        <ResetSellerPasswordModal
+          isOpen={isResetModalOpen}
+          onClose={() => setIsResetModalOpen(false)}
+          sellerId={resetSeller.id}
+          sellerName={resetSeller.name}
+        />
+      )}
 
       <SellerModal 
         isOpen={isModalOpen}
