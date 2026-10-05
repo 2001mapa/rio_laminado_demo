@@ -50,15 +50,7 @@ export default function PerfilPage() {
   }
 
   const ActionButtons = () => (
-    <div className="space-y-3">
-      <nav aria-label="Información legal" className="rounded-xl border border-rio-border bg-rio-surface p-4">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-rio-muted">Información legal</p>
-        <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-rio-ink">
-          <Link href="/terminos" className="underline underline-offset-2 hover:text-rio-gold-dark">Términos y condiciones</Link>
-          <Link href="/tratamiento-de-datos" className="underline underline-offset-2 hover:text-rio-gold-dark">Tratamiento de datos</Link>
-        </div>
-      </nav>
-      
+    <div>
       <button onClick={handleLogout}
         className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"
       >
@@ -166,6 +158,13 @@ export default function PerfilPage() {
         </div>
 
       </div>
+      <nav aria-label="Información legal" className="mx-auto mt-8 max-w-5xl text-center">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-rio-muted">Información legal</p>
+        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-rio-ink">
+          <Link href="/terminos" className="underline underline-offset-2 hover:text-rio-gold-dark">Términos y condiciones</Link>
+          <Link href="/tratamiento-de-datos" className="underline underline-offset-2 hover:text-rio-gold-dark">Tratamiento de datos</Link>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -445,7 +445,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
           />
         )}
         {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) && (
-          <div className="absolute top-2 left-2 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
+          <div className="absolute top-2 left-2 rounded-full border border-white/80 bg-rio-ink px-2.5 py-1 text-xs font-bold text-white shadow-md">
             Pocas Unidades
           </div>
         )}
@@ -761,7 +761,7 @@ function ProductModal({
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-xl font-black text-rio-ink">{formatPrice(product.price)}</span>
             {(product.physicalStock - product.reservedStock >= 1 && product.physicalStock - product.reservedStock <= 5) && (
-              <span className="inline-flex items-center gap-1 bg-rio-warning/10 border border-rio-warning/20 text-rio-warning text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 rounded-full border border-rio-ink bg-rio-ink px-2.5 py-1 text-xs font-bold text-white">
                 <Tag className="w-3 h-3" />
                 Pocas Unidades
               </span>
