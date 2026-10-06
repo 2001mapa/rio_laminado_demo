@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowLeft, Printer, AlertTriangle, Settings2, Search, CheckSquare, Square } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import QRCode from 'react-qr-code';
+import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
 
 export default function MassPrintPage() {
   
@@ -43,13 +44,13 @@ export default function MassPrintPage() {
   const [labelsPerRef, setLabelsPerRef] = useState<number>(2); // Por defecto 2 (para las 2 maletas)
   
   // -- PRINT MODES & PAGINATION --
-  const [itemsPerPage, setItemsPerPage] = useState<number>(21);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(27);
   const [currentPage, setCurrentPage] = useState<number>(1);
   
   // -- SETTINGS --
   const [showSettings, setShowSettings] = useState(false);
   const [offsetX, setOffsetX] = useState<number>(3.2);
-  const [offsetY, setOffsetY] = useState<number>(1.6);
+  const [offsetY, setOffsetY] = useState<number>(0);
   const [gapY, setGapY] = useState<number>(3.0);
   const [gapX, setGapX] = useState<number>(3.0);
 
@@ -125,6 +126,7 @@ export default function MassPrintPage() {
     const start = (safePage - 1) * itemsPerPage;
     return labelsToPrint.slice(start, start + itemsPerPage);
   }, [labelsToPrint, safePage, itemsPerPage]);
+  const physicalSheets = useMemo(() => splitInventoryLabelsIntoSheets(currentBatchLabels), [currentBatchLabels]);
 
   const uniqueReferencesInBatch = new Set(currentBatchLabels.map(l => l.product.id)).size;
   const totalLabels = labelsToPrint.length;
@@ -391,9 +393,9 @@ export default function MassPrintPage() {
                     value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
                   >
-                    <option value={21}>21 etiquetas por hoja (Recomendado)</option>
-                    <option value={42}>42 etiquetas (2 hojas)</option>
-                    <option value={63}>63 etiquetas (3 hojas)</option>
+                    <option value={27}>27 etiquetas por hoja (Recomendado)</option>
+                    <option value={54}>54 etiquetas (2 hojas)</option>
+                    <option value={81}>81 etiquetas (3 hojas)</option>
                   </select>
                 </div>
               </div>
@@ -422,7 +424,7 @@ export default function MassPrintPage() {
                 ) : (
                   <div className="text-center space-y-2">
                      <p className="text-sm text-rio-ink font-medium">Al presionar "Imprimir", la máquina generará únicamente las etiquetas de este lote actual.</p>
-                     <p className="text-xs text-rio-muted">El lote contiene {currentBatchLabels.length} etiquetas provenientes de {uniqueReferencesInBatch} referencias distintas.</p>
+                     <p className="text-xs text-rio-muted">El lote contiene {currentBatchLabels.length} etiquetas en {physicalSheets.length} {physicalSheets.length === 1 ? 'hoja' : 'hojas'}, provenientes de {uniqueReferencesInBatch} referencias distintas.</p>
                   </div>
                 )}
               </div>
@@ -433,50 +435,79 @@ export default function MassPrintPage() {
       </div>
 
       {/* RENDER FÍSICO DE ETIQUETAS (IMPRESIÓN TÉRMICA) */}
-      <div className="hidden print:block bg-white w-max">
+      <div className="hidden print:block bg-white">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page { 
-              size: 103mm auto;
+              size: 107mm 159mm;
               margin: 0; 
             }
+            html,
             body { 
-              margin: 0 !important; 
-              padding: 0 !important; 
-              background: white;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 107mm !important;
+              background: white !important;
+            }
+            .inventory-print-sheet {
+              position: relative;
+              box-sizing: border-box;
+              width: 107mm;
+              height: 159mm;
+              overflow: hidden;
+              break-inside: avoid;
+              page-break-inside: avoid;
+              break-after: page;
+              page-break-after: always;
+            }
+            .inventory-print-sheet:last-child {
+              break-after: auto;
+              page-break-after: auto;
+            }
+            .inventory-label-grid {
+              position: absolute;
+              display: grid;
+              grid-template-columns: repeat(3, 32mm);
+              grid-template-rows: repeat(9, 15mm);
+              width: max-content;
+              height: max-content;
+              align-content: start;
+              justify-content: start;
             }
           }
         `}} />
-        <div
-            className="grid grid-cols-3"
-            style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
-        >
-          {currentBatchLabels.map((item, i) => (
-            <div 
-              key={item.product.id + '-' + i} 
-              className="w-[32mm] h-[16mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+        {physicalSheets.map((sheet, sheetIndex) => (
+          <div className="inventory-print-sheet" key={sheetIndex}>
+            <div
+              className="inventory-label-grid"
+              style={{ left: `${offsetX}mm`, top: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
             >
-                <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
-                  {item.product.sku && (
-                    <QRCode
-                      value={item.product.sku}
-                      size={120}
-                      level="L"
-                      style={{ height: "100%", width: "100%", maxWidth: "100%" }}
-                      viewBox={`0 0 120 120`}
-                    />
-                  )}
+              {sheet.map((item, index) => (
+                <div
+                  key={`${item.product.id}-${item.index}-${index}`}
+                  className="w-[32mm] h-[15mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+                >
+                  <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
+                    {item.product.sku && (
+                      <QRCode
+                        value={item.product.sku}
+                        size={120}
+                        level="L"
+                        style={{ height: '100%', width: '100%', maxWidth: '100%' }}
+                        viewBox="0 0 120 120"
+                      />
+                    )}
+                  </div>
+                  <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
+                    <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{item.product.sku}</span>
+                    <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{formatPrice(item.product.price)}</span>
+                    <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">UB: {item.product.locationCode || 'N/A'}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
-                  <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{item.product.sku}</span>
-                  <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{formatPrice(item.product.price)}</span>
-                  <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">
-                    UB: {item.product.locationCode || 'N/A'}
-                  </span>
-                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </>
   );
