@@ -487,7 +487,7 @@ export default function MassPrintPage() {
                   key={`${item.product.id}-${item.index}-${index}`}
                   className="w-[32mm] h-[15mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
                 >
-                  <div className="w-[12mm] h-[12mm] min-w-[12mm] flex items-center justify-center bg-white shrink-0">
+                  <div className="w-[11mm] h-[11mm] min-w-[11mm] flex items-center justify-center bg-white shrink-0">
                     {item.product.sku && (
                       <QRCode
                         value={item.product.sku}
