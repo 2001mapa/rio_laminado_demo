@@ -474,6 +474,49 @@ export default function MassPrintPage() {
               align-content: start;
               justify-content: start;
             }
+            .inventory-print-label {
+              box-sizing: border-box;
+              width: 32mm;
+              height: 15mm;
+              padding-inline: 1mm;
+              display: flex;
+              align-items: center;
+              gap: 1.5mm;
+              break-inside: avoid;
+              page-break-inside: avoid;
+              color: black;
+            }
+            .inventory-print-qr {
+              flex: 0 0 11mm;
+              width: 11mm;
+              height: 11mm;
+              background: white;
+            }
+            .inventory-print-qr svg {
+              display: block;
+              width: 11mm;
+              height: 11mm;
+            }
+            .inventory-print-info {
+              min-width: 0;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              font-size: 11px;
+              line-height: 1.1;
+              letter-spacing: -0.025em;
+            }
+            .inventory-print-info span {
+              display: block;
+              width: 100%;
+            }
+            .inventory-print-info span:first-child {
+              overflow-wrap: anywhere;
+            }
+            .inventory-print-info span:not(:first-child) {
+              white-space: nowrap;
+            }
           }
         `}} />
         {physicalSheets.map((sheet, sheetIndex) => (
@@ -485,9 +528,9 @@ export default function MassPrintPage() {
               {sheet.map((item, index) => (
                 <div
                   key={`${item.product.id}-${item.index}-${index}`}
-                  className="w-[32mm] h-[15mm] break-inside-avoid flex flex-row items-center justify-between text-black overflow-hidden px-[1mm]"
+                  className="inventory-print-label"
                 >
-                  <div className="w-[11mm] h-[11mm] min-w-[11mm] flex items-center justify-center bg-white shrink-0">
+                  <div className="inventory-print-qr">
                     {item.product.sku && (
                       <QRCode
                         value={item.product.sku}
@@ -498,10 +541,10 @@ export default function MassPrintPage() {
                       />
                     )}
                   </div>
-                  <div className="flex flex-col items-start justify-center gap-[1px] h-full flex-1 ml-[1.5mm] overflow-hidden">
-                    <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{item.product.sku}</span>
-                    <span className="font-black text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">{formatPrice(item.product.price)}</span>
-                    <span className="font-bold text-[11px] leading-[1.1] text-left w-full truncate tracking-tighter">UB: {item.product.locationCode || 'N/A'}</span>
+                  <div className="inventory-print-info">
+                    <span className="font-black">{item.product.sku}</span>
+                    <span className="font-black">{formatPrice(item.product.price)}</span>
+                    <span className="font-bold">UB: {item.product.locationCode || 'N/A'}</span>
                   </div>
                 </div>
               ))}
