@@ -71,9 +71,10 @@ export default function ResetPasswordModal({
     
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const inviteUrl = `${baseUrl}/login`;
+    const accessEmail = `${customer.username.trim().toLowerCase()}@rio.local`;
     
     navigator.clipboard.writeText(
-      `¡Hola ${customer.name}! Se ha restablecido tu acceso al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Usuario: ${customer.username}\n🔑 Nueva contraseña: ${successPassword}`
+      `¡Hola ${customer.name}! Se ha restablecido tu acceso al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Correo de acceso: ${accessEmail}\n🔑 Nueva contraseña: ${successPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -155,14 +156,14 @@ export default function ResetPasswordModal({
               <p className="text-sm text-rio-ink font-serif italic mb-4 whitespace-pre-wrap">
                 "¡Hola {customer.name}! Se ha restablecido tu acceso al catálogo mayorista de RIO. <br/><br/>
                 🔗 Ingresa aquí: <span className="font-mono text-rio-gold-dark font-bold">{typeof window !== 'undefined' ? window.location.origin : ''}/login</span><br/>
-                👤 Usuario: <span className="font-mono text-rio-gold-dark font-bold">{customer.username}</span><br/>
+                👤 Correo de acceso: <span className="font-mono text-rio-gold-dark font-bold">{`${customer.username.trim().toLowerCase()}@rio.local`}</span><br/>
                 🔑 Nueva contraseña: <span className="font-mono text-rio-gold-dark font-bold">{successPassword}</span>"
               </p>
               
               <div className="flex gap-2">
                 {customer.phone && customer.phone.replace(/\D/g, '').length >= 10 ? (
                   <a 
-                    href={`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${customer.name}! Se ha restablecido tu acceso al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${typeof window !== 'undefined' ? window.location.origin : ''}/login\n👤 Usuario: ${customer.username}\n🔑 Nueva contraseña: ${successPassword}`)}`}
+                    href={`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${customer.name}! Se ha restablecido tu acceso al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${typeof window !== 'undefined' ? window.location.origin : ''}/login\n👤 Correo de acceso: ${customer.username.trim().toLowerCase()}@rio.local\n🔑 Nueva contraseña: ${successPassword}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-2.5 bg-green-500 text-white rounded-lg text-[13px] font-bold hover:bg-green-600 transition-colors flex justify-center items-center gap-2"

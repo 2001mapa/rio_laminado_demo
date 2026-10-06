@@ -59,6 +59,24 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
     }
   };
 
+  const handleCopyInvitation = async () => {
+    if (!customer.username || !customer.authUserId) {
+      addToast('Este cliente no tiene un correo de acceso disponible para copiar.');
+      return;
+    }
+
+    const accessEmail = `${customer.username.trim().toLowerCase()}@rio.local`;
+    const inviteUrl = `${window.location.origin}/login`;
+    const invitation = `¡Hola ${customer.name}! Te invitamos al catálogo exclusivo para mayoristas RIO.\n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Correo de acceso: ${accessEmail}\n\nSi no recuerdas tu contraseña, contacta a tu asesor para restablecerla.`;
+
+    try {
+      await navigator.clipboard.writeText(invitation);
+      addToast('Invitación copiada. La contraseña anterior no se puede recuperar.');
+    } catch {
+      addToast('No se pudo copiar la invitación. Revisa el permiso del portapapeles.');
+    }
+  };
+
   
   const activeOrders = customerOrders.filter(o => !['Cancelado', 'Despachado'].includes(o.status));
   const totalOrders = customerOrders.length;
@@ -155,9 +173,9 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               {customer.status === 'active' ? 'Suspender Acceso' : 'Activar Acceso'}
             </button>
             
-            <button onClick={() => addToast('La infraestructura de envío de correos no está configurada.')} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">
+            <button onClick={handleCopyInvitation} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">
               <Mail className="w-4 h-4 mr-3 text-rio-gold-dark" />
-              Reenviar Invitación
+              Copiar Invitación
             </button>
             
             <button onClick={() => setIsResetModalOpen(true)} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">

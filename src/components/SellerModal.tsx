@@ -108,7 +108,7 @@ export default function SellerModal({
     
     // Solo portapapeles: la clave nunca va en una URL ni en parámetros de consulta.
     navigator.clipboard.writeText(
-      `¡Hola ${successData.name}! Te he creado tu usuario como vendedor en el sistema RIO.\n\nIngresa a tu panel de ventas (POS) aquí: ${inviteUrl}\nCorreo: ${successData.email}\nContraseña: ${successData.tempPassword}`
+      `¡Hola ${successData.name}! Ya tienes acceso a tu panel de ventas RIO.\n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Correo de acceso: ${successData.email}\n🔑 Contraseña temporal: ${successData.tempPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);

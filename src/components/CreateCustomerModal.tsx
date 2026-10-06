@@ -89,9 +89,10 @@ export default function CreateCustomerModal({
     // En producción esto debería ser el dominio real (ej. https://riob2b.com)
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const inviteUrl = `${baseUrl}/login`;
+    const accessEmail = `${successData.username.trim().toLowerCase()}@rio.local`;
     
     navigator.clipboard.writeText(
-      `¡Hola ${successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Usuario: ${successData.username}\n🔑 Contraseña temporal: ${successData.temporaryPassword}`
+      `¡Hola ${successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. \n\n🔗 Ingresa aquí: ${inviteUrl}\n👤 Correo de acceso: ${accessEmail}\n🔑 Contraseña temporal: ${successData.temporaryPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -126,7 +127,7 @@ export default function CreateCustomerModal({
             )}
 
             <div className="bg-rio-gold-light/10 border border-rio-gold-light rounded-xl p-3 text-xs text-rio-ink leading-relaxed">
-              <strong>Lógica por Invitación:</strong> Los clientes no se registran solos. Al crear este perfil, el sistema generará un <strong>Enlace Mágico único</strong> que le enviarás por WhatsApp para que ingrese directamente con su descuento aplicado.
+              <strong>Acceso por invitación:</strong> Los clientes no se registran solos. Al crear este perfil, podrás compartir por WhatsApp la dirección de acceso y sus credenciales temporales. El descuento quedará asociado a su cuenta.
             </div>
 
             <div className="space-y-4">
@@ -212,7 +213,7 @@ export default function CreateCustomerModal({
               <p className="text-sm text-rio-ink font-serif italic mb-4 whitespace-pre-wrap">
                 "¡Hola {successData.name}! Aquí tienes tu acceso exclusivo al catálogo mayorista de RIO. <br/><br/>
                 🔗 Ingresa aquí: <span className="font-mono text-rio-gold-dark font-bold">{window.location.origin}/login</span><br/>
-                👤 Usuario: <span className="font-mono text-rio-gold-dark font-bold">{successData.username}</span><br/>
+                👤 Correo de acceso: <span className="font-mono text-rio-gold-dark font-bold">{`${successData.username.trim().toLowerCase()}@rio.local`}</span><br/>
                 🔑 Contraseña temporal: <span className="font-mono text-rio-gold-dark font-bold">{successData.temporaryPassword}</span>"
               </p>
               <button 
