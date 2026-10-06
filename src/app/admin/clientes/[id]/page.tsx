@@ -6,7 +6,7 @@ import EditCustomerModal from '@/components/EditCustomerModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import { useState } from 'react';
 import { addToast } from '@/lib/toast';
-import { ArrowLeft, Edit2, Mail, ShieldAlert, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Edit2, Mail, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -183,10 +183,6 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               Restablecer Acceso
             </button>
 
-            <button onClick={() => addToast('La infraestructura de notificaciones no está configurada.')} className="w-full flex items-center p-3 text-sm font-semibold rounded-xl border border-rio-border hover:bg-rio-surface-muted transition-colors text-rio-ink">
-              <ShieldAlert className="w-4 h-4 mr-3 text-rio-muted" />
-              Verificar Documentación
-            </button>
               </>
             )}
           </div>

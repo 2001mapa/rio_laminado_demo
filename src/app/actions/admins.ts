@@ -50,6 +50,27 @@ export async function listAdministrators() {
   return admins;
 }
 
+export async function getAdministratorProfile(id: string) {
+  await requirePrimaryAdmin();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+
+  const { data, error } = await adminClient().auth.admin.getUserById(id);
+  if (error || !data.user || data.user.app_metadata?.role !== 'admin') return null;
+
+  const user = data.user;
+  return {
+    id: user.id,
+    name: String(user.user_metadata?.name || ''),
+    email: user.email || '',
+    disabled: user.app_metadata?.adminDisabled === true,
+    primary: user.id === process.env.PRIMARY_ADMIN_USER_ID,
+    createdAt: user.created_at,
+    lastSignInAt: user.last_sign_in_at || null,
+    updatedAt: user.updated_at || null,
+    emailConfirmedAt: user.email_confirmed_at || null,
+  };
+}
+
 export async function createAdministrator(data: { name: string; email: string; password: string }) {
   await requirePrimaryAdmin();
   const name = data.name?.trim();

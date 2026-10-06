@@ -18,7 +18,9 @@ vi.mock('@supabase/supabase-js', () => ({
   } } }),
 }));
 
-import { canManageAdmins, createAdministrator, listAdministrators, setAdministratorDisabled } from '@/app/actions/admins';
+import { canManageAdmins, createAdministrator, getAdministratorProfile, listAdministrators, setAdministratorDisabled } from '@/app/actions/admins';
+
+const adminId = '11111111-1111-4111-8111-111111111111';
 
 describe('gestión de administradores', () => {
   beforeEach(() => {
@@ -35,7 +37,33 @@ describe('gestión de administradores', () => {
     expect(await canManageAdmins()).toBe(false);
     await expect(listAdministrators()).rejects.toThrow('cuenta principal');
     await expect(createAdministrator({ name: 'Ana', email: 'ana@rio.com', password: 'ClaveRio123' })).rejects.toThrow('cuenta principal');
+    await expect(getAdministratorProfile(adminId)).rejects.toThrow('cuenta principal');
+    expect(h.getUserById).not.toHaveBeenCalled();
     expect(h.createUser).not.toHaveBeenCalled();
+  });
+
+  it('muestra solo los datos permitidos de otro administrador a la cuenta principal', async () => {
+    h.getUserById.mockResolvedValue({ data: { user: {
+      id: adminId,
+      email: 'ana@rio.com',
+      created_at: '2026-10-01T10:00:00Z',
+      updated_at: '2026-10-02T10:00:00Z',
+      last_sign_in_at: '2026-10-02T09:00:00Z',
+      email_confirmed_at: '2026-10-01T10:00:00Z',
+      user_metadata: { name: 'Ana' },
+      app_metadata: { role: 'admin', adminDisabled: false },
+      encrypted_password: 'never-expose',
+    } }, error: null });
+
+    const profile = await getAdministratorProfile(adminId);
+    expect(profile).toMatchObject({ id: adminId, email: 'ana@rio.com', name: 'Ana', primary: false, disabled: false });
+    expect(profile).not.toHaveProperty('encrypted_password');
+    expect(h.getUserById).toHaveBeenCalledWith(adminId);
+  });
+
+  it('no expone perfiles sin rol admin', async () => {
+    h.getUserById.mockResolvedValue({ data: { user: { app_metadata: { role: 'cliente' } } }, error: null });
+    expect(await getAdministratorProfile(adminId)).toBeNull();
   });
 
   it('crea el rol únicamente en app_metadata', async () => {
