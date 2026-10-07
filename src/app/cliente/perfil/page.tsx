@@ -4,22 +4,30 @@ import { useDemo } from '@/lib/DemoContext';
 import { PUBLIC_STATES } from '@/lib/order-status';
 import { Package, MapPin, Phone, Mail, ChevronRight, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function PerfilPage() {
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleLogout = async () => {
-    if (typeof window !== 'undefined' && 'caches' in window) {
-      const keys = await caches.keys();
-      for (const key of keys) {
-        if (!key.includes('next-static') && !key.includes('google-fonts') && !key.includes('static-') && !key.includes('workbox')) {
-          await caches.delete(key);
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          if (!key.includes('next-static') && !key.includes('google-fonts') && !key.includes('static-') && !key.includes('workbox')) {
+            await caches.delete(key);
+          }
         }
       }
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      window.location.replace('/login');
+    } catch {
+      setIsSigningOut(false);
     }
-    const { createClient } = await import('@/utils/supabase/client');
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = '/login';
   };
 
   const { currentCustomer, orders, isLoaded } = useDemo();
@@ -42,6 +50,10 @@ export default function PerfilPage() {
     );
   }
 
+  if (isSigningOut) {
+    return <div role="status" className="p-8 text-center text-rio-muted font-medium">Cerrando sesión…</div>;
+  }
+
   if (!currentCustomer) {
     return (
       <div className="p-8 text-center text-rio-muted font-medium flex flex-col items-center">
@@ -59,7 +71,7 @@ export default function PerfilPage() {
     );
   }
 
-  const ActionButtons = () => (
+  const actionButtons = (
     <div>
       <button onClick={handleLogout}
         className="w-full flex items-center justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-rio-danger bg-rio-danger/5 hover:bg-rio-danger/10 transition-colors"
@@ -104,7 +116,7 @@ export default function PerfilPage() {
           
           {/* Action buttons (Desktop) */}
           <div className="hidden md:block">
-            <ActionButtons />
+            {actionButtons}
           </div>
         </div>
 
@@ -163,7 +175,7 @@ export default function PerfilPage() {
 
           {/* Action buttons (Mobile) */}
           <div className="md:hidden mt-8">
-            <ActionButtons />
+            {actionButtons}
           </div>
         </div>
 
