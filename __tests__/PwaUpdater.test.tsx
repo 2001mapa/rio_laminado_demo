@@ -63,7 +63,7 @@ describe('PwaUpdater Component (Seguridad de Escritura)', () => {
       if (workboxEvents['waiting']) workboxEvents['waiting']({ sw: mockWorker });
       
       await waitFor(() => {
-         expect(screen.getByText(/Nueva versin disponible/i)).toBeTruthy();
+         expect(screen.getByText(/Nueva versión disponible/i)).toBeTruthy();
       });
 
       // Primer write
@@ -146,7 +146,7 @@ describe('PwaUpdater Component (Seguridad de Escritura)', () => {
       expect((global as any).window.location.reload).not.toHaveBeenCalled();
       
       // Muestra la opción de reintento
-      expect(screen.getByText(/Error al activar. Reintentar/i)).toBeTruthy();
+      expect(screen.getByText(/Error al activar. ¿Reintentar\?/i)).toBeTruthy();
       vi.useRealTimers();
       
       // El botón vuelve a estar habilitado

@@ -11,10 +11,10 @@ import { createScanConfirmation } from '@/lib/scanConfirmation';
 import type { CameraDevice } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
 import { confirmRio } from '@/lib/confirm';
-import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2 } from 'lucide-react';
+import { Search, UserPlus, Camera, X, Plus, Minus, ShoppingBag, Check, Trash2, Eye, EyeOff } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { getExactProductBySku, getPagedCatalog, getProductsByIds } from '@/app/actions/queries';
-import { useCatalogSync } from '@/lib/useCatalogSync';
+import { useSellerCatalogSync } from '@/lib/CatalogSyncContext';
 import { searchOfflineProducts, searchOfflineCustomers, getOfflineProductsByIds } from '@/lib/offlineQueue';
 import { useRouter } from 'next/navigation';
 import { isValidQuickCustomer, normalizeQuickCustomer, type QuickCustomerData } from '@/lib/quickCustomer';
@@ -49,7 +49,16 @@ export default function NuevaVentaPage() {
   
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const { syncCatalog, isSyncing, lastSyncDate } = useCatalogSync(sellerId);
+  const [showOrderTotal, setShowOrderTotal] = useState(false);
+  useEffect(() => {
+    setShowOrderTotal(localStorage.getItem('seller-order-total-visible') === 'true');
+  }, []);
+  const toggleOrderTotal = () => {
+    const nextVisible = !showOrderTotal;
+    setShowOrderTotal(nextVisible);
+    localStorage.setItem('seller-order-total-visible', String(nextVisible));
+  };
+  const { syncCatalog, isSyncing, lastSyncDate } = useSellerCatalogSync();
   const [pendingQueue, setPendingQueue] = useState<PendingOrder[]>([]);
   const [currentCheckoutId, setCurrentCheckoutId] = useState<string | null>(null);
 
@@ -254,32 +263,39 @@ export default function NuevaVentaPage() {
   const [isSearchingSku, setIsSearchingSku] = useState(false);
   
   useEffect(() => {
+    let active = true;
     const timer = setTimeout(async () => {
       if (manualSku.trim().length >= 1 && !scannedProduct) {
         setIsSearchingSku(true);
-          try {
-            let resProducts = [];
-            if (navigator.onLine) {
-               const res = await getPagedCatalog({ search: manualSku, limit: 5 });
-               if (res.success && res.products) resProducts = res.products;
-            }
-            if (resProducts.length === 0 && sellerId) {
-               const offline = await searchOfflineProducts(manualSku, sellerId);
-               resProducts = offline.slice(0, 5);
-            }
-            setSkuSuggestions(resProducts as any);
-          } catch(e) {
-            if (sellerId) {
-              const offline = await searchOfflineProducts(manualSku, sellerId);
-              setSkuSuggestions(offline.slice(0, 5) as any);
+        try {
+          // La copia guardada se puede consultar sin esperar la red ni la sincronización.
+          let local: Product[] = [];
+          if (sellerId) {
+            try {
+              local = (await searchOfflineProducts(manualSku, sellerId)).slice(0, 5) as Product[];
+            } catch (error) {
+              console.error('No se pudo consultar el catálogo local:', error);
             }
           }
+          if (!active) return;
+          setSkuSuggestions(local);
           setIsSearchingSku(false);
+
+          if (navigator.onLine) {
+            const res = await getPagedCatalog({ search: manualSku, limit: 5 });
+            if (active && res.success && res.products) {
+              setSkuSuggestions(res.products as Product[]);
+            }
+          }
+        } catch (error) {
+          if (active) setIsSearchingSku(false);
+        }
       } else {
         setSkuSuggestions([]);
+        setIsSearchingSku(false);
       }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { active = false; clearTimeout(timer); };
   }, [manualSku, scannedProduct, sellerId]);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -444,7 +460,20 @@ export default function NuevaVentaPage() {
       let product: any = null;
       let error = '';
 
-      if (navigator.onLine) {
+      // Abrir la referencia guardada inmediatamente; el pedido se revalida en el servidor.
+      let match: Product | undefined;
+      try {
+        const offlineResults = await searchOfflineProducts(sku, sellerId);
+        match = offlineResults.find((p: any) => p.sku.toLowerCase() === sku.toLowerCase()) as Product | undefined;
+      } catch (cacheError) {
+        console.error('No se pudo consultar el catálogo local:', cacheError);
+      }
+      if (match) {
+        product = match;
+        if (!navigator.onLine) addToast('Modo offline: Stock y precio sujetos a confirmación.');
+      }
+
+      if (!product && navigator.onLine) {
         try {
            const result = await getExactProductBySku(sku);
            if (result.success && result.product) product = result.product;
@@ -455,14 +484,7 @@ export default function NuevaVentaPage() {
       }
 
       if (!product) {
-        const offlineResults = await searchOfflineProducts(sku, sellerId);
-        const match = offlineResults.find((p: any) => p.sku.toLowerCase() === sku.toLowerCase());
-        if (match) {
-          product = match;
-          addToast(!navigator.onLine ? 'Modo offline: Stock y precio sujetos a confirmación.' : 'Aviso: Falló la red. Mostrando catálogo local sujeto a confirmación.');
-        } else {
-          error = !navigator.onLine ? 'SKU no encontrado en catálogo offline' : (error || 'SKU no encontrado');
-        }
+        error = !navigator.onLine ? 'SKU no encontrado en catálogo offline' : (error || 'SKU no encontrado');
       }
 
       if (product) {
@@ -958,10 +980,15 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <a href="#pedido-actual" className="flex min-h-11 items-center justify-between gap-2 border-b border-rio-border bg-rio-gold-light/10 px-4 py-2 text-sm text-rio-ink md:hidden">
-                <span className="font-semibold">Pedido: {totalItems} refs · {cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds</span>
-                <span className="shrink-0 font-bold text-rio-gold-dark">{formatPrice(totalAmount)}</span>
-              </a>
+              <div className="flex min-h-12 items-center gap-2 border-b border-rio-border bg-rio-gold-light/10 px-4 py-2 text-sm text-rio-ink md:hidden">
+                <a href="#pedido-actual" className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <span className="truncate font-semibold">Pedido: {totalItems} refs · {cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds</span>
+                  <span className="shrink-0 font-bold text-rio-gold-dark">{showOrderTotal ? formatPrice(totalAmount) : '••••••'}</span>
+                </a>
+                <button type="button" onClick={toggleOrderTotal} aria-label={showOrderTotal ? 'Ocultar total del pedido' : 'Mostrar total del pedido'} aria-pressed={showOrderTotal} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/30">
+                  {showOrderTotal ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
 
               <div className="p-4 border-b border-rio-border bg-white z-20 shrink-0">
                 <div className="relative">
@@ -1075,8 +1102,8 @@ export default function NuevaVentaPage() {
                           <p className="text-xs font-bold text-rio-ink mb-3 text-center uppercase tracking-wider">Tallas Solicitadas</p>
                           
                           <div className="flex gap-2 mb-4">
-                            <input type="text" placeholder="Talla" value={scanSizeInput} onChange={e => setScanSizeInput(e.target.value)} className="flex-1 min-w-0 bg-rio-background border border-rio-border rounded-xl px-3 py-2 text-sm focus:outline-none" />
-                            <input type="number" min="1" value={scanSizeQtyInput} onChange={e => setScanSizeQtyInput(parseInt(e.target.value) || 1)} className="w-16 shrink-0 bg-rio-background border border-rio-border rounded-xl px-2 py-2 text-sm text-center focus:outline-none" />
+                            <input type="text" inputMode="numeric" aria-label="Talla del anillo" placeholder="Talla" value={scanSizeInput} onChange={e => setScanSizeInput(e.target.value)} className="flex-1 min-w-0 bg-rio-background border border-rio-border rounded-xl px-3 py-2 text-base focus:outline-none" />
+                            <input type="number" inputMode="numeric" aria-label="Cantidad por talla" min="1" value={scanSizeQtyInput} onChange={e => setScanSizeQtyInput(parseInt(e.target.value) || 1)} className="w-16 shrink-0 bg-rio-background border border-rio-border rounded-xl px-2 py-2 text-base text-center focus:outline-none" />
                             <button onClick={() => {
                               if(scanSizeInput.trim() && scanSizeQtyInput > 0) {
                                 const currentTotal = scanSizes.reduce((acc, s) => acc + s.quantity, 0);
@@ -1254,9 +1281,14 @@ export default function NuevaVentaPage() {
             </div>
 
             <div className="border border-rio-border rounded-xl bg-white p-4 shadow-sm shrink-0">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <span className="text-sm text-rio-muted font-bold uppercase tracking-wider">Total ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds)</span>
-                <span className="text-2xl font-black text-rio-ink">{formatPrice(totalAmount)}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-2xl font-black text-rio-ink">{showOrderTotal ? formatPrice(totalAmount) : '••••••'}</span>
+                  <button type="button" onClick={toggleOrderTotal} aria-label={showOrderTotal ? 'Ocultar total del pedido' : 'Mostrar total del pedido'} aria-pressed={showOrderTotal} className="hidden h-11 w-11 items-center justify-center rounded-xl text-rio-muted hover:bg-rio-background hover:text-rio-ink md:flex">
+                    {showOrderTotal ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <button 
                 onClick={handleCheckout}

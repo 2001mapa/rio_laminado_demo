@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
@@ -85,6 +85,20 @@ vi.mock('@/app/actions/queries', () => ({
 }));
 
 describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
+  afterEach(() => cleanup());
+
+  it('oculta el total del vendedor y permite mostrarlo con el botón de ojo', async () => {
+    localStorage.setItem('seller-order-total-visible', 'false');
+    render(<NuevaVentaPage />);
+    fireEvent.click((await screen.findAllByText(/Cliente UI/i))[0]);
+
+    const showButtons = await screen.findAllByRole('button', { name: 'Mostrar total del pedido' });
+    expect(showButtons.length).toBe(2);
+    fireEvent.click(showButtons[0]);
+
+    expect(screen.getAllByRole('button', { name: 'Ocultar total del pedido' }).length).toBe(2);
+    expect(localStorage.getItem('seller-order-total-visible')).toBe('true');
+  });
 
   it('ofrece zoom real y permite cambiar de lente cuando el navegador lo soporta', async () => {
     cameraMocks.applyZoom.mockResolvedValue(undefined);

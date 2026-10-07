@@ -102,7 +102,7 @@ export default function PwaUpdater() {
       navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
       
-      // Si despus de 5 segundos no tom control, mostramos opcin de reintento
+      // Si después de 5 segundos no tomó control, mostramos opción de reintento
       setTimeout(() => {
           if (!controllerChanged) {
               setIsUpdating(false);
@@ -119,23 +119,23 @@ export default function PwaUpdater() {
   if (!waitingWorker) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
-      <div className="bg-rio-ink text-white px-4 py-3 rounded-xl shadow-lg border border-gray-700 flex items-center gap-4">
-        <div className="flex flex-col">
-          <span className="font-bold text-sm">Nueva versin disponible</span>
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 animate-fade-in-up">
+      <div className="flex flex-col gap-3 rounded-xl border border-gray-700 bg-rio-ink px-4 py-3 text-white shadow-lg sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-sm font-bold leading-snug">Nueva versión disponible</span>
           {!canUpdate && !isUpdating && (
             <span className="text-xs text-gray-300">
-              {isWriting ? 'Guardando...' : 'Espera a que termine el envo...'}
+              {isWriting ? 'Guardando...' : 'Espera a que termine el envío...'}
             </span>
           )}
           {updateFailed && (
-            <span className="text-xs text-red-400">Error al activar. Reintentar?</span>
+            <span className="text-xs text-red-400">Error al activar. ¿Reintentar?</span>
           )}
         </div>
         <button 
           onClick={reloadToUpdate}
           disabled={!canUpdate}
-          className="bg-rio-gold-dark hover:bg-rio-gold-light text-rio-ink disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-xs px-3 py-2 rounded-lg flex items-center gap-1 transition-colors"
+          className="flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-rio-gold-dark px-4 py-2 text-sm font-semibold text-rio-ink transition-colors hover:bg-rio-gold-light disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
           {isUpdating ? 'Actualizando...' : 'Actualizar'}

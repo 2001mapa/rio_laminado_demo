@@ -10,6 +10,7 @@ import { getSellerOrderStates } from '@/app/actions/queries';
 import { useDemo } from '@/lib/DemoContext';
 import { addToast } from '@/lib/toast';
 import { useCatalogSync } from '@/lib/useCatalogSync';
+import { CatalogSyncContext } from '@/lib/CatalogSyncContext';
 import { clearOfflineSellerAccess, recordOfflineSellerAccess } from '@/lib/offlineQueue';
 
 export default function VendedorLayout({
@@ -21,7 +22,8 @@ export default function VendedorLayout({
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [verifiedSellerId, setVerifiedSellerId] = useState('');
-  const { lastSyncDate } = useCatalogSync(verifiedSellerId);
+  const catalogSync = useCatalogSync(verifiedSellerId);
+  const { lastSyncDate } = catalogSync;
   const { refreshData } = useDemo();
   
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -227,6 +229,7 @@ export default function VendedorLayout({
   };
 
   return (
+    <CatalogSyncContext.Provider value={catalogSync}>
     <div className="min-h-screen bg-rio-background pb-20 md:pb-0 relative font-sans">
       {/* Top Bar */}
       <header className="bg-rio-surface border-b border-rio-border sticky top-0 z-30 px-4 md:px-8 h-16 flex items-center justify-between shadow-sm">
@@ -301,5 +304,6 @@ export default function VendedorLayout({
       </nav>
 
     </div>
+    </CatalogSyncContext.Provider>
   );
 }
