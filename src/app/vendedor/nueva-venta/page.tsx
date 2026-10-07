@@ -930,7 +930,7 @@ export default function NuevaVentaPage() {
       {step === 2 && (
         <div className="flex-1 w-full max-w-6xl mx-auto px-4 pb-24 md:pb-6 flex flex-col md:flex-row gap-6 h-full animate-fade-in overflow-hidden">
           
-          <div className="w-full md:flex-1 flex flex-col min-h-[500px]">
+          <div className="w-full min-w-0 md:flex-1 flex flex-col md:min-h-[500px]">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-col">
                    <h2 className="font-serif font-bold text-xl text-rio-ink">Escáner de productos</h2>
@@ -958,6 +958,11 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
+              <a href="#pedido-actual" className="flex min-h-11 items-center justify-between gap-2 border-b border-rio-border bg-rio-gold-light/10 px-4 py-2 text-sm text-rio-ink md:hidden">
+                <span className="font-semibold">Pedido: {totalItems} refs · {cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds</span>
+                <span className="shrink-0 font-bold text-rio-gold-dark">{formatPrice(totalAmount)}</span>
+              </a>
+
               <div className="p-4 border-b border-rio-border bg-white z-20 shrink-0">
                 <div className="relative">
                 <form 
@@ -976,7 +981,7 @@ export default function NuevaVentaPage() {
                     placeholder="Ingresar SKU manualmente"
                     value={manualSku}
                     onChange={e => setManualSku(e.target.value)}
-                    className="min-w-0 flex-1 bg-rio-background border border-rio-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-rio-gold-dark"
+                    className="min-w-0 flex-1 bg-rio-background border border-rio-border rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-rio-gold-dark"
                   />
                   <button type="submit" className="min-h-11 bg-rio-ink text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-rio-ink/80 transition-colors">
                     Buscar
@@ -1018,10 +1023,11 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <div className="flex-1 relative bg-black flex flex-col">
+              <div className={`relative shrink-0 overflow-hidden bg-black md:h-auto md:min-h-0 md:flex-1 ${scannedProduct ? 'h-[min(72svh,580px)] min-h-[380px]' : 'h-[min(42svh,360px)] min-h-[260px]'}`}>
                 <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
-                  #qr-reader video { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+                  #qr-reader video { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: contain !important; }
+                  #qr-reader__scan_region { max-width: 100% !important; overflow: hidden; }
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>
                 
@@ -1038,23 +1044,7 @@ export default function NuevaVentaPage() {
                       Activar Lector QR
                     </button>
                   </div>
-                ) : (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex w-[min(90%,20rem)] flex-col items-center gap-2 text-white">
-                    {cameraDevices.length > 1 && (
-                      <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className="w-full rounded-xl border border-white/30 bg-black/80 px-3 py-2 text-xs font-semibold text-white">
-                        {cameraDevices.map((camera, index) => <option key={camera.id} value={camera.id}>{camera.label || `Cámara ${index + 1}`}</option>)}
-                      </select>
-                    )}
-                    {zoomRange && (
-                      <div className="flex w-full items-center gap-2 rounded-xl border border-white/30 bg-black/80 px-3 py-2 text-xs font-semibold">
-                        <span>Zoom</span>
-                        <input aria-label="Zoom de cámara" type="range" min={zoomRange.min} max={zoomRange.max} step={zoomRange.step} value={zoomValue} onChange={event => changeZoom(Number(event.target.value))} className="min-w-0 flex-1" />
-                        <span>{zoomValue.toFixed(1)}×</span>
-                      </div>
-                    )}
-                    <button onClick={stopScanner} className="bg-black/70 backdrop-blur-md text-white text-[11px] font-bold px-4 py-2 rounded-full border border-white/20">Pausar Cámara</button>
-                  </div>
-                )}
+                ) : null}
 
                 {scannedProduct && (
                   <div className="absolute inset-0 bg-white z-40 flex flex-col p-4 sm:p-6 overflow-y-auto animate-zoom-in">
@@ -1173,10 +1163,27 @@ export default function NuevaVentaPage() {
                   </div>
                 )}
               </div>
+              {isScanning && !scannedProduct && (
+                <div className="z-20 flex flex-col gap-2 border-t border-white/15 bg-rio-ink p-3 text-white md:flex-row md:items-center">
+                  {cameraDevices.length > 1 && (
+                    <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/25 bg-rio-ink px-3 text-base font-semibold text-white md:text-sm">
+                      {cameraDevices.map((camera, index) => <option key={camera.id} value={camera.id}>{camera.label || `Cámara ${index + 1}`}</option>)}
+                    </select>
+                  )}
+                  {zoomRange && (
+                    <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold">
+                      <span>Zoom</span>
+                      <input aria-label="Zoom de cámara" type="range" min={zoomRange.min} max={zoomRange.max} step={zoomRange.step} value={zoomValue} onChange={event => changeZoom(Number(event.target.value))} className="min-w-0 flex-1" />
+                      <span className="tabular-nums">{zoomValue.toFixed(1)}×</span>
+                    </div>
+                  )}
+                  <button onClick={stopScanner} className="min-h-11 shrink-0 rounded-xl border border-white/25 px-4 text-sm font-bold hover:bg-white/10">Pausar cámara</button>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="w-full md:w-[450px] shrink-0 md:pl-6 md:border-l md:border-rio-border flex flex-col h-[50vh] md:h-full">
+          <div id="pedido-actual" className="w-full md:w-[450px] shrink-0 md:pl-6 md:border-l md:border-rio-border flex flex-col min-h-[250px] md:h-full scroll-mt-20">
             <div className="flex items-center justify-between mb-4 shrink-0">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-rio-gold-dark"/>
