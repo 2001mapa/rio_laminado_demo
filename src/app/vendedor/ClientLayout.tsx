@@ -199,8 +199,8 @@ export default function VendedorLayout({
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
 
   const navItems = [
-    { name: 'Dashboard', href: '/vendedor', icon: LayoutDashboard },
-    { name: 'Nueva Venta', href: '/vendedor/nueva-venta', icon: ScanLine },
+    { name: 'Resumen', href: '/vendedor', icon: LayoutDashboard },
+    { name: 'Nueva venta', href: '/vendedor/nueva-venta', icon: ScanLine },
     { name: 'Perfil', href: '/vendedor/perfil', icon: User },
   ];
 
@@ -232,7 +232,7 @@ export default function VendedorLayout({
       <header className="bg-rio-surface border-b border-rio-border sticky top-0 z-30 px-4 md:px-8 h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3 md:w-1/3">
           <div className="font-serif font-black text-2xl tracking-tight text-rio-ink">RIO</div>
-          <div className="text-[10px] uppercase tracking-wider bg-rio-gold-light/20 text-rio-gold-dark px-2.5 py-1 rounded-full font-bold border border-rio-gold-light/30 hidden sm:block">
+          <div className="text-xs uppercase tracking-wider bg-rio-gold-light/20 text-rio-gold-dark px-2.5 py-1 rounded-full font-bold border border-rio-gold-light/30 hidden sm:block">
             Punto de Venta
           </div>
         </div>
@@ -286,14 +286,14 @@ export default function VendedorLayout({
                 href={item.href}
                 onClick={item.href === '/vendedor/nueva-venta' ? openSaleOffline : undefined}
                 className={classNames(
-                  "relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+                  "relative flex flex-col items-center justify-center w-full h-full gap-1 transition-colors",
                   isActive ? "text-rio-gold-dark" : "text-rio-muted hover:text-rio-ink"
                 )}
               >
                 <div className="relative">
                   <item.icon className={classNames("w-6 h-6", isActive && "text-rio-gold-dark")} strokeWidth={isActive ? 2.5 : 1.5} />
                 </div>
-                <span className={classNames("text-[10px]", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
+                <span className={classNames("text-xs", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
               </Link>
             );
           })}

@@ -58,7 +58,7 @@ export default function VendedorPerfilPage() {
   );
 
   return (
-    <div className="p-4 pb-32 md:p-0 md:py-8">
+    <div className="p-4 pb-32 md:px-6 md:py-8">
       <div className="max-w-5xl mx-auto md:grid md:grid-cols-12 md:gap-8 md:items-start">
         
         {/* Left Column: Profile Card */}
@@ -77,7 +77,7 @@ export default function VendedorPerfilPage() {
               {currentSeller.status === 'active' ? 'Vendedor Activo' : 'Suspendido'}
             </div>
             
-            <div className="mt-6 md:mt-8 flex flex-col space-y-3.5 text-[13px] text-left mx-auto">
+            <div className="mt-6 md:mt-8 flex flex-col space-y-3.5 text-sm text-left mx-auto">
               <div className="flex items-center text-rio-ink font-medium">
                 <Mail className="w-4 h-4 mr-3 text-rio-muted" strokeWidth={1.5} />
                 <span className="truncate">{currentSeller.email}</span>
@@ -98,8 +98,8 @@ export default function VendedorPerfilPage() {
         {/* Right Column: Orders */}
         <div className="md:col-span-7 lg:col-span-8">
           <div className="flex items-end justify-between mb-5">
-            <h2 className="text-xl md:text-2xl font-serif font-bold text-rio-ink">Historial de Ventas</h2>
-            <span className="text-[12px] font-bold text-rio-muted uppercase tracking-wider">{sellerOrders.length} ventas</span>
+            <h2 className="text-xl md:text-2xl font-serif font-bold text-rio-ink">Historial de ventas</h2>
+            <span className="text-xs font-bold text-rio-muted uppercase tracking-wider">{sellerOrders.length} ventas</span>
           </div>
           <div className="mb-5 grid gap-3 rounded-2xl border border-rio-border bg-rio-surface p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto_auto]">
             <label className="block min-w-0 text-xs font-bold text-rio-muted">
@@ -122,7 +122,7 @@ export default function VendedorPerfilPage() {
               <input type={period === 'day' ? 'date' : 'month'} value={date} onChange={event => setDate(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-rio-border bg-white px-3 text-sm font-medium text-rio-ink focus:border-rio-gold-dark focus:outline-none" />
             </label>}
           </div>
-          <p className="mb-3 text-xs font-medium text-rio-muted">Mostrando {filteredOrders.length} de {sellerOrders.length} ventas</p>
+          <p className="mb-3 text-sm font-medium text-rio-muted">Mostrando {filteredOrders.length} de {sellerOrders.length} ventas</p>
           
           <div className="space-y-3">
             {filteredOrders.length > 0 ? (
@@ -148,7 +148,7 @@ export default function VendedorPerfilPage() {
                     <div className="text-[13px] font-bold text-rio-ink mr-4">
                       {order.items.length} referencias
                     </div>
-                    <span className={"text-[10px] md:text-[11px] font-bold uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md border " + (
+                    <span className={"text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border " + (
                       order.status === 'Reservado' ? 'bg-rio-gold-light/30 text-rio-gold-dark border-rio-gold-light' :
                       order.status === 'Cancelado' ? 'bg-rio-danger/10 text-rio-danger border-rio-danger/20' :
                       order.status === 'Verificado' || order.status === 'Despachado' || order.status === 'Empacado' ? 'bg-rio-success/10 text-rio-success border-rio-success/20' :

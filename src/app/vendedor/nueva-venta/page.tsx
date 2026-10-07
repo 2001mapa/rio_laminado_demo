@@ -933,9 +933,9 @@ export default function NuevaVentaPage() {
           <div className="w-full md:flex-1 flex flex-col min-h-[500px]">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-col">
-                   <h2 className="font-serif font-bold text-lg text-rio-ink">Escáner de Productos</h2>
-                   <div className="flex items-center gap-2 mt-1">
-                     <button onClick={syncCatalog} disabled={isSyncing} className="flex min-h-9 items-center gap-1 rounded-lg bg-rio-gold/10 px-2.5 py-1 text-xs font-semibold text-rio-gold-dark transition-colors hover:text-rio-gold disabled:opacity-60">
+                   <h2 className="font-serif font-bold text-xl text-rio-ink">Escáner de productos</h2>
+                   <div className="flex flex-wrap items-center gap-2 mt-2">
+                     <button onClick={syncCatalog} disabled={isSyncing} className="flex min-h-10 items-center gap-1 rounded-lg bg-rio-gold/10 px-3 py-1 text-xs font-semibold text-rio-gold-dark transition-colors hover:text-rio-gold disabled:opacity-60">
                        <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
                        {isSyncing ? 'Sincronizando...' : 'Actualizar Catálogo'}
                      </button>
@@ -944,15 +944,15 @@ export default function NuevaVentaPage() {
                      </span>
                    </div>
                 </div>
-                <button onClick={() => handleSafeCustomerChange(() => { stopScanner(); setShowQuickCustomerForm(!!newCustomerData); setStep(1); })} className="text-xs font-bold text-rio-gold-dark hover:underline">
-                  Cambiar Cliente
+                <button onClick={() => handleSafeCustomerChange(() => { stopScanner(); setShowQuickCustomerForm(!!newCustomerData); setStep(1); })} className="min-h-10 shrink-0 rounded-lg px-2 text-sm font-bold text-rio-gold-dark hover:bg-rio-gold-light/20">
+                  Cambiar cliente
                 </button>
               </div>
 
             <div className="flex-1 bg-white border border-rio-border rounded-2xl overflow-hidden relative shadow-sm flex flex-col">
               <div className="p-4 border-b border-rio-border bg-rio-surface flex items-center justify-between z-20 shrink-0">
                 <div className="flex-1">
-                  <p className="text-[10px] uppercase font-bold text-rio-muted">Cliente Seleccionado</p>
+                  <p className="text-xs uppercase font-bold tracking-wide text-rio-muted">Cliente seleccionado</p>
                   <p className="font-bold text-sm text-rio-ink truncate">{selectedCustomer?.name || newCustomerData?.name}</p>
                   {newCustomerData && <p className="text-xs text-rio-muted">Cliente nuevo · Pendiente de registro administrativo</p>}
                 </div>
@@ -976,9 +976,9 @@ export default function NuevaVentaPage() {
                     placeholder="Ingresar SKU manualmente"
                     value={manualSku}
                     onChange={e => setManualSku(e.target.value)}
-                    className="flex-1 bg-rio-background border border-rio-border rounded-xl px-4 py-2.5 text-[13px] focus:outline-none focus:border-rio-gold-dark"
+                    className="min-w-0 flex-1 bg-rio-background border border-rio-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-rio-gold-dark"
                   />
-                  <button type="submit" className="bg-rio-ink text-white px-4 py-2.5 rounded-xl font-bold text-[13px] hover:bg-rio-ink/80 transition-colors">
+                  <button type="submit" className="min-h-11 bg-rio-ink text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-rio-ink/80 transition-colors">
                     Buscar
                   </button>
                 </form>
@@ -1180,7 +1180,7 @@ export default function NuevaVentaPage() {
             <div className="flex items-center justify-between mb-4 shrink-0">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-rio-gold-dark"/>
-                <h2 className="font-serif font-bold text-lg text-rio-ink">Pedido Actual</h2>
+                <h2 className="font-serif font-bold text-xl text-rio-ink">Pedido actual</h2>
               </div>
               <span className="bg-rio-surface-muted px-2 py-1 rounded-full text-[11px] font-bold text-rio-ink">{totalItems} refs</span>
             </div>
