@@ -161,15 +161,17 @@ export default function CatalogoPage() {
                 <ChevronRight className="w-5 h-5 pl-0.5" />
               </button>
 
-              <div id="discover-carousel" className="flex overflow-x-auto gap-3 pb-4 snap-x snap-mandatory hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+              <div id="discover-carousel" className="flex overflow-x-auto gap-3 pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                 {discoverProducts.map(product => (
-                  <div 
+                  <button
                     key={product.id}
+                    type="button"
                     onClick={() => setSelectedProduct(product)}
-                    className="snap-start shrink-0 flex items-center gap-3 w-[240px] md:w-[280px] h-[95px] md:h-[105px] bg-white rounded-xl border border-rio-border shadow-sm cursor-pointer hover:border-rio-gold/40 hover:shadow-md transition-all p-2.5"
+                    aria-label={`Ver detalle de ${product.name}`}
+                    className="snap-start shrink-0 flex items-center gap-3 w-[240px] md:w-[280px] h-[95px] md:h-[105px] bg-white rounded-xl border border-rio-border shadow-sm cursor-pointer text-left hover:border-rio-gold/40 hover:shadow-md focus-visible:outline-2 focus-visible:outline-rio-gold-dark transition-all p-2.5"
                   >
                     <div className="w-[75px] h-[75px] md:w-[85px] md:h-[85px] shrink-0 bg-rio-surface-muted rounded-lg overflow-hidden border border-rio-border/50">
-                      <img src={product.imageUrl || undefined} className="w-full h-full object-cover mix-blend-multiply" loading="lazy" />
+                      <img src={product.imageUrl || undefined} alt="" className="w-full h-full object-cover mix-blend-multiply" loading="lazy" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <span className="inline-block w-fit text-[9px] font-bold uppercase tracking-wider text-rio-gold-dark bg-rio-gold-light/20 px-1.5 py-0.5 rounded mb-1 truncate max-w-full">{product.category}</span>
@@ -177,7 +179,7 @@ export default function CatalogoPage() {
                       <span className="text-[10px] font-mono text-rio-muted block mb-1 truncate">{product.sku}</span>
                       <span className="text-[11px] font-bold text-rio-ink">{formatPrice(product.price)}</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -273,6 +275,12 @@ export default function CatalogoPage() {
         </div>
 
         <div id="catalog-grid" className="space-y-8 md:space-y-12 md:pt-2 scroll-mt-20">
+          {isLoading && catalogProducts.length === 0 && (
+            <div role="status" aria-label="Cargando productos" className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 md:gap-5">
+              <span className="sr-only">Cargando productos…</span>
+              {[1, 2, 3, 4].map(item => <ProductCardSkeleton key={item} />)}
+            </div>
+          )}
           {searchTerm ? (
             <div className="space-y-4 md:space-y-6">
               <div className="flex items-end justify-between border-b border-rio-border/30 pb-2">
@@ -286,7 +294,7 @@ export default function CatalogoPage() {
                   ))}
                 </div>
               ) : (
-                !isLoading && (
+                !isLoading && !fetchError && (
                   <div className="text-center py-20 bg-rio-surface rounded-2xl border border-rio-border shadow-sm">
                     <p className="text-rio-muted font-medium">No se encontraron productos para "{searchTerm}"</p>
                   </div>
@@ -403,7 +411,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
     }
     const stockDisponible = product.physicalStock - product.reservedStock;
     if (quantity + currentCartQuantity > stockDisponible) {
-      addToast('Lmite de inventario alcanzado ( unidades disponibles)');
+      addToast(`Límite de inventario alcanzado (${stockDisponible} unidades disponibles)`);
       return;
     }
     addToCart(product, quantity);
@@ -478,7 +486,19 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-sm font-semibold flex-1 text-center text-rio-ink">{quantity}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                min="1"
+                max={Math.max(1, product.physicalStock - product.reservedStock - currentCartQuantity)}
+                step="1"
+                aria-label={`Cantidad de ${product.name}`}
+                value={quantity || ''}
+                onChange={event => setQuantity(Math.min(Number.parseInt(event.target.value, 10) || 0, Math.max(1, product.physicalStock - product.reservedStock - currentCartQuantity)))}
+                onBlur={() => { if (quantity < 1) setQuantity(1); }}
+                className="w-10 min-w-0 flex-1 bg-transparent text-center text-sm font-semibold text-rio-ink outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
               <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border active:bg-rio-border/80 transition-colors">
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -486,6 +506,7 @@ function ProductCard({ product, onExpand }: { product: Product; onExpand: () => 
           )}
           <button
             onClick={handleAdd}
+            disabled={product.category !== 'Anillos' && quantity < 1}
             className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
               added
                 ? 'bg-rio-success border-rio-success/30 text-white'
@@ -565,7 +586,7 @@ function ProductModal({
   };
 
   const handleAddSize = () => {
-    if (!sizeInput) return;
+    if (!sizeInput || sizeQtyInput < 1) return;
     const existingSize = sizes.find(s => s.size === sizeInput);
     if (existingSize) {
       setSizes(sizes.map(s => s.size === sizeInput ? { ...s, quantity: s.quantity + sizeQtyInput } : s));
@@ -783,6 +804,9 @@ function ProductModal({
               <div className="flex items-center gap-2">
                 <input 
                   type="text" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  aria-label="Talla del anillo"
                   placeholder="Talla (ej. 6)"
                   value={sizeInput}
                   onChange={(e) => setSizeInput(e.target.value)}
@@ -792,14 +816,25 @@ function ProductModal({
                   <button onClick={() => setSizeQtyInput(Math.max(1, sizeQtyInput - 1))} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="text-sm font-bold flex-1 text-center text-rio-ink">{sizeQtyInput}</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min="1"
+                    step="1"
+                    aria-label="Cantidad por talla"
+                    value={sizeQtyInput || ''}
+                    onChange={event => setSizeQtyInput(Number.parseInt(event.target.value, 10) || 0)}
+                    onBlur={() => { if (sizeQtyInput < 1) setSizeQtyInput(1); }}
+                    className="w-8 min-w-0 flex-1 bg-transparent text-center text-sm font-bold text-rio-ink outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
                   <button onClick={() => setSizeQtyInput(sizeQtyInput + 1)} className="w-8 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                     <Plus className="w-3 h-3" />
                   </button>
                 </div>
                 <button 
                   onClick={handleAddSize}
-                  disabled={!sizeInput}
+                  disabled={!sizeInput || sizeQtyInput < 1}
                   className="h-10 px-4 bg-rio-ink text-white rounded-xl text-sm font-bold disabled:opacity-50"
                 >
                   <Plus className="w-4 h-4" />
@@ -842,13 +877,26 @@ function ProductModal({
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                   <Minus className="w-4 h-4" />
                 </button>
-                <span className="text-sm font-bold flex-1 text-center text-rio-ink">{quantity}</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min="1"
+                  max={Math.max(1, product.physicalStock - product.reservedStock - currentCartQuantity)}
+                  step="1"
+                  aria-label={`Cantidad de ${product.name}`}
+                  value={quantity || ''}
+                  onChange={event => setQuantity(Math.min(Number.parseInt(event.target.value, 10) || 0, Math.max(1, product.physicalStock - product.reservedStock - currentCartQuantity)))}
+                  onBlur={() => { if (quantity < 1) setQuantity(1); }}
+                  className="w-10 min-w-0 flex-1 bg-transparent text-center text-sm font-bold text-rio-ink outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
                 <button onClick={() => { const s = product.physicalStock - product.reservedStock; if(quantity + currentCartQuantity < s) setQuantity(quantity + 1); }} className="w-10 h-full flex justify-center items-center text-rio-muted hover:bg-rio-border transition-colors">
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <button
                 onClick={handleAdd}
+                disabled={quantity < 1}
                 className={`h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
                   added
                     ? 'bg-rio-success text-white'

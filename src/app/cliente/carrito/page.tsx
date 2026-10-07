@@ -4,8 +4,38 @@ import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CartItemSkeleton } from '@/components/Skeletons';
+
+function CartQuantityInput({ value, max, label, onCommit }: { value: number; max: number; label: string; onCommit: (quantity: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+
+  const commit = () => {
+    if (max < 1) {
+      setDraft(String(value));
+      return;
+    }
+    const parsed = Number.parseInt(draft, 10);
+    const next = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, Math.max(1, max)) : value;
+    setDraft(String(next));
+    if (next !== value) onCommit(next);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      aria-label={label}
+      value={draft}
+      onChange={event => { if (/^\d*$/.test(event.target.value)) setDraft(event.target.value); }}
+      onBlur={commit}
+      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+      className="w-9 min-w-0 bg-transparent text-center text-xs font-semibold text-rio-ink outline-none focus:bg-white"
+    />
+  );
+}
 
 export default function CarritoPage() {
   const { cart, updateCartQuantity, updateCartItemSize, removeFromCart, currentCustomer, clearCart, addOrder, isLoaded } = useDemo();
@@ -59,7 +89,7 @@ export default function CarritoPage() {
         <p className="text-sm text-rio-muted max-w-[250px] mx-auto">Explora nuestro catálogo y agrega productos para iniciar tu reserva.</p>
         <button
           onClick={() => router.push('/cliente')}
-          className="mt-8 w-full py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
+          className="mt-8 w-full max-w-sm py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
         >
           Ir al catálogo
         </button>
@@ -99,7 +129,12 @@ export default function CarritoPage() {
                         <div key={idx} className="flex items-center border border-rio-border rounded-lg overflow-hidden bg-rio-background h-7">
                           <span className="px-2 font-bold text-rio-ink text-xs border-r border-rio-border">T{s.size}</span>
                           <button onClick={() => updateCartItemSize(item.product.id, s.size, s.quantity - 1)} className="w-6 h-full flex items-center justify-center text-rio-muted hover:bg-rio-border transition-colors"><Minus className="w-2.5 h-2.5"/></button>
-                          <span className="text-xs font-semibold w-6 text-center text-rio-ink">{s.quantity}</span>
+                          <CartQuantityInput
+                            value={s.quantity}
+                            max={item.product.physicalStock - item.product.reservedStock - item.quantity + s.quantity}
+                            label={`Cantidad de talla ${s.size} para ${item.product.name}`}
+                            onCommit={quantity => updateCartItemSize(item.product.id, s.size, quantity)}
+                          />
                           <button onClick={() => {
                             const stockDisponible = item.product.physicalStock - item.product.reservedStock;
                             if (item.quantity >= stockDisponible) {
@@ -120,7 +155,12 @@ export default function CarritoPage() {
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="text-sm font-semibold w-8 text-center text-rio-ink">{item.quantity}</span>
+                        <CartQuantityInput
+                          value={item.quantity}
+                          max={item.product.physicalStock - item.product.reservedStock}
+                          label={`Cantidad de ${item.product.name} en el carrito`}
+                          onCommit={quantity => updateCartQuantity(item.product.id, quantity)}
+                        />
                         <button 
                           onClick={() => {
                             const stockDisponible = item.product.physicalStock - item.product.reservedStock;

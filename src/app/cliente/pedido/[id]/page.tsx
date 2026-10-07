@@ -10,8 +10,20 @@ import { confirmRio } from '@/lib/confirm';
 
 export default function PedidoClientePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { currentCustomer, orders, products, transitionOrder, acknowledgeAdjustment } = useDemo();
+  const { currentCustomer, orders, products, transitionOrder, acknowledgeAdjustment, isLoaded } = useDemo();
   const router = useRouter();
+
+  if (!isLoaded) {
+    return (
+      <div role="status" aria-label="Cargando pedido" className="mx-auto max-w-4xl space-y-5 p-4 pb-24 motion-safe:animate-pulse">
+        <span className="sr-only">Cargando pedido…</span>
+        <div aria-hidden="true" className="h-8 w-52 rounded-lg bg-rio-border/70" />
+        <div aria-hidden="true" className="h-72 rounded-2xl border border-rio-border bg-rio-surface-muted" />
+        <div aria-hidden="true" className="h-7 w-48 rounded-lg bg-rio-border/70" />
+        <div aria-hidden="true" className="h-28 rounded-2xl border border-rio-border bg-rio-surface-muted" />
+      </div>
+    );
+  }
 
   const order = orders.find(o => o.id === resolvedParams.id && o.customerId === currentCustomer?.id && !o.sellerId);
 
@@ -40,7 +52,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
     <div className="p-4 pb-20 max-w-4xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex min-w-0 items-center">
-          <button aria-label="Volver" onClick={() => router.back()} className="mr-4 shrink-0 text-rio-muted hover:text-rio-ink transition-colors">
+          <button aria-label="Volver al historial" onClick={() => router.push('/cliente/perfil')} className="mr-4 shrink-0 text-rio-muted hover:text-rio-ink transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="min-w-0 break-words text-xl font-serif font-bold text-rio-ink">Pedido #{order.number}</h1>
@@ -183,7 +195,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
             const product = (item as any).product;
             if (!product) return null;
             
-            const isAdjusted = item.originalQuantity !== undefined && item.originalQuantity !== item.quantity;
+            const isAdjusted = typeof item.originalQuantity === 'number' && item.originalQuantity !== item.quantity;
             
             return (
               <div key={item.id} className="bg-white p-4 sm:p-5 rounded-xl border border-rio-border flex flex-col lg:flex-row gap-4 lg:gap-5 lg:items-center shadow-sm">

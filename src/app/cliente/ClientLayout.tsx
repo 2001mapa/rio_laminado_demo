@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLinkStatus } from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutGrid, Search, ShoppingBag, User, LogOut, PackageSearch, X } from 'lucide-react';
 import { classNames } from '@/lib/utils';
@@ -9,6 +10,36 @@ import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { getClientOrderStatuses, getClientActiveProductsDigest } from '@/app/actions/queries';
 import { PUBLIC_STATES, InternalOrderState } from '@/lib/order-status';
+import ClienteLoading from './loading';
+
+function ClientLinkFeedback({ mobile = false }: { mobile?: boolean }) {
+  const { pending } = useLinkStatus();
+  const [showSlowHint, setShowSlowHint] = useState(false);
+
+  useEffect(() => {
+    if (!pending) {
+      setShowSlowHint(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowSlowHint(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [pending]);
+
+  return (
+    <>
+      <span aria-hidden="true" className={classNames(
+        'inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin',
+        mobile && 'absolute -right-4 top-1',
+        pending ? 'opacity-100' : 'opacity-0'
+      )} />
+      {showSlowHint && (
+        <span role="status" className="pointer-events-none fixed inset-x-4 top-20 z-50 mx-auto w-fit max-w-[calc(100vw-2rem)] rounded-xl border border-rio-border bg-rio-ink px-4 py-2 text-center text-xs font-semibold text-white shadow-lg">
+          Cargando sección… La conexión está tardando.
+        </span>
+      )}
+    </>
+  );
+}
 
 export default function ClienteLayout({
   children,
@@ -193,7 +224,7 @@ export default function ClienteLayout({
   }, [knownStatuses, knownProductIds, productStocks, isAuthorized, refreshData]);
 
 
-  if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!isAuthorized) return <ClienteLoading />;
   
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   
@@ -272,6 +303,7 @@ export default function ClienteLayout({
                   ) : null}
                 </div>
                 {item.name}
+                <ClientLinkFeedback />
               </Link>
             );
           })}
@@ -280,9 +312,10 @@ export default function ClienteLayout({
         <Link 
           href="/cliente/perfil"
           aria-label="Ir a mi perfil"
-          className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-rio-ink text-white flex items-center justify-center font-bold font-serif text-sm md:text-base border-2 border-rio-surface-muted shadow-sm hover:scale-105 transition-transform shrink-0"
+          className="relative w-10 h-10 md:w-11 md:h-11 rounded-full bg-rio-ink text-white flex items-center justify-center font-bold font-serif text-sm md:text-base border-2 border-rio-surface-muted shadow-sm hover:scale-105 transition-transform shrink-0"
         >
           {currentCustomer?.name ? currentCustomer.name.charAt(0).toUpperCase() : 'U'}
+          <ClientLinkFeedback mobile />
         </Link>
       </header>
 
@@ -306,6 +339,7 @@ export default function ClienteLayout({
               >
                 <div className="relative">
                   <item.icon className={classNames("w-6 h-6", isActive && "text-rio-gold")} strokeWidth={isActive ? 2.5 : 1.5} />
+                  <ClientLinkFeedback mobile />
                   {item.badge ? (
                     <span className="absolute -top-1.5 -right-2 bg-rio-ink text-white text-[9px] font-black min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full border-2 border-rio-surface leading-none">
                       {item.badge > 99 ? '99+' : item.badge}

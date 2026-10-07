@@ -29,7 +29,17 @@ export default function PerfilPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (!isLoaded) {
-    return <div className="min-h-[50vh] flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
+    return (
+      <div role="status" aria-label="Cargando perfil" className="mx-auto grid max-w-5xl gap-6 p-4 pb-24 md:grid-cols-12 md:py-8">
+        <span className="sr-only">Cargando perfil…</span>
+        <div aria-hidden="true" className="h-80 rounded-3xl border border-rio-border bg-rio-surface-muted motion-safe:animate-pulse md:col-span-5 lg:col-span-4" />
+        <div aria-hidden="true" className="space-y-4 md:col-span-7 lg:col-span-8 motion-safe:animate-pulse">
+          <div className="h-8 w-48 rounded-lg bg-rio-border/70" />
+          <div className="h-20 rounded-2xl border border-rio-border bg-rio-surface-muted" />
+          <div className="h-20 rounded-2xl border border-rio-border bg-rio-surface-muted" />
+        </div>
+      </div>
+    );
   }
 
   if (!currentCustomer) {
@@ -158,11 +168,11 @@ export default function PerfilPage() {
         </div>
 
       </div>
-      <nav aria-label="Información legal" className="mx-auto mt-8 max-w-5xl text-center">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-rio-muted">Información legal</p>
-        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-rio-ink">
-          <Link href="/terminos" className="underline underline-offset-2 hover:text-rio-gold-dark">Términos y condiciones</Link>
-          <Link href="/tratamiento-de-datos" className="underline underline-offset-2 hover:text-rio-gold-dark">Tratamiento de datos</Link>
+      <nav aria-label="Información legal" className="mx-auto mt-16 max-w-5xl pb-4 text-center md:mt-20">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-rio-muted/70">Información legal</p>
+        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-medium text-rio-muted/80 md:text-sm">
+          <Link href="/terminos" className="underline decoration-rio-muted/40 underline-offset-2 hover:text-rio-ink">Términos y condiciones</Link>
+          <Link href="/tratamiento-de-datos" className="underline decoration-rio-muted/40 underline-offset-2 hover:text-rio-ink">Tratamiento de datos</Link>
         </div>
       </nav>
     </div>
