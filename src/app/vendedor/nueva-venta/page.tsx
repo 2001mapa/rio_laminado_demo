@@ -1050,7 +1050,7 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <div className={`relative shrink-0 overflow-hidden bg-black md:h-auto md:min-h-0 md:flex-1 ${scannedProduct ? 'h-[min(72svh,580px)] min-h-[380px]' : 'h-[min(42svh,360px)] min-h-[260px]'}`}>
+              <div className={`relative shrink-0 overflow-hidden md:h-auto md:min-h-0 ${scannedProduct ? 'h-auto min-h-0 bg-white' : 'h-[min(42svh,360px)] min-h-[260px] bg-black md:flex-1'}`}>
                 <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
                   #qr-reader video { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: contain !important; }
@@ -1074,7 +1074,7 @@ export default function NuevaVentaPage() {
                 ) : null}
 
                 {scannedProduct && (
-                  <div className="absolute inset-0 bg-white z-40 flex flex-col p-4 sm:p-6 overflow-y-auto animate-zoom-in">
+                  <div className="relative bg-white z-40 flex flex-col p-4 sm:p-6 animate-zoom-in">
                     <button onClick={cancelScan} className="absolute top-3 right-3 text-rio-muted hover:text-rio-ink p-2 bg-rio-background rounded-full transition-colors">
                       <X className="w-5 h-5"/>
                     </button>
@@ -1178,7 +1178,7 @@ export default function NuevaVentaPage() {
                         </>
                       )}
 
-                      <div className="mt-auto pt-2">
+                      <div className="mt-4 pt-2">
                         <button 
                           onClick={confirmScan} 
                           disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}
