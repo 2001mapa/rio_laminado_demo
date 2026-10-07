@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLinkStatus } from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ScanLine, User, LogOut, Bell, BellOff, Package } from 'lucide-react';
 import { classNames } from '@/lib/utils';
@@ -12,6 +13,35 @@ import { addToast } from '@/lib/toast';
 import { useCatalogSync } from '@/lib/useCatalogSync';
 import { CatalogSyncContext } from '@/lib/CatalogSyncContext';
 import { clearOfflineSellerAccess, recordOfflineSellerAccess } from '@/lib/offlineQueue';
+
+function SellerLinkFeedback({ mobile = false }: { mobile?: boolean }) {
+  const { pending } = useLinkStatus();
+  const [showSlowHint, setShowSlowHint] = useState(false);
+
+  useEffect(() => {
+    if (!pending) {
+      setShowSlowHint(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowSlowHint(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [pending]);
+
+  return (
+    <>
+      <span aria-hidden="true" className={classNames(
+        'inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin',
+        mobile && 'absolute -right-4 top-1',
+        pending ? 'opacity-100' : 'opacity-0'
+      )} />
+      {showSlowHint && (
+        <span role="status" className="pointer-events-none fixed inset-x-4 top-20 z-50 mx-auto w-fit max-w-[calc(100vw-2rem)] rounded-xl border border-rio-border bg-rio-ink px-4 py-2 text-center text-xs font-semibold text-white shadow-lg">
+          Cargando módulo… La conexión está tardando.
+        </span>
+      )}
+    </>
+  );
+}
 
 export default function VendedorLayout({
   children,
@@ -258,6 +288,7 @@ export default function VendedorLayout({
               >
                 <item.icon className="w-4 h-4" strokeWidth={isActive ? 2.5 : 2} />
                 {item.name}
+                <SellerLinkFeedback />
               </Link>
             );
           })}
@@ -295,6 +326,7 @@ export default function VendedorLayout({
               >
                 <div className="relative">
                   <item.icon className={classNames("w-6 h-6", isActive && "text-rio-gold-dark")} strokeWidth={isActive ? 2.5 : 1.5} />
+                  <SellerLinkFeedback mobile />
                 </div>
                 <span className={classNames("text-xs", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
               </Link>
