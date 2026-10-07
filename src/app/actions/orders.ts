@@ -342,6 +342,7 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
 
       if (role === 'cliente') {
         if (existingOrder.customer.authUserId !== user.id) throw new BusinessLogicError('No autorizado');
+        if (existingOrder.sellerId !== null) throw new BusinessLogicError('No autorizado');
         if (action !== 'CANCEL') throw new BusinessLogicError('El cliente solo puede cancelar');
         if (existingOrder.status !== 'Reservado') throw new BusinessLogicError('Solo puedes cancelar pedidos en estado Reservado');
       } else if (role === 'vendedor') {
@@ -409,6 +410,7 @@ export async function acknowledgeOrderAdjustment(orderId: string) {
     });
     if (!existingOrder) throw new BusinessLogicError('Pedido no encontrado');
     if (existingOrder.customer.authUserId !== user.id) throw new BusinessLogicError('No autorizado');
+    if (existingOrder.sellerId !== null) throw new BusinessLogicError('No autorizado');
     
     const order = await prisma.order.update({
       where: { id: orderId },
@@ -557,7 +559,7 @@ export async function getOrderById(id: string) {
        }
     } else if (role === 'cliente') {
        const customerProfile = await prisma.customer.findUnique({ where: { authUserId: user.id } });
-       if (order.customerId !== customerProfile?.id) {
+       if (order.customerId !== customerProfile?.id || order.sellerId !== null) {
            return { success: false, message: 'Acceso denegado a este pedido' };
        }
     }

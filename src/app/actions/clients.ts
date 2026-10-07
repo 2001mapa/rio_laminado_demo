@@ -219,16 +219,39 @@ export async function resetCustomerPasswordAction(customerId: string, newPasswor
 
 export async function getCustomerProfile(customerId: string) {
   try {
-    await requireRole(['admin', 'vendedor']);
-    const orders = await prisma.order.findMany({
-      where: { customerId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' }
-    });
+    const { role } = await requireRole(['admin', 'vendedor']);
+    const [customer, orders] = await Promise.all([
+      prisma.customer.findUnique({ where: { id: customerId }, select: { authUserId: true } }),
+      prisma.order.findMany({
+        where: { customerId },
+        include: { items: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    ]);
+    if (!customer) return { success: false, message: 'Cliente no encontrado' };
+
+    let lastSignInAt: string | null | undefined = null;
+    if (role === 'admin' && customer.authUserId) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !supabaseKey) {
+        lastSignInAt = undefined;
+      } else {
+        try {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+            auth: { autoRefreshToken: false, persistSession: false }
+          });
+          const { data, error } = await supabaseAdmin.auth.admin.getUserById(customer.authUserId);
+          lastSignInAt = error ? undefined : data.user?.last_sign_in_at || null;
+        } catch {
+          lastSignInAt = undefined;
+        }
+      }
+    }
     
     // map orderNumber to number
     const mapped = orders.map(o => ({ ...o, number: o.orderNumber }));
-    return { success: true, orders: mapped };
+    return { success: true, orders: mapped, lastSignInAt };
   } catch (e: any) {
     return { success: false, message: e.message };
   }

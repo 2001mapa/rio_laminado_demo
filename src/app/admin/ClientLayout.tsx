@@ -20,6 +20,7 @@ export default function AdminLayout({
   const { orders, refreshData } = useDemo();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined' && 'caches' in window) {
@@ -189,7 +190,7 @@ export default function AdminLayout({
   if (!isAuthorized) return <div className="min-h-screen bg-rio-background flex items-center justify-center"><div className="w-8 h-8 border-4 border-rio-gold border-t-transparent rounded-full animate-spin"></div></div>;
   
   const navItems = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Resumen', href: '/admin', icon: LayoutDashboard },
     { name: 'Pedidos', href: '/admin/pedidos', icon: Inbox, badge: newOrderAlerts.length },
     { name: 'Inventario', href: '/admin/inventario', icon: PackageSearch },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },
@@ -197,6 +198,9 @@ export default function AdminLayout({
     ...(isPrimaryAdmin ? [{ name: 'Administradores', href: '/admin/administradores', icon: ShieldCheck }] : []),
     { name: 'Historial', href: '/admin/historial', icon: History },
   ];
+  const mobilePrimaryItems = navItems.slice(0, 3);
+  const mobileMoreItems = navItems.slice(3);
+  const isMoreActive = mobileMoreItems.some(item => pathname === item.href || pathname.startsWith(`${item.href}/`));
 
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-rio-background flex flex-col md:flex-row font-sans pb-20 md:pb-0 relative print:min-h-0 print:h-auto print:overflow-visible print:pb-0 print:bg-white">
@@ -238,7 +242,7 @@ export default function AdminLayout({
         <div className={classNames("p-4 md:p-6 flex items-center justify-between border-b border-white/10", isCollapsed ? "md:justify-center md:px-0" : "md:justify-start")}>
           <div className={classNames("overflow-hidden transition-all duration-300 flex-1", isCollapsed ? "md:hidden" : "")}>
             <h1 className="font-serif font-bold text-xl tracking-widest text-white whitespace-nowrap">RIO</h1>
-            <p className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5 font-bold whitespace-nowrap">Bodega B2B</p>
+            <p className="text-[11px] text-white/65 uppercase tracking-widest mt-0.5 font-bold whitespace-nowrap">Bodega B2B</p>
           </div>
           
           <button 
@@ -277,7 +281,7 @@ export default function AdminLayout({
                     className={classNames(
                       "flex items-center py-2.5 text-[13px] font-semibold rounded-lg transition-all overflow-hidden relative",
                       isCollapsed ? "justify-center px-0" : "px-3",
-                      isActive ? "bg-white/15 text-white" : "text-white/50 hover:text-white hover:bg-white/8"
+                      isActive ? "bg-white/15 text-white" : "text-white/70 hover:text-white hover:bg-white/8"
                     )}
                   >
                     <div className="relative">
@@ -340,16 +344,30 @@ export default function AdminLayout({
       </main>
 
       {/* Bottom Nav Mobile */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-20 print:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div className="absolute inset-0 bg-rio-ink/35" />
+          <div className="absolute inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] rounded-2xl border border-rio-border bg-rio-surface p-2 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-rio-muted">Más secciones</p>
+            <div className="grid grid-cols-2 gap-1">
+              {mobileMoreItems.map(item => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className={classNames('flex min-h-12 items-center gap-2 rounded-xl px-3 text-sm font-semibold', isActive ? 'bg-rio-gold-light/30 text-rio-gold-dark' : 'text-rio-ink hover:bg-rio-background')}><item.icon className="h-4 w-4 shrink-0" />{item.name}</Link>;
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-rio-surface border-t border-rio-border z-20 print:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex justify-around items-center h-16">
-          {navItems.map((item) => {
+        <div className="grid grid-cols-4 items-center h-16">
+          {mobilePrimaryItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={classNames(
-                  "relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+                  "relative flex flex-col items-center justify-center w-full h-full gap-1 transition-colors",
                   isActive ? "text-rio-gold" : "text-rio-muted hover:text-rio-ink"
                 )}
               >
@@ -361,10 +379,14 @@ export default function AdminLayout({
                     </span>
                   ) : null}
                 </div>
-                <span className={classNames("text-[10px]", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
+                <span className={classNames("text-xs", isActive ? "font-bold" : "font-medium")}>{item.name}</span>
               </Link>
             );
           })}
+          <button type="button" aria-expanded={mobileMenuOpen} aria-label="Más secciones" onClick={() => setMobileMenuOpen(open => !open)} className={classNames('flex h-full flex-col items-center justify-center gap-1', isMoreActive || mobileMenuOpen ? 'text-rio-gold-dark' : 'text-rio-muted')}>
+            <Menu className="h-5 w-5" />
+            <span className="text-xs font-medium">Más</span>
+          </button>
         </div>
       </nav>
     </div>

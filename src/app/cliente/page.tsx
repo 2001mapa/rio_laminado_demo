@@ -104,7 +104,7 @@ export default function CatalogoPage() {
     .slice(0, 8);
 
   const adjustedOrders = orders.filter(
-    o => o.customerId === currentCustomer?.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
+    o => o.customerId === currentCustomer?.id && !o.sellerId && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
   );
 
   const selectedProductIndex = selectedProduct ? catalogProducts.findIndex(p => p.id === selectedProduct.id) : -1;

@@ -25,7 +25,7 @@ export default function PerfilPage() {
   const { currentCustomer, orders, isLoaded } = useDemo();
   
 
-  const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
+  const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id && !o.sellerId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (!isLoaded) {

@@ -42,7 +42,7 @@ export async function getAppData() {
       if (customerProfile) {
         customers = [customerProfile];
         orders = await prisma.order.findMany({
-          where: { customerId: customerProfile.id },
+          where: { customerId: customerProfile.id, sellerId: null },
           include: { items: { include: { product: true } } },
           orderBy: { createdAt: 'desc' }
         });
@@ -153,7 +153,7 @@ export async function getAdminDashboard(period: DashboardPeriod = '7d') {
     ]);
     const [productDetails, customerDetails] = await Promise.all([
       prisma.product.findMany({ where: { id: { in: topProductGroups.map(p => p.productId) } }, select: { id: true, name: true, sku: true, imageUrl: true } }),
-      prisma.customer.findMany({ where: { id: { in: topClientGroups.map(c => c.customerId) } }, select: { id: true, name: true, city: true } })
+      prisma.customer.findMany({ where: { id: { in: topClientGroups.map(c => c.customerId) } }, select: { id: true, name: true, city: true, address: true } })
     ]);
     const productsById = new Map(productDetails.map(p => [p.id, p]));
     const customersById = new Map(customerDetails.map(c => [c.id, c]));
@@ -245,7 +245,7 @@ export async function getClientOrderStatuses() {
     if (!customerProfile) return { success: false };
 
     const orders = await prisma.order.findMany({
-      where: { customerId: customerProfile.id },
+      where: { customerId: customerProfile.id, sellerId: null },
       select: { id: true, orderNumber: true, status: true },
       orderBy: { createdAt: 'desc' },
       take: 20

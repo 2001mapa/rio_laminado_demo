@@ -49,7 +49,7 @@ export default function ClienteLayout({
       const notifiedCache = JSON.parse(localStorage.getItem('rio_notified_orders') || '{}');
       const newAlerts: typeof statusAlerts = [];
 
-      orders.filter(o => o.customerId === currentCustomer.id).forEach(o => {
+      orders.filter(o => o.customerId === currentCustomer.id && !o.sellerId).forEach(o => {
          const pubStatus = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
          initialOrd[o.id] = pubStatus;
 
@@ -198,7 +198,7 @@ export default function ClienteLayout({
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   
   const adjustedOrdersCount = currentCustomer ? orders.filter(
-    o => o.customerId === currentCustomer.id && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
+    o => o.customerId === currentCustomer.id && !o.sellerId && !o.adjustmentAcknowledged && o.items.some(i => !!i.adjustmentReason)
   ).length : 0;
 
   const navItems = [

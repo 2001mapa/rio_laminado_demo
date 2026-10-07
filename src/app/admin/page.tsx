@@ -64,12 +64,13 @@ export default function AdminDashboard() {
   const topClients = stats.topClients;
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
+    <div className="mx-auto max-w-[1500px] space-y-8 p-4 md:p-8">
       {/* Page Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-rio-muted uppercase tracking-[0.15em] mb-1">Panel de Control</p>
-          <h1 className="text-3xl font-serif font-bold text-rio-ink">Resumen de Operación</h1>
+          <h1 className="text-3xl font-serif font-bold text-rio-ink">Resumen de operación</h1>
+          <p className="mt-1 text-sm text-rio-muted">Pedidos, inventario y clientes en un solo lugar.</p>
         </div>
         <Link
           href="/admin/pedidos"
@@ -79,19 +80,18 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2" aria-label="Período de análisis">
-        {([['today', 'Hoy'], ['7d', '7 días'], ['30d', '30 días']] as const).map(([key, label]) => (
-          <button key={key} onClick={() => { setPeriod(key); setStats(null); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${period === key ? 'bg-rio-ink text-white border-rio-ink' : 'bg-rio-surface text-rio-muted border-rio-border'}`}>{label}</button>
-        ))}
-      </div>
       {/* Cifras operativas actuales, independientes del período */}
+      <div>
+        <h2 className="font-serif text-xl font-bold text-rio-ink">Estado actual</h2>
+        <p className="mt-1 text-sm text-rio-muted">Estas cifras no cambian con el período seleccionado abajo.</p>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Reservados por confirmar" value={stats.reserved} icon={Package} accent="gold" />
         <StatCard title="Reservados más de 24 h" value={stats.olderReserved} icon={Clock} accent="warning" />
         <StatCard title="Referencias agotadas" value={stats.outOfStockCount} icon={AlertTriangle} accent="warning" />
         <StatCard title="Clientes pendientes ERP" value={stats.pendingErp} icon={Users} accent="ink" />
       </div>
-      <p className="text-xs text-rio-muted">Cifras operativas actuales. Inventario actualizado: {stats.lastInventoryUpdate ? new Date(stats.lastInventoryUpdate).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : 'sin registro de actualización'}.</p>
+      <p className="text-xs text-rio-muted">Inventario actualizado: {stats.lastInventoryUpdate ? new Date(stats.lastInventoryUpdate).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : 'sin registro de actualización'}.</p>
 
       {/* Main 2-column layout on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -125,7 +125,14 @@ export default function AdminDashboard() {
               Ver bandeja completa →
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-rio-border md:hidden">
+            {displayedOrders.length === 0 && <p className="px-5 py-8 text-center text-sm text-rio-muted">No hay pedidos en esta categoría.</p>}
+            {displayedOrders.map((order: any) => <Link key={order.id} href={`/admin/pedidos/${order.id}`} className="flex min-h-20 items-center justify-between gap-3 px-5 py-3 hover:bg-rio-background">
+              <div className="min-w-0"><p className="font-bold text-rio-ink">{order.orderNumber}</p><p className="truncate text-sm text-rio-muted">{order.customer?.name || '—'} · {new Date(order.createdAt).toLocaleDateString('es-CO')}</p></div>
+              <span className={`shrink-0 rounded border px-2 py-1 text-[11px] font-bold ${STATUS_CLASSES[order.status] || ''}`}>{order.status}</span>
+            </Link>)}
+          </div>
+          <div className="hidden md:block overflow-x-auto">
           <table className="min-w-[620px] w-full">
             <thead>
               <tr className="bg-rio-background border-b border-rio-border">
@@ -229,10 +236,15 @@ export default function AdminDashboard() {
           <BarChart2 className="w-5 h-5 text-rio-gold-dark" /> Actividad del período
         </h2>
         <p className="text-xs text-rio-muted mb-5">Pedidos registrados en la plataforma; no equivalen a facturación del sistema externo. Se excluyen cancelados.</p>
+        <div className="mb-5 flex flex-wrap gap-2" aria-label="Período de análisis">
+          {([['today', 'Hoy'], ['7d', '7 días'], ['30d', '30 días']] as const).map(([key, label]) => (
+            <button key={key} onClick={() => { setPeriod(key); setStats(null); }} className={`min-h-10 rounded-lg border px-4 py-2 text-sm font-bold ${period === key ? 'border-rio-ink bg-rio-ink text-white' : 'border-rio-border bg-rio-surface text-rio-muted'}`}>{label}</button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Pedidos del período</p><p className="text-2xl font-bold text-rio-ink">{stats.currentOrders}</p><p className="text-xs text-rio-muted">Período anterior: {stats.previousOrders}</p></div>
           <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Unidades solicitadas</p><p className="text-2xl font-bold text-rio-ink">{stats.totalUnits}</p></div>
-          <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Unidades por pedido</p><p className="text-2xl font-bold text-rio-ink">{avgUnitsPerOrder}</p></div>
+          <div className="rounded-xl bg-rio-surface border border-rio-border p-5"><p className="text-xs text-rio-muted">Referencias más solicitadas</p><p className="text-2xl font-bold text-rio-ink">{topProducts.length}</p><p className="text-xs text-rio-muted">En este período</p></div>
         </div>
         
         <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
@@ -284,7 +296,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <p className="text-[12px] font-bold text-rio-ink line-clamp-1">{c.name}</p>
-                      <p className="text-[10px] text-rio-muted truncate max-w-[120px]">{c.city || 'Ciudad no registrada'}</p>
+                      <p className="text-[10px] text-rio-muted truncate max-w-[120px]" title={c.city || c.address || 'Ubicación no registrada'}>{c.city || (c.address ? `Envío: ${c.address}` : 'Ubicación no registrada')}</p>
                     </div>
                   </div>
                   <div className="text-right">

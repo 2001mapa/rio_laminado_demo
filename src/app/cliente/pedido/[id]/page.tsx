@@ -10,10 +10,10 @@ import { confirmRio } from '@/lib/confirm';
 
 export default function PedidoClientePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { orders, products, transitionOrder, acknowledgeAdjustment } = useDemo();
+  const { currentCustomer, orders, products, transitionOrder, acknowledgeAdjustment } = useDemo();
   const router = useRouter();
 
-  const order = orders.find(o => o.id === resolvedParams.id);
+  const order = orders.find(o => o.id === resolvedParams.id && o.customerId === currentCustomer?.id && !o.sellerId);
 
   if (!order) {
     return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;

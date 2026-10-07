@@ -11,6 +11,15 @@ import Link from 'next/link';
 import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+function formatLastAccess(value: string | null | undefined, loading: boolean) {
+  if (loading) return 'Cargando…';
+  if (value === undefined) return 'No disponible';
+  if (!value) return 'Sin registro';
+  return new Intl.DateTimeFormat('es-CO', {
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota'
+  }).format(new Date(value));
+}
+
 export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { customers, orders, updateCustomer, refreshData, onlineUsers } = useDemo();
@@ -19,11 +28,13 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [lastSignInAt, setLastSignInAt] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     getCustomerProfile(resolvedParams.id).then(res => {
       if (res.success && res.orders) {
         setCustomerOrders(res.orders);
+        setLastSignInAt(res.lastSignInAt);
       }
       setIsLoadingOrders(false);
     });
@@ -223,7 +234,7 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Último Acceso</p>
-                <p className="font-medium text-rio-ink">Desconocido</p>
+                <p className="font-medium text-rio-ink">{formatLastAccess(lastSignInAt, isLoadingOrders)}</p>
               </div>
             </div>
           </div>
