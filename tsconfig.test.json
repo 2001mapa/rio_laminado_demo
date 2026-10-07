@@ -13,5 +13,6 @@
     "__tests__/test-sellers.ts",
     "__tests__/test-auth.ts",
     "__tests__/test-idempotency.ts"
-  ]
+  ],
+  "exclude": ["node_modules"]
 }

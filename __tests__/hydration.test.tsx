@@ -89,8 +89,8 @@ describe('Flujo de Borrador e Hidratación', () => {
     // El paso 2 muestra el resumen del pedido o el catálogo. 
     // Comprobamos si el cliente seleccionado aparece y si el carrito se restauró.
     await waitFor(() => {
-      // Debería cambiar el botón de "Cambiar Cliente" que sale en el Paso 2
-      expect(screen.queryByText('Cambiar Cliente')).not.toBeNull();
+      // Debería mostrar el botón para cambiar el cliente en el Paso 2.
+      expect(screen.queryByText('Cambiar cliente')).not.toBeNull();
     });
 
     // 4. Verificamos que el producto "XO397" esté en el carrito (nombre: Anillo de Prueba)

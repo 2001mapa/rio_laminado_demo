@@ -67,7 +67,7 @@ export default function ClienteLayout({
       const role = user?.app_metadata?.role || user?.user_metadata?.role;
       if (error || !user || role !== 'cliente') {
         console.log('[Layout Cliente] No session or wrong role');
-        router.push('/login');
+        router.replace('/login');
       } else {
         setIsAuthorized(true);
       }

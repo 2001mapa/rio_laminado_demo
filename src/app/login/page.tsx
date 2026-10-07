@@ -16,6 +16,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    let active = true;
+    const returnToSession = async () => {
+      try {
+        const { data: { user } } = await createClient().auth.getUser();
+        if (!user || !active) return;
+        const destination = await resolveLoginDestination();
+        if (active && destination.success && destination.targetPath) {
+          window.location.replace(destination.targetPath);
+        }
+      } catch {
+        // If session validation fails, leave the login form available.
+      }
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) void returnToSession();
+    };
+    void returnToSession();
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      active = false;
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -75,7 +100,7 @@ export default function LoginPage() {
       }
       
       setTimeout(() => {
-        window.location.assign(destination.targetPath as string);
+        window.location.replace(destination.targetPath as string);
       }, 300);
 
       

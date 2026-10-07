@@ -19,6 +19,34 @@ export default function CatalogoPage() {
   const [activeMaterial, setActiveMaterial] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const productModalHistory = useRef(false);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (productModalHistory.current) {
+        productModalHistory.current = false;
+        setSelectedProduct(null);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const openProduct = (product: Product) => {
+    if (!productModalHistory.current) {
+      window.history.pushState(null, '', window.location.href);
+      productModalHistory.current = true;
+    }
+    setSelectedProduct(product);
+  };
+
+  const closeProduct = () => {
+    setSelectedProduct(null);
+    if (productModalHistory.current) {
+      productModalHistory.current = false;
+      window.history.back();
+    }
+  };
 
   // Pagination state
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
@@ -166,7 +194,7 @@ export default function CatalogoPage() {
                   <button
                     key={product.id}
                     type="button"
-                    onClick={() => setSelectedProduct(product)}
+                    onClick={() => openProduct(product)}
                     aria-label={`Ver detalle de ${product.name}`}
                     className="snap-start shrink-0 flex items-center gap-3 w-[240px] md:w-[280px] h-[95px] md:h-[105px] bg-white rounded-xl border border-rio-border shadow-sm cursor-pointer text-left hover:border-rio-gold/40 hover:shadow-md focus-visible:outline-2 focus-visible:outline-rio-gold-dark transition-all p-2.5"
                   >
@@ -290,7 +318,7 @@ export default function CatalogoPage() {
               {catalogProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
                   {catalogProducts.map(product => (
-                    <ProductCard key={product.id} product={product} onExpand={() => setSelectedProduct(product)} />
+                    <ProductCard key={product.id} product={product} onExpand={() => openProduct(product)} />
                   ))}
                 </div>
               ) : (
@@ -318,7 +346,7 @@ export default function CatalogoPage() {
                       <ProductCard
                         key={product.id}
                         product={product}
-                        onExpand={() => setSelectedProduct(product)}
+                        onExpand={() => openProduct(product)}
                       />
                     ))}
                   </div>
@@ -345,7 +373,7 @@ export default function CatalogoPage() {
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
+          onClose={closeProduct}
           onPrev={selectedProductIndex > 0 ? handlePrevProduct : undefined}
           onNext={selectedProductIndex < catalogProducts.length - 1 ? handleNextProduct : undefined}
         />
@@ -717,7 +745,7 @@ function ProductModal({
           <button
             aria-label="Cerrar detalle de producto"
             onClick={handleCloseModal}
-            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full border border-rio-border text-rio-muted hover:text-rio-ink hover:bg-rio-border transition-colors shadow-sm"
+            className="absolute top-3 right-3 z-50 w-11 h-11 flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full border border-rio-border text-rio-ink hover:bg-rio-border transition-colors shadow-md"
           >
             <X className="w-4 h-4" />
           </button>

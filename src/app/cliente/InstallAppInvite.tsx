@@ -74,7 +74,7 @@ export default function InstallAppInvite({ customerId, pathname }: { customerId?
   };
 
   return (
-    <aside className="relative mt-4 rounded-2xl border border-rio-gold-light/60 bg-rio-surface p-4 pr-11 shadow-sm sm:p-5 sm:pr-12" aria-label="Instalar aplicación RIO">
+    <aside className="fixed inset-x-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[100] mx-auto max-w-md rounded-2xl border border-rio-gold-light/60 bg-rio-surface p-4 pr-11 shadow-2xl motion-safe:animate-slide-down sm:p-5 sm:pr-12" aria-label="Instalar aplicación RIO">
       <button type="button" onClick={dismiss} aria-label="Cerrar invitación" className="absolute right-3 top-3 rounded-full p-1 text-rio-muted hover:bg-rio-surface-muted hover:text-rio-ink"><X className="h-4 w-4" /></button>
       <div className="flex items-start gap-3">
         <span className="rounded-xl bg-rio-gold-light/20 p-2 text-rio-gold-dark"><Download className="h-5 w-5" /></span>
