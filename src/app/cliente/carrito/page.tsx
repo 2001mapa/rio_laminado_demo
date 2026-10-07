@@ -38,7 +38,7 @@ function CartQuantityInput({ value, max, label, onCommit }: { value: number; max
 }
 
 export default function CarritoPage() {
-  const { cart, updateCartQuantity, updateCartItemSize, removeFromCart, currentCustomer, clearCart, addOrder, isLoaded } = useDemo();
+  const { cart, orders, updateCartQuantity, updateCartItemSize, removeFromCart, currentCustomer, clearCart, addOrder, isLoaded } = useDemo();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,6 +62,14 @@ export default function CarritoPage() {
     const result = await addOrder(orderData);
     
     if (result && result.success) {
+      const isFirstDirectOrder = !orders.some(order => order.customerId === currentCustomer.id && !order.sellerId);
+      if (isFirstDirectOrder) {
+        try {
+          sessionStorage.setItem(`rio:install-invite:${currentCustomer.id}`, result.order.id);
+        } catch {
+          // Storage is optional; a successful order must still navigate to its detail.
+        }
+      }
       clearCart();
       router.push(`/cliente/pedido/${result.order.id}`);
     } else {

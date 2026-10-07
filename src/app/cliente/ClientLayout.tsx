@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { getClientOrderStatuses, getClientActiveProductsDigest } from '@/app/actions/queries';
 import { PUBLIC_STATES, InternalOrderState } from '@/lib/order-status';
 import ClienteLoading from './loading';
+import InstallAppInvite from './InstallAppInvite';
 
 function ClientLinkFeedback({ mobile = false }: { mobile?: boolean }) {
   const { pending } = useLinkStatus();
@@ -320,6 +321,7 @@ export default function ClienteLayout({
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 md:px-8 md:py-8">
+        <InstallAppInvite customerId={currentCustomer?.id} pathname={pathname} />
         {children}
       </main>
 

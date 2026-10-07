@@ -183,8 +183,8 @@ export default function PerfilPage() {
       <nav aria-label="Información legal" className="mx-auto mt-16 max-w-5xl pb-4 text-center md:mt-20">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-rio-muted/70">Información legal</p>
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-medium text-rio-muted/80 md:text-sm">
-          <Link href="/terminos" className="underline decoration-rio-muted/40 underline-offset-2 hover:text-rio-ink">Términos y condiciones</Link>
-          <Link href="/tratamiento-de-datos" className="underline decoration-rio-muted/40 underline-offset-2 hover:text-rio-ink">Tratamiento de datos</Link>
+          <Link href="/terminos?from=cliente" className="underline decoration-rio-muted/40 underline-offset-2 hover:text-rio-ink">Términos y condiciones</Link>
+          <Link href="/tratamiento-de-datos?from=cliente" className="underline decoration-rio-muted/40 underline-offset-2 hover:text-rio-ink">Tratamiento de datos</Link>
         </div>
       </nav>
     </div>
