@@ -650,10 +650,10 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                       className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center text-black overflow-hidden p-[1mm]"
                     >
                       {/* Fila superior de texto */}
-                      <div data-testid="barcode-label-header" className="w-[27mm] flex items-center justify-between gap-[0.5mm] leading-none mb-[0.4mm] whitespace-nowrap">
-                        <span className="font-bold text-[9px]">#{index + 1}</span>
-                        <span className="font-black text-[10px] tracking-tighter truncate">{product?.sku}</span>
-                        <span className="font-bold text-[9px]">C:{item.quantity}</span>
+                      <div data-testid="barcode-label-header" className="w-fit max-w-[28mm] flex items-center justify-center gap-[1mm] leading-none mb-[0.4mm] whitespace-nowrap">
+                        <span className="shrink-0 font-bold text-[9px]">#{index + 1}</span>
+                        <span className="min-w-0 max-w-[18mm] font-black text-[10px] tracking-tighter truncate">{product?.sku}</span>
+                        <span className="shrink-0 font-bold text-[9px]">C:{item.quantity}</span>
                       </div>
                       
                       {/* Código de barras 1D */}
