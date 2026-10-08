@@ -10,6 +10,12 @@ import QRCode from 'react-qr-code';
 import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
 import { InventoryPrintOrder, orderPrintableProducts } from '@/lib/inventoryPrintOrder';
 
+const INVENTORY_QR_DEFAULTS = { size: 11, offsetX: 0, offsetY: 0 };
+
+function adjustMillimeters(value: number, delta: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Number((value + delta).toFixed(1))));
+}
+
 export default function MassPrintPage() {
   
   const [products, setProducts] = useState<any[]>([]);
@@ -55,6 +61,9 @@ export default function MassPrintPage() {
   const [offsetY, setOffsetY] = useState<number>(0);
   const [gapY, setGapY] = useState<number>(3.0);
   const [gapX, setGapX] = useState<number>(3.0);
+  const [qrSize, setQrSize] = useState(INVENTORY_QR_DEFAULTS.size);
+  const [contentOffsetX, setContentOffsetX] = useState(INVENTORY_QR_DEFAULTS.offsetX);
+  const [contentOffsetY, setContentOffsetY] = useState(INVENTORY_QR_DEFAULTS.offsetY);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -192,7 +201,8 @@ export default function MassPrintPage() {
           </button>
           
           {showSettings && (
-            <div className="p-6 flex flex-wrap gap-6 items-center bg-white">
+            <div className="p-6 bg-white space-y-6">
+              <div className="flex flex-wrap gap-6 items-center">
               <div>
                 <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">Mover Horizontal (mm)</h3>
                 <div className="flex items-center gap-2">
@@ -224,6 +234,29 @@ export default function MassPrintPage() {
                   <span className="font-mono text-sm font-bold w-12 text-center">{gapY}</span>
                   <button onClick={() => setGapY(y => Number((y + 0.1).toFixed(1)))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
                 </div>
+              </div>
+              </div>
+              <div className="border-t border-rio-border pt-5">
+                <h3 className="text-sm font-bold text-rio-ink">Contenido de cada sticker</h3>
+                <p className="text-xs text-rio-muted mt-1 mb-4">Estos ajustes no mueven la cuadrícula ni cambian el tamaño físico de la etiqueta. El QR siempre conserva su forma cuadrada.</p>
+                <div className="flex flex-wrap gap-6 items-center">
+                  {[
+                    { label: 'Tamaño QR (mm)', value: qrSize, set: setQrSize, min: 8, max: 12, step: 0.5 },
+                    { label: 'Mover contenido ↔ (mm)', value: contentOffsetX, set: setContentOffsetX, min: -1.5, max: 1.5, step: 0.2 },
+                    { label: 'Mover contenido ↕ (mm)', value: contentOffsetY, set: setContentOffsetY, min: -1.5, max: 1.5, step: 0.2 },
+                  ].map(control => (
+                    <div key={control.label}>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider mb-2 text-rio-muted">{control.label}</h4>
+                      <div className="flex items-center gap-2">
+                        <button type="button" aria-label={`Disminuir ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, -control.step, control.min, control.max))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">-</button>
+                        <span className="font-mono text-sm font-bold w-12 text-center">{control.value.toFixed(1)}</span>
+                        <button type="button" aria-label={`Aumentar ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, control.step, control.min, control.max))} className="w-8 h-8 flex items-center justify-center bg-white border border-rio-border rounded-lg font-bold hover:bg-rio-surface">+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-rio-muted mt-4">Los valores positivos mueven el contenido a la derecha o hacia abajo; los negativos, a la izquierda o hacia arriba.</p>
+                <button type="button" onClick={() => { setQrSize(INVENTORY_QR_DEFAULTS.size); setContentOffsetX(INVENTORY_QR_DEFAULTS.offsetX); setContentOffsetY(INVENTORY_QR_DEFAULTS.offsetY); }} className="text-xs font-semibold text-rio-gold-dark hover:underline mt-3">Restablecer contenido</button>
               </div>
             </div>
           )}
@@ -493,23 +526,26 @@ export default function MassPrintPage() {
               width: 32mm;
               height: 15mm;
               padding-inline: 1mm;
-              display: flex;
-              align-items: center;
-              gap: 1.5mm;
               break-inside: avoid;
               page-break-inside: avoid;
               color: black;
             }
+            .inventory-print-content {
+              position: relative;
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              gap: 1.5mm;
+            }
             .inventory-print-qr {
-              flex: 0 0 11mm;
-              width: 11mm;
-              height: 11mm;
+              flex: 0 0 auto;
               background: white;
             }
             .inventory-print-qr svg {
               display: block;
-              width: 11mm;
-              height: 11mm;
+              width: 100%;
+              height: 100%;
             }
             .inventory-print-info {
               min-width: 0;
@@ -544,21 +580,23 @@ export default function MassPrintPage() {
                   key={`${item.product.id}-${item.index}-${index}`}
                   className="inventory-print-label"
                 >
-                  <div className="inventory-print-qr">
-                    {item.product.sku && (
-                      <QRCode
-                        value={item.product.sku}
-                        size={120}
-                        level="L"
-                        style={{ height: '100%', width: '100%', maxWidth: '100%' }}
-                        viewBox="0 0 120 120"
-                      />
-                    )}
-                  </div>
-                  <div className="inventory-print-info">
-                    <span className="font-black">{item.product.sku}</span>
-                    <span className="font-black">{formatPrice(item.product.price)}</span>
-                    <span className="font-bold">UB: {item.product.locationCode || 'N/A'}</span>
+                  <div data-testid="inventory-print-content" className="inventory-print-content" style={{ left: `${contentOffsetX}mm`, top: `${contentOffsetY}mm` }}>
+                    <div data-testid="inventory-print-qr" className="inventory-print-qr" style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}>
+                      {item.product.sku && (
+                        <QRCode
+                          value={item.product.sku}
+                          size={120}
+                          level="L"
+                          style={{ height: '100%', width: '100%', maxWidth: '100%' }}
+                          viewBox="0 0 120 120"
+                        />
+                      )}
+                    </div>
+                    <div className="inventory-print-info">
+                      <span className="font-black">{item.product.sku}</span>
+                      <span className="font-black">{formatPrice(item.product.price)}</span>
+                      <span className="font-bold">UB: {item.product.locationCode || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
               ))}
