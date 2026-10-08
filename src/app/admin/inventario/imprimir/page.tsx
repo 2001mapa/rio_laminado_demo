@@ -10,7 +10,7 @@ import QRCode from 'react-qr-code';
 import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
 import { InventoryPrintOrder, orderPrintableProducts } from '@/lib/inventoryPrintOrder';
 
-const INVENTORY_QR_DEFAULTS = { size: 11, offsetX: 0, offsetY: 0 };
+const INVENTORY_QR_DEFAULTS = { size: 11, offsetX: 1.5, offsetY: -1.5 };
 
 function adjustMillimeters(value: number, delta: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Number((value + delta).toFixed(1))));
@@ -49,7 +49,7 @@ export default function MassPrintPage() {
   
   // -- SELECTION & QUANTITIES --
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [labelsPerRef, setLabelsPerRef] = useState<number>(2); // Por defecto 2 (para las 2 maletas)
+  const [labelsPerRef, setLabelsPerRef] = useState<number>(1);
   
   // -- PRINT MODES & PAGINATION --
   const [itemsPerPage, setItemsPerPage] = useState<number>(27);
@@ -57,7 +57,7 @@ export default function MassPrintPage() {
   
   // -- SETTINGS --
   const [showSettings, setShowSettings] = useState(false);
-  const [offsetX, setOffsetX] = useState<number>(3.2);
+  const [offsetX, setOffsetX] = useState<number>(6.5);
   const [offsetY, setOffsetY] = useState<number>(0);
   const [gapY, setGapY] = useState<number>(3.0);
   const [gapX, setGapX] = useState<number>(3.0);
