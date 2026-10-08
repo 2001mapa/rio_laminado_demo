@@ -69,6 +69,16 @@ describe('Etiquetas de código de barras del pedido', () => {
     expect(grid?.getAttribute('style')).toBe(initialGridStyle);
   });
 
+  it('solicita una página corta solo cuando el lote cabe en un bloque', async () => {
+    await act(async () => {
+      render(<PedidoDetalleAdminPage params={Promise.resolve({ id: order.id })} />);
+    });
+    expect(screen.getByTestId('order-print-page-rule').textContent).toContain('size: 103mm auto');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Probar ahorro de rollo/i }));
+    expect(screen.getByTestId('order-print-page-rule').textContent).toContain('size: 103mm 18.6mm');
+    expect(document.querySelector('.order-label-sheet')?.getAttribute('style')).toContain('height: 18.6mm');
+  });
+
   it('imprime únicamente el lote actual y divide lotes grandes en hojas de 27', async () => {
     const originalItems = order.items;
     order.items = Array.from({ length: 60 }, (_, index) => ({
@@ -86,8 +96,12 @@ describe('Etiquetas de código de barras del pedido', () => {
       fireEvent.change(screen.getByLabelText('Tamaño del lote de etiquetas'), { target: { value: '54' } });
       expect(screen.getAllByTestId('barcode-label-image')).toHaveLength(54);
       expect(document.querySelectorAll('.order-label-sheet')).toHaveLength(2);
+      fireEvent.click(screen.getByRole('checkbox', { name: /Probar ahorro de rollo/i }));
+      expect(screen.getByTestId('order-print-page-rule').textContent).toContain('size: 103mm auto');
+      expect(screen.getByRole('status').textContent).toContain('hasta 27');
       fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
       expect(screen.getAllByTestId('barcode-label-image')).toHaveLength(6);
+      expect(screen.getByTestId('order-print-page-rule').textContent).toContain('size: 103mm 37.6mm');
     } finally {
       order.items = originalItems;
     }
