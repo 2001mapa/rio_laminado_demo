@@ -657,7 +657,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                       </div>
                       
                       {/* Código de barras 1D */}
-                      <div className="w-[26mm] h-[6mm] shrink-0 flex items-center justify-center overflow-hidden">
+                      <div className="w-[28mm] h-[8mm] shrink-0 flex items-center justify-center overflow-hidden">
                         {product?.sku ? (
                           <img 
                             src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(product.sku)}&scaleX=2&scaleY=1&includetext=false`}

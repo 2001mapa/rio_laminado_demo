@@ -45,6 +45,6 @@ describe('Etiquetas de código de barras del pedido', () => {
     expect(header.className).toContain('gap-[1mm]');
     expect(header.className).toContain('mb-[0.4mm]');
     expect(header.parentElement?.className).toContain('w-[32mm] h-[16mm]');
-    expect(header.nextElementSibling?.className).toContain('w-[26mm] h-[6mm]');
+    expect(header.nextElementSibling?.className).toContain('w-[28mm] h-[8mm]');
   });
 });
