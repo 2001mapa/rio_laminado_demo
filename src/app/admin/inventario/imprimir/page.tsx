@@ -8,6 +8,7 @@ import { ArrowLeft, Printer, AlertTriangle, Settings2, Search, CheckSquare, Squa
 import { formatPrice } from '@/lib/utils';
 import QRCode from 'react-qr-code';
 import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
+import { InventoryPrintOrder, orderPrintableProducts } from '@/lib/inventoryPrintOrder';
 
 export default function MassPrintPage() {
   
@@ -32,12 +33,13 @@ export default function MassPrintPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [materialFilter, setMaterialFilter] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [printOrder, setPrintOrder] = useState<InventoryPrintOrder>('recent');
   const [currentDisplayPage, setCurrentDisplayPage] = useState(1);
   const displayItemsPerPage = 50;
   
   useEffect(() => {
     setCurrentDisplayPage(1);
-  }, [categoryFilter, materialFilter, searchQuery, newOnly]);
+  }, [categoryFilter, materialFilter, searchQuery, newOnly, printOrder]);
   
   // -- SELECTION & QUANTITIES --
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -80,10 +82,11 @@ export default function MassPrintPage() {
     if (materialFilter !== 'Todos') p = p.filter(x => x.material === materialFilter);
     return Array.from(new Set(p.map(x => x.category).filter(Boolean))) as string[];
   }, [products, materialFilter]);
+  const orderedProducts = useMemo(() => orderPrintableProducts(products, printOrder), [products, printOrder]);
 
   // -- FILTERING --
   const filteredReferences = useMemo(() => {
-    let base = products;
+    let base = orderedProducts;
     if (newOnly && newSkus.length > 0) {
       base = base.filter(p => newSkus.includes(p.sku));
     }
@@ -98,20 +101,19 @@ export default function MassPrintPage() {
       base = base.filter(p => p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
     }
     return base;
-  }, [products, categoryFilter, materialFilter, searchQuery, newOnly, newSkus]);
+  }, [orderedProducts, categoryFilter, materialFilter, searchQuery, newOnly, newSkus]);
 
   // -- LABELS CALCULATION --
   const labelsToPrint = useMemo(() => {
     const arr: { product: any, index: number }[] = [];
-    // Mantener el orden original de products, pero solo los seleccionados
-    const selectedProducts = products.filter(p => selectedIds.has(p.id));
+    const selectedProducts = orderedProducts.filter(p => selectedIds.has(p.id));
     for (const ref of selectedProducts) {
       for (let i = 0; i < labelsPerRef; i++) {
         arr.push({ product: ref, index: i });
       }
     }
     return arr;
-  }, [products, selectedIds, labelsPerRef]);
+  }, [orderedProducts, selectedIds, labelsPerRef]);
 
   // -- PAGINATION LOGIC --
   useEffect(() => {
@@ -271,6 +273,18 @@ export default function MassPrintPage() {
                     </select>
                   </div>
                 </div>
+                <div>
+                  <label htmlFor="inventory-print-order" className="block text-[10px] uppercase font-bold text-rio-muted mb-1">Orden de impresión</label>
+                  <select
+                    id="inventory-print-order"
+                    className="w-full border border-rio-border rounded-lg p-2 text-sm bg-rio-background"
+                    value={printOrder}
+                    onChange={e => setPrintOrder(e.target.value as InventoryPrintOrder)}
+                  >
+                    <option value="recent">Orden habitual (más recientes primero)</option>
+                    <option value="location_asc">Ubicación: menor a mayor</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -328,7 +342,7 @@ export default function MassPrintPage() {
                             <span className="font-bold text-sm text-rio-ink truncate">{ref.sku}</span>
                             <span className="text-[10px] text-rio-muted uppercase font-bold tracking-wider">{ref.material || ''}</span>
                           </div>
-                          <span className="text-xs text-rio-muted truncate block">{ref.name}</span>
+                          <span className="text-xs text-rio-muted truncate block">{ref.name} · Ubicación: {ref.locationCode || 'Sin ubicación'}</span>
                         </div>
                       </label>
                     );
