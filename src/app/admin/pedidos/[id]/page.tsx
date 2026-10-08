@@ -9,6 +9,13 @@ import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import { confirmRio } from '@/lib/confirm';
+import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
+
+const BARCODE_DEFAULTS = { width: 27, height: 7.5, offsetX: 0, offsetY: 0 };
+
+function adjustMillimeters(value: number, delta: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Number((value + delta).toFixed(1))));
+}
 
 export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -21,6 +28,12 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [offsetY, setOffsetY] = useState<number>(1.6);
   const [gapY, setGapY] = useState<number>(3.0);
   const [gapX, setGapX] = useState<number>(3.0);
+  const [barcodeWidth, setBarcodeWidth] = useState(BARCODE_DEFAULTS.width);
+  const [barcodeHeight, setBarcodeHeight] = useState(BARCODE_DEFAULTS.height);
+  const [barcodeOffsetX, setBarcodeOffsetX] = useState(BARCODE_DEFAULTS.offsetX);
+  const [barcodeOffsetY, setBarcodeOffsetY] = useState(BARCODE_DEFAULTS.offsetY);
+  const [labelsPerBatch, setLabelsPerBatch] = useState(27);
+  const [currentBatch, setCurrentBatch] = useState(1);
   
   useEffect(() => {
     getOrderById(resolvedParams.id).then((res: any) => {
@@ -91,6 +104,22 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
     return locA.localeCompare(locB);
   });
 
+  const printableLabels: { item: any; index: number; product: any }[] = [];
+  if (order.groups?.length) {
+    order.groups.forEach((group: any) => {
+      sortedItems.filter((item: any) => item.materialGroupId === group.id).forEach((item: any, index: number) => {
+        printableLabels.push({ item, index, product: item.product });
+      });
+    });
+  } else {
+    sortedItems.forEach((item: any, index: number) => printableLabels.push({ item, index, product: item.product }));
+  }
+  const totalBatches = Math.max(1, Math.ceil(printableLabels.length / labelsPerBatch));
+  const safeBatch = Math.min(currentBatch, totalBatches);
+  const labelsInBatch = printableLabels.slice((safeBatch - 1) * labelsPerBatch, safeBatch * labelsPerBatch);
+  const labelsToPrint = printingSingle ? printableLabels.filter(label => label.item.id === printingSingle) : labelsInBatch;
+  const printSheets = splitInventoryLabelsIntoSheets(labelsToPrint);
+
   const handleSaveAdjustment = () => {
     if (!order || !adjustingItem) return;
     
@@ -146,7 +175,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               </button>
               
               {showPrintSettings && (
-                <div className="absolute right-0 top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white border border-rio-border shadow-xl rounded-2xl p-4 z-50">
+                <div className="absolute right-0 top-full mt-2 w-[340px] max-w-[calc(100vw-2rem)] max-h-[70dvh] overflow-y-auto bg-white border border-rio-border shadow-xl rounded-2xl p-4 z-50">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-bold text-rio-ink">Calibración de impresión</h3>
                     <button onClick={() => setShowPrintSettings(false)} className="text-rio-muted hover:text-rio-ink">
@@ -192,6 +221,29 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                     <div className="text-[10px] text-rio-muted bg-rio-surface-muted p-2 rounded-lg leading-relaxed mt-2">
                       <strong>Tip:</strong> Si cada fila se imprime más arriba que la anterior, aumenta el espacio entre filas (+). En opciones de impresión usa <strong>Escala: Personalizado 100%</strong> y márgenes <strong>NINGUNO</strong>.
                     </div>
+                    <div className="border-t border-rio-border pt-4 space-y-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-rio-ink">Contenido de cada sticker</h4>
+                        <p className="text-[11px] text-rio-muted">Estos ajustes no mueven la cuadrícula ni cambian el papel.</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { label: 'Ancho código', value: barcodeWidth, set: setBarcodeWidth, min: 22, max: 28.5 },
+                          { label: 'Alto código', value: barcodeHeight, set: setBarcodeHeight, min: 5, max: 8.5 },
+                          { label: 'Mover contenido ↔', value: barcodeOffsetX, set: setBarcodeOffsetX, min: -1.5, max: 1.5 },
+                          { label: 'Mover contenido ↕', value: barcodeOffsetY, set: setBarcodeOffsetY, min: -1.5, max: 1.5 },
+                        ] as const).map(control => <div key={control.label}>
+                          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-rio-muted">{control.label} (mm)</p>
+                          <div className="flex items-center gap-1">
+                            <button type="button" aria-label={`Disminuir ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, -0.2, control.min, control.max))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border font-bold hover:bg-rio-surface-muted">−</button>
+                            <output className="min-w-0 flex-1 text-center font-mono text-xs font-bold">{control.value.toFixed(1)}</output>
+                            <button type="button" aria-label={`Aumentar ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, 0.2, control.min, control.max))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border font-bold hover:bg-rio-surface-muted">+</button>
+                          </div>
+                        </div>)}
+                      </div>
+                      <p className="text-[10px] leading-relaxed text-rio-muted">Los desplazamientos afectan juntos al texto y al código; valores positivos mueven a la derecha o hacia abajo.</p>
+                      <button type="button" onClick={() => { setBarcodeWidth(BARCODE_DEFAULTS.width); setBarcodeHeight(BARCODE_DEFAULTS.height); setBarcodeOffsetX(0); setBarcodeOffsetY(0); }} className="text-xs font-semibold text-rio-gold-dark hover:underline">Restablecer contenido</button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -213,6 +265,22 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               Hoja de Bodega
             </Link>
           </div>
+          <div className="flex flex-col gap-3 rounded-xl border border-rio-border bg-rio-surface p-4 sm:flex-row sm:items-end sm:justify-between">
+            <label className="text-xs font-bold uppercase tracking-wide text-rio-muted">
+              Tamaño del lote de etiquetas
+              <select value={labelsPerBatch} onChange={event => { setLabelsPerBatch(Number(event.target.value)); setCurrentBatch(1); }} className="mt-1 block w-full rounded-lg border border-rio-border bg-white p-2.5 text-sm font-semibold text-rio-ink sm:w-64">
+                <option value={27}>27 etiquetas por lote</option>
+                <option value={54}>54 etiquetas por lote</option>
+                <option value={81}>81 etiquetas por lote</option>
+              </select>
+            </label>
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <button type="button" onClick={() => setCurrentBatch(value => Math.max(1, value - 1))} disabled={safeBatch <= 1} className="rounded-lg border border-rio-border px-3 py-2 text-sm font-semibold disabled:opacity-40">Anterior</button>
+              <div className="min-w-28 text-center text-xs text-rio-muted"><strong className="block text-sm text-rio-ink">Lote {safeBatch} de {totalBatches}</strong>{printableLabels.length ? `${(safeBatch - 1) * labelsPerBatch + 1}–${Math.min(safeBatch * labelsPerBatch, printableLabels.length)} de ${printableLabels.length}` : '0 etiquetas'}</div>
+              <button type="button" onClick={() => setCurrentBatch(value => Math.min(totalBatches, value + 1))} disabled={safeBatch >= totalBatches} className="rounded-lg border border-rio-border px-3 py-2 text-sm font-semibold disabled:opacity-40">Siguiente</button>
+            </div>
+          </div>
+          <p className="text-xs text-rio-muted">Imprimir Etiquetas envía solo el lote actual, dividido en bloques de hasta 27. Reimprimir un sticker individual no cambia el lote.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -604,78 +672,50 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
               padding: 0 !important; 
               background: white;
             }
+            .order-label-sheet { break-after: page; page-break-after: always; }
+            .order-label-sheet:last-child { break-after: auto; page-break-after: auto; }
           }
         `}} />
         
-        {(() => {
-          const itemsToPrint = sortedItems.filter(item => printingSingle ? item.id === printingSingle : true);
-          
-          let elements: any[] = [];
-          
-          if (order.groups && order.groups.length > 0 && !printingSingle) {
-             order.groups.forEach((g: any) => {
-                const gItems = itemsToPrint.filter((i: any) => i.materialGroupId === g.id);
-                gItems.forEach((item, index) => {
-                   const product = (item as any).product;
-                   elements.push({ type: 'item', item, index, product });
-                });
-                
-             });
-          } else {
-             itemsToPrint.forEach((item, index) => {
-                const product = (item as any).product;
-                elements.push({ type: 'item', item, index, product });
-             });
-          }
-          
-          return (
-            <div>
+        {printSheets.map((sheet, sheetIndex) => (
+            <div key={sheetIndex} className="order-label-sheet">
               <div
                 className="grid grid-cols-3"
                 style={{ paddingLeft: `${offsetX}mm`, paddingTop: `${offsetY}mm`, rowGap: `${gapY}mm`, columnGap: `${gapX}mm` }}
               >
-                {elements.map((el, i) => {
-                  if (el.type === 'marker') {
-                    return (
-                      <div key={`marker-${i}`} className="w-[32mm] h-[16mm] break-inside-avoid flex items-center justify-center text-black border-2 border-black border-dashed p-[1mm]">
-                        <span className="font-bold text-xs uppercase text-center">{el.text}</span>
-                      </div>
-                    );
-                  }
-                  
-                  const { item, index, product } = el;
+                {sheet.map(({ item, index, product }) => {
                   return (
                     <div 
                       key={item.id} 
-                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center text-black overflow-hidden p-[1mm]"
+                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-center text-black overflow-hidden p-[1mm]"
                     >
-                      {/* Fila superior de texto */}
-                      <div data-testid="barcode-label-header" className="w-fit max-w-[28mm] flex items-center justify-center gap-[1mm] leading-none mb-[0.4mm] whitespace-nowrap">
-                        <span className="shrink-0 font-bold text-[9px]">#{index + 1}</span>
-                        <span className="min-w-0 max-w-[18mm] font-black text-[10px] tracking-tighter truncate">{product?.sku}</span>
-                        <span className="shrink-0 font-bold text-[9px]">C:{item.quantity}</span>
-                      </div>
-                      
-                      {/* Código de barras 1D */}
-                      <div className="w-[28mm] h-[8mm] shrink-0 flex items-center justify-center overflow-hidden">
-                        {product?.sku ? (
-                          <img 
-                            src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(product.sku)}&scaleX=2&scaleY=1&includetext=false`}
-                            alt={product.sku}
-                            className="w-full h-full object-contain mix-blend-multiply"
-                            loading="eager"
-                          />
-                        ) : (
-                          <span className="text-[8px] text-gray-400">Sin SKU</span>
-                        )}
+                      <div data-testid="barcode-label-content" className="relative flex flex-col items-center" style={{ left: `${barcodeOffsetX}mm`, top: `${barcodeOffsetY}mm` }}>
+                        {/* Fila superior de texto */}
+                        <div data-testid="barcode-label-header" className="w-fit max-w-[28mm] flex items-center justify-center gap-[1mm] leading-none mb-[0.4mm] whitespace-nowrap">
+                          <span className="shrink-0 font-bold text-[9px]">#{index + 1}</span>
+                          <span className="min-w-0 max-w-[18mm] font-black text-[10px] tracking-tighter truncate">{product?.sku}</span>
+                          <span className="shrink-0 font-bold text-[9px]">C:{item.quantity}</span>
+                        </div>
+                        {/* Código de barras 1D */}
+                        <div data-testid="barcode-label-image" className="shrink-0 flex items-center justify-center overflow-hidden" style={{ width: `${barcodeWidth}mm`, height: `${barcodeHeight}mm` }}>
+                          {product?.sku ? (
+                            <img
+                              src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(product.sku)}&scaleX=2&scaleY=1&includetext=false`}
+                              alt={product.sku}
+                              className="w-full h-full object-fill mix-blend-multiply"
+                              loading="eager"
+                            />
+                          ) : (
+                            <span className="text-[8px] text-gray-400">Sin SKU</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          );
-        })()}
+        ))}
       </div>
     </>
   );
