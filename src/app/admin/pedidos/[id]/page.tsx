@@ -14,6 +14,9 @@ import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
 const BARCODE_DEFAULTS = { width: 27, height: 7.5, offsetX: 0, offsetY: 0 };
 const LABEL_HEIGHT_MM = 16;
 const LABELS_PER_ROW = 3;
+// Chrome/driver rotates a custom page when its width exceeds its height.
+const SHORT_PAGE_MIN_HEIGHT_MM = 110;
+const FULL_PAGE_HEIGHT_MM = 159;
 
 function adjustMillimeters(value: number, delta: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Number((value + delta).toFixed(1))));
@@ -122,9 +125,12 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const labelsInBatch = printableLabels.slice((safeBatch - 1) * labelsPerBatch, safeBatch * labelsPerBatch);
   const labelsToPrint = printingSingle ? printableLabels.filter(label => label.item.id === printingSingle) : labelsInBatch;
   const printSheets = splitInventoryLabelsIntoSheets(labelsToPrint);
-  const useShortPrintPage = shortPrintPage && printSheets.length === 1 && labelsToPrint.length > 0;
   const usedRows = Math.ceil(labelsToPrint.length / LABELS_PER_ROW);
-  const shortPrintHeight = Number((Math.max(0, offsetY) + usedRows * LABEL_HEIGHT_MM + Math.max(0, usedRows - 1) * gapY + 1).toFixed(1));
+  const shortPrintHeight = Math.max(
+    SHORT_PAGE_MIN_HEIGHT_MM,
+    Number((Math.max(0, offsetY) + usedRows * LABEL_HEIGHT_MM + Math.max(0, usedRows - 1) * gapY + 1).toFixed(1)),
+  );
+  const useShortPrintPage = shortPrintPage && printSheets.length === 1 && labelsToPrint.length > 0 && shortPrintHeight < FULL_PAGE_HEIGHT_MM;
 
   const handleSaveAdjustment = () => {
     if (!order || !adjustingItem) return;
@@ -288,9 +294,9 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           </div>
           <label className="flex items-start gap-3 rounded-xl border border-rio-border bg-rio-surface p-3 text-sm text-rio-ink">
             <input type="checkbox" checked={shortPrintPage} onChange={event => setShortPrintPage(event.target.checked)} className="mt-1 accent-rio-ink" />
-            <span><strong>Probar ahorro de rollo</strong><span className="mt-1 block text-xs text-rio-muted">Solicita una página de {shortPrintHeight} mm de alto para las {usedRows} filas usadas. Funciona solo si el lote tiene hasta 27 etiquetas y el controlador acepta la longitud variable. Comprueba el tamaño de papel en la vista previa antes de imprimir.</span></span>
+            <span><strong>Probar ahorro de rollo</strong><span className="mt-1 block text-xs text-rio-muted">Solicita una página vertical de {shortPrintHeight} mm de alto para las {usedRows} filas usadas (mínimo 110 mm para evitar que gire). Se aplica solo cuando cabe en menos de una hoja completa y el controlador acepta la longitud variable. Comprueba la orientación en la vista previa antes de imprimir.</span></span>
           </label>
-          {shortPrintPage && !useShortPrintPage && <p role="status" className="text-xs text-rio-danger">Para probar el ahorro, selecciona un lote de hasta 27 etiquetas.</p>}
+          {shortPrintPage && !useShortPrintPage && <p role="status" className="text-xs text-rio-danger">Este lote requiere una hoja completa o varias; se usará la impresión normal.</p>}
           <p className="text-xs text-rio-muted">Imprimir Etiquetas envía solo el lote actual, dividido en bloques de hasta 27. Reimprimir un sticker individual no cambia el lote.</p>
         </div>
 
