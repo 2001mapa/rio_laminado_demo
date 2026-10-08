@@ -3,6 +3,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { requireRole } from '@/utils/auth-helpers';
 import { describeAuthPasswordError, validatePassword } from '@/lib/passwordPolicy';
+import { getAuditActor, logAuditEvent } from '@/lib/audit';
+
+const ADMIN_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function adminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -52,7 +55,7 @@ export async function listAdministrators() {
 
 export async function getAdministratorProfile(id: string) {
   await requirePrimaryAdmin();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  if (!ADMIN_ID_PATTERN.test(id)) return null;
 
   const { data, error } = await adminClient().auth.admin.getUserById(id);
   if (error || !data.user || data.user.app_metadata?.role !== 'admin') return null;
@@ -105,5 +108,32 @@ export async function setAdministratorDisabled(id: string, disabled: boolean) {
     app_metadata: { ...target.user.app_metadata, adminDisabled: disabled },
   });
   if (error) return { success: false, message: error.message };
+  return { success: true };
+}
+
+export async function resetAdministratorPassword(id: string, newPassword: string) {
+  await requirePrimaryAdmin();
+  if (!ADMIN_ID_PATTERN.test(id) || id === process.env.PRIMARY_ADMIN_USER_ID) {
+    return { success: false, message: 'Selecciona un administrador secundario válido.' };
+  }
+  const passwordError = validatePassword(newPassword);
+  if (passwordError) return { success: false, message: passwordError };
+
+  const client = adminClient();
+  const { data: target, error: lookupError } = await client.auth.admin.getUserById(id);
+  if (lookupError || target.user?.app_metadata?.role !== 'admin') {
+    return { success: false, message: 'Administrador no encontrado. La contraseña no fue cambiada.' };
+  }
+
+  const { error } = await client.auth.admin.updateUserById(id, { password: newPassword });
+  if (error) return { success: false, message: describeAuthPasswordError(error) || 'No se pudo cambiar la contraseña.' };
+
+  try {
+    await logAuditEvent(await getAuditActor(), {
+      action: 'RESET_ADMIN_PASSWORD', entityType: 'ADMIN', entityId: id,
+    });
+  } catch {
+    return { success: true, auditWarning: 'Contraseña cambiada, pero no se pudo registrar el movimiento en el historial.' };
+  }
   return { success: true };
 }

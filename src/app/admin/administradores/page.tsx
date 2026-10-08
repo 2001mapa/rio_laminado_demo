@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { Eye, EyeOff, Plus, Search, ShieldCheck, X } from 'lucide-react';
 import { createAdministrator, listAdministrators, setAdministratorDisabled } from '@/app/actions/admins';
 import { validatePassword } from '@/lib/passwordPolicy';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ export default function AdministradoresPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -27,7 +28,7 @@ export default function AdministradoresPage() {
 
   function closeModal() {
     if (busy) return;
-    setShowModal(false); setName(''); setEmail(''); setPassword('');
+    setShowModal(false); setName(''); setEmail(''); setPassword(''); setShowPassword(false);
   }
 
   async function create(e: React.FormEvent) {
@@ -38,7 +39,7 @@ export default function AdministradoresPage() {
     try {
       const result = await createAdministrator({ name, email, password });
       if (!result.success) { setMessage(result.message || 'No se pudo crear la cuenta.'); return; }
-      setName(''); setEmail(''); setPassword(''); setShowModal(false);
+      setName(''); setEmail(''); setPassword(''); setShowPassword(false); setShowModal(false);
       setMessage('Administrador creado. Comparte la contraseña por un canal seguro.');
       await refresh();
     } catch (error) {
@@ -99,7 +100,15 @@ export default function AdministradoresPage() {
         <form onSubmit={create} className="space-y-4 overflow-y-auto p-5">
           <label className="block text-sm font-semibold text-rio-ink">Nombre<input autoFocus className="mt-1 w-full rounded-xl border border-rio-border p-3 font-normal" value={name} onChange={e => setName(e.target.value)} required /></label>
           <label className="block text-sm font-semibold text-rio-ink">Correo electrónico<input type="email" className="mt-1 w-full rounded-xl border border-rio-border p-3 font-normal" value={email} onChange={e => setEmail(e.target.value)} required /></label>
-          <label className="block text-sm font-semibold text-rio-ink">Contraseña<input type="password" className="mt-1 w-full rounded-xl border border-rio-border p-3 font-normal" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" /></label>
+          <div>
+            <label htmlFor="new-admin-password" className="block text-sm font-semibold text-rio-ink">Contraseña</label>
+            <div className="relative mt-1">
+              <input id="new-admin-password" type={showPassword ? 'text' : 'password'} className="w-full rounded-xl border border-rio-border p-3 pr-12 font-normal" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
+              <button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-rio-muted hover:text-rio-ink">
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
           <p className="text-xs text-rio-muted">Mínimo 8 caracteres, con mayúscula, minúscula y número. La contraseña no volverá a mostrarse.</p>
           {message && <p role="alert" className="text-sm text-rio-danger">{message}</p>}
           <div className="flex gap-3 pt-2"><button type="button" onClick={closeModal} disabled={busy} className="flex-1 py-3 border border-rio-border text-rio-ink rounded-xl text-sm font-semibold hover:bg-rio-surface-muted">Cancelar</button><button disabled={busy} className="flex-1 py-3 bg-rio-ink text-white rounded-xl text-sm font-semibold disabled:opacity-50">{busy ? 'Creando...' : 'Crear acceso'}</button></div>

@@ -6,9 +6,11 @@ const h = vi.hoisted(() => ({
   listUsers: vi.fn(),
   getUserById: vi.fn(),
   updateUserById: vi.fn(),
+  logAuditEvent: vi.fn(),
 }));
 
 vi.mock('@/utils/auth-helpers', () => ({ requireRole: h.requireRole }));
+vi.mock('@/lib/audit', () => ({ getAuditActor: vi.fn().mockResolvedValue({ id: 'owner', role: 'admin', name: 'Principal' }), logAuditEvent: h.logAuditEvent }));
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({ auth: { admin: {
     createUser: h.createUser,
@@ -18,7 +20,7 @@ vi.mock('@supabase/supabase-js', () => ({
   } } }),
 }));
 
-import { canManageAdmins, createAdministrator, getAdministratorProfile, listAdministrators, setAdministratorDisabled } from '@/app/actions/admins';
+import { canManageAdmins, createAdministrator, getAdministratorProfile, listAdministrators, resetAdministratorPassword, setAdministratorDisabled } from '@/app/actions/admins';
 
 const adminId = '11111111-1111-4111-8111-111111111111';
 
@@ -38,6 +40,7 @@ describe('gestión de administradores', () => {
     await expect(listAdministrators()).rejects.toThrow('cuenta principal');
     await expect(createAdministrator({ name: 'Ana', email: 'ana@rio.com', password: 'ClaveRio123' })).rejects.toThrow('cuenta principal');
     await expect(getAdministratorProfile(adminId)).rejects.toThrow('cuenta principal');
+    await expect(resetAdministratorPassword(adminId, 'ClaveNueva123')).rejects.toThrow('cuenta principal');
     expect(h.getUserById).not.toHaveBeenCalled();
     expect(h.createUser).not.toHaveBeenCalled();
   });
@@ -92,5 +95,23 @@ describe('gestión de administradores', () => {
     expect(h.updateUserById).toHaveBeenCalledWith('other', {
       app_metadata: { role: 'admin', provider: 'email', adminDisabled: true },
     });
+  });
+
+  it('restablece solo claves de administradores secundarios y audita sin incluir la clave', async () => {
+    h.getUserById.mockResolvedValue({ data: { user: { app_metadata: { role: 'admin' } } }, error: null });
+    h.updateUserById.mockResolvedValue({ error: null });
+    expect(await resetAdministratorPassword(adminId, 'ClaveNueva123')).toEqual({ success: true });
+    expect(h.updateUserById).toHaveBeenCalledWith(adminId, { password: 'ClaveNueva123' });
+    expect(h.logAuditEvent).toHaveBeenCalledWith(expect.anything(), {
+      action: 'RESET_ADMIN_PASSWORD', entityType: 'ADMIN', entityId: adminId,
+    });
+  });
+
+  it('rechaza la cuenta principal, las claves débiles y cuentas de otros roles', async () => {
+    expect((await resetAdministratorPassword('owner', 'ClaveNueva123')).success).toBe(false);
+    expect((await resetAdministratorPassword(adminId, 'debil')).success).toBe(false);
+    h.getUserById.mockResolvedValue({ data: { user: { app_metadata: { role: 'cliente' } } }, error: null });
+    expect((await resetAdministratorPassword(adminId, 'ClaveNueva123')).success).toBe(false);
+    expect(h.updateUserById).not.toHaveBeenCalled();
   });
 });

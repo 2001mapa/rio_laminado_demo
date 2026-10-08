@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { canManageAdmins, getAdministratorProfile } from '@/app/actions/admins';
+import ResetPasswordForm from './ResetPasswordForm';
 
 const formatDate = (value: string | null) => value
   ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota' }).format(new Date(value))
@@ -42,6 +43,7 @@ export default async function AdministratorProfilePage({ params }: { params: Pro
           <div><dt className="text-xs font-bold uppercase tracking-wide text-rio-muted">Última actualización</dt><dd className="mt-1 font-medium text-rio-ink">{formatDate(admin.updatedAt)}</dd></div>
         </dl>
       </section>
+      {!admin.primary && <ResetPasswordForm administratorId={admin.id} />}
     </div>
   </main>;
 }
