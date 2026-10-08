@@ -11,7 +11,7 @@ import QRCode from 'react-qr-code';
 import { confirmRio } from '@/lib/confirm';
 import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
 
-const BARCODE_DEFAULTS = { width: 27, height: 7.5, offsetX: 0, offsetY: 0 };
+const BARCODE_DEFAULTS = { width: 27, height: 7.5, offsetX: 1.5, offsetY: -2 };
 const LABEL_HEIGHT_MM = 15;
 const LABELS_PER_ROW = 3;
 // Chrome/driver rotates a custom page when its width exceeds its height.
@@ -30,7 +30,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
   const [orderError, setOrderError] = useState('');
   
   const [offsetX, setOffsetX] = useState<number>(3.2);
-  const [offsetY, setOffsetY] = useState<number>(1.6);
+  const [offsetY, setOffsetY] = useState<number>(0);
   const [gapY, setGapY] = useState<number>(3.0);
   const [gapX, setGapX] = useState<number>(3.0);
   const [barcodeWidth, setBarcodeWidth] = useState(BARCODE_DEFAULTS.width);
@@ -254,7 +254,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                         </div>)}
                       </div>
                       <p className="text-[10px] leading-relaxed text-rio-muted">Para subir texto y barras, usa valores negativos en «Mover contenido ↕». Esto no cambia «Mover Vert», que desplaza la cuadrícula completa.</p>
-                      <button type="button" onClick={() => { setBarcodeWidth(BARCODE_DEFAULTS.width); setBarcodeHeight(BARCODE_DEFAULTS.height); setBarcodeOffsetX(0); setBarcodeOffsetY(0); }} className="text-xs font-semibold text-rio-gold-dark hover:underline">Restablecer contenido</button>
+                      <button type="button" onClick={() => { setBarcodeWidth(BARCODE_DEFAULTS.width); setBarcodeHeight(BARCODE_DEFAULTS.height); setBarcodeOffsetX(BARCODE_DEFAULTS.offsetX); setBarcodeOffsetY(BARCODE_DEFAULTS.offsetY); }} className="text-xs font-semibold text-rio-gold-dark hover:underline">Restablecer contenido</button>
                     </div>
                   </div>
                 </div>
