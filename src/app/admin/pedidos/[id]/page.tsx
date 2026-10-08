@@ -647,17 +647,17 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   return (
                     <div 
                       key={item.id} 
-                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-between text-black overflow-hidden p-[1mm]"
+                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center text-black overflow-hidden p-[1mm]"
                     >
                       {/* Fila superior de texto */}
-                      <div data-testid="barcode-label-header" className="w-full flex justify-between items-center leading-none mb-[1.5mm]">
+                      <div data-testid="barcode-label-header" className="w-[27mm] flex items-center justify-between gap-[0.5mm] leading-none mb-[0.4mm] whitespace-nowrap">
                         <span className="font-bold text-[9px]">#{index + 1}</span>
-                        <span className="font-black text-[10px] tracking-tighter truncate mx-1">{product?.sku}</span>
+                        <span className="font-black text-[10px] tracking-tighter truncate">{product?.sku}</span>
                         <span className="font-bold text-[9px]">C:{item.quantity}</span>
                       </div>
                       
                       {/* Código de barras 1D */}
-                      <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
+                      <div className="w-[26mm] h-[6mm] shrink-0 flex items-center justify-center overflow-hidden">
                         {product?.sku ? (
                           <img 
                             src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(product.sku)}&scaleX=2&scaleY=1&includetext=false`}
