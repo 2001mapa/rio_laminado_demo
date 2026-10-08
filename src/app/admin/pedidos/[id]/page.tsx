@@ -12,7 +12,7 @@ import { confirmRio } from '@/lib/confirm';
 import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
 
 const BARCODE_DEFAULTS = { width: 27, height: 7.5, offsetX: 0, offsetY: 0 };
-const LABEL_HEIGHT_MM = 16;
+const LABEL_HEIGHT_MM = 15;
 const LABELS_PER_ROW = 3;
 // Chrome/driver rotates a custom page when its width exceeds its height.
 const SHORT_PAGE_MIN_HEIGHT_MM = 110;
@@ -240,20 +240,20 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {([
-                          { label: 'Ancho código', value: barcodeWidth, set: setBarcodeWidth, min: 22, max: 28.5 },
-                          { label: 'Alto código', value: barcodeHeight, set: setBarcodeHeight, min: 5, max: 8.5 },
-                          { label: 'Mover contenido ↔', value: barcodeOffsetX, set: setBarcodeOffsetX, min: -1.5, max: 1.5 },
-                          { label: 'Mover contenido ↕', value: barcodeOffsetY, set: setBarcodeOffsetY, min: -1.5, max: 1.5 },
+                          { label: 'Ancho código', value: barcodeWidth, set: setBarcodeWidth, min: 22, max: 28.5, step: 0.2 },
+                          { label: 'Alto código', value: barcodeHeight, set: setBarcodeHeight, min: 5, max: 8.5, step: 0.2 },
+                          { label: 'Mover contenido ↔', value: barcodeOffsetX, set: setBarcodeOffsetX, min: -1.5, max: 1.5, step: 0.2 },
+                          { label: 'Mover contenido ↕', value: barcodeOffsetY, set: setBarcodeOffsetY, min: -4, max: 4, step: 0.5 },
                         ] as const).map(control => <div key={control.label}>
                           <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-rio-muted">{control.label} (mm)</p>
                           <div className="flex items-center gap-1">
-                            <button type="button" aria-label={`Disminuir ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, -0.2, control.min, control.max))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border font-bold hover:bg-rio-surface-muted">−</button>
+                            <button type="button" aria-label={`Disminuir ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, -control.step, control.min, control.max))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border font-bold hover:bg-rio-surface-muted">−</button>
                             <output className="min-w-0 flex-1 text-center font-mono text-xs font-bold">{control.value.toFixed(1)}</output>
-                            <button type="button" aria-label={`Aumentar ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, 0.2, control.min, control.max))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border font-bold hover:bg-rio-surface-muted">+</button>
+                            <button type="button" aria-label={`Aumentar ${control.label}`} onClick={() => control.set(value => adjustMillimeters(value, control.step, control.min, control.max))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border font-bold hover:bg-rio-surface-muted">+</button>
                           </div>
                         </div>)}
                       </div>
-                      <p className="text-[10px] leading-relaxed text-rio-muted">Los desplazamientos afectan juntos al texto y al código; valores positivos mueven a la derecha o hacia abajo.</p>
+                      <p className="text-[10px] leading-relaxed text-rio-muted">Para subir texto y barras, usa valores negativos en «Mover contenido ↕». Esto no cambia «Mover Vert», que desplaza la cuadrícula completa.</p>
                       <button type="button" onClick={() => { setBarcodeWidth(BARCODE_DEFAULTS.width); setBarcodeHeight(BARCODE_DEFAULTS.height); setBarcodeOffsetX(0); setBarcodeOffsetY(0); }} className="text-xs font-semibold text-rio-gold-dark hover:underline">Restablecer contenido</button>
                     </div>
                   </div>
@@ -704,7 +704,7 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
                   return (
                     <div 
                       key={item.id} 
-                      className="w-[32mm] h-[16mm] break-inside-avoid flex flex-col items-center justify-center text-black overflow-hidden p-[1mm]"
+                      className="w-[32mm] h-[15mm] break-inside-avoid flex flex-col items-center justify-center text-black overflow-hidden p-[1mm]"
                     >
                       <div data-testid="barcode-label-content" className="relative flex flex-col items-center" style={{ left: `${barcodeOffsetX}mm`, top: `${barcodeOffsetY}mm` }}>
                         {/* Fila superior de texto */}

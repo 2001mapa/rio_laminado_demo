@@ -48,7 +48,7 @@ describe('Etiquetas de código de barras del pedido', () => {
     expect(header.className).toContain('mb-[0.4mm]');
     const content = screen.getByTestId('barcode-label-content');
     expect(content).toHaveProperty('style');
-    expect(content.parentElement?.className).toContain('w-[32mm] h-[16mm]');
+    expect(content.parentElement?.className).toContain('w-[32mm] h-[15mm]');
     expect(content.parentElement?.className).toContain('justify-center');
     expect(screen.getByTestId('barcode-label-image').getAttribute('style')).toContain('width: 27mm; height: 7.5mm');
   });
@@ -65,7 +65,11 @@ describe('Etiquetas de código de barras del pedido', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aumentar Mover contenido ↔' }));
     fireEvent.click(screen.getByRole('button', { name: 'Disminuir Mover contenido ↕' }));
     expect(screen.getByTestId('barcode-label-image').getAttribute('style')).toContain('width: 27.2mm; height: 7.3mm');
-    expect(screen.getByTestId('barcode-label-content').getAttribute('style')).toContain('left: 0.2mm; top: -0.2mm');
+    expect(screen.getByTestId('barcode-label-content').getAttribute('style')).toContain('left: 0.2mm; top: -0.5mm');
+    for (let index = 0; index < 8; index++) {
+      fireEvent.click(screen.getByRole('button', { name: 'Disminuir Mover contenido ↕' }));
+    }
+    expect(screen.getByTestId('barcode-label-content').getAttribute('style')).toContain('top: -4mm');
     expect(grid?.getAttribute('style')).toBe(initialGridStyle);
   });
 
