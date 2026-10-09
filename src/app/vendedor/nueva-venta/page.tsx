@@ -6,7 +6,7 @@ import { RefreshCw, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useDemo, CartItem } from '@/lib/DemoContext';
 import { Customer, Product } from '@/lib/types';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { createScanConfirmation } from '@/lib/scanConfirmation';
 import type { CameraDevice } from 'html5-qrcode';
 import { addToast } from '@/lib/toast';
@@ -300,25 +300,10 @@ export default function NuevaVentaPage() {
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanConfirmationRef = useRef(createScanConfirmation());
-  const resumeAfterProductRef = useRef(false);
+  const lastAcceptedCodeRef = useRef<{ code: string; lastSeenAt: number; repeatArmed: boolean } | null>(null);
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
   const preferredCameraKey = 'seller-preferred-camera-id';
-
-  useEffect(() => {
-    if (scannedProduct || !resumeAfterProductRef.current) return;
-    resumeAfterProductRef.current = false;
-    let cancelled = false;
-    // Safari puede dejar detenido el decodificador tras pause/resume o un cambio de tamaño.
-    // Reconstruirlo aquí calibra el lector con el visor visible y su tamaño final.
-    if (scannerRef.current) {
-      void (async () => {
-        await stopScanner();
-        if (!cancelled) await startScanner();
-      })();
-    }
-    return () => { cancelled = true; };
-  }, [scannedProduct]);
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
@@ -401,9 +386,14 @@ export default function NuevaVentaPage() {
 
     try {
       scanConfirmationRef.current.reset();
+      lastAcceptedCodeRef.current = null;
       const preferredCameraId = cameraId || localStorage.getItem(preferredCameraKey) || undefined;
       if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(scannerRegionId);
+        scannerRef.current = new Html5Qrcode(scannerRegionId, {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          useBarCodeDetectorIfSupported: false,
+          verbose: false,
+        });
       }
       const scanner = scannerRef.current;
 
@@ -411,11 +401,7 @@ export default function NuevaVentaPage() {
       await scanner.start(
         preferredCameraId ? { deviceId: { exact: preferredCameraId } } : { facingMode: "environment" },
         { fps: 10, qrbox: safeQrbox },
-        (decodedText) => {
-          if (!scanConfirmationRef.current.accept(decodedText)) return;
-          if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
-          handleScan(decodedText);
-        },
+        handleDecodedCode,
         (error) => {}
       );
       setIsScanning(true);
@@ -433,11 +419,7 @@ export default function NuevaVentaPage() {
           if(scannerRef.current) await scannerRef.current.start(
             { deviceId: { exact: cameraId } },
             { fps: 10, qrbox: safeQrbox },
-            (decodedText) => {
-              if (!scanConfirmationRef.current.accept(decodedText)) return;
-              if (scannerRef.current) { try { scannerRef.current.pause(); } catch(e){} }
-              handleScan(decodedText);
-            },
+            handleDecodedCode,
             (error) => {}
           );
           setIsScanning(true);
@@ -457,6 +439,7 @@ export default function NuevaVentaPage() {
 
   const stopScanner = async () => {
     scanConfirmationRef.current.reset();
+    lastAcceptedCodeRef.current = null;
     if (scannerRef.current && isScanning) {
       try {
         if (scannerRef.current.getState() === 2 /* SCANNING */ || scannerRef.current.getState() === 3 /* PAUSED */) {
@@ -477,6 +460,23 @@ export default function NuevaVentaPage() {
     if (!cameraId || cameraId === selectedCameraId) return;
     await stopScanner();
     await startScanner(cameraId);
+  };
+
+  const handleDecodedCode = (decodedText: string) => {
+    const code = decodedText.trim();
+    if (!code) return;
+    const now = Date.now();
+    const lastAccepted = lastAcceptedCodeRef.current;
+    // La cámara continúa leyendo durante la selección. No abrir de nuevo el QR
+    // que sigue delante del lente después de agregarlo o cancelar.
+    if (lastAccepted?.code === code) {
+      if (now - lastAccepted.lastSeenAt >= 1200) lastAccepted.repeatArmed = true;
+      lastAccepted.lastSeenAt = now;
+      if (!lastAccepted.repeatArmed) return;
+    }
+    if (!scanConfirmationRef.current.accept(code, now)) return;
+    lastAcceptedCodeRef.current = { code, lastSeenAt: now, repeatArmed: false };
+    void handleScan(code);
   };
 
     const handleScan = async (sku: string) => {
@@ -525,12 +525,10 @@ export default function NuevaVentaPage() {
       } else {
         addToast(error || `SKU no encontrado: ${sku}`);
         scanConfirmationRef.current.release();
-        if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
       }
     } catch (err) {
       addToast('Error al procesar el escaneo');
       scanConfirmationRef.current.release();
-      if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
     }
   };
 
@@ -601,13 +599,11 @@ export default function NuevaVentaPage() {
     });
     
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
-    resumeAfterProductRef.current = true;
     setScannedProduct(null);
     scanConfirmationRef.current.release();
   };
 
   const cancelScan = () => {
-    resumeAfterProductRef.current = true;
     setScannedProduct(null);
     scanConfirmationRef.current.release();
   };
@@ -1077,10 +1073,9 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <div id="scanner-venta" data-testid="seller-camera-viewport" className={`relative shrink-0 overflow-hidden scroll-mt-24 ${scannedProduct ? 'h-[180px] bg-black md:h-[220px]' : 'h-[min(34svh,280px)] min-h-[260px] bg-black md:flex-1'}`}>
+              <div id="scanner-venta" data-testid="seller-camera-viewport" className="relative h-[min(34svh,280px)] min-h-[260px] shrink-0 overflow-hidden scroll-mt-24 bg-black">
                 <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
-                  #qr-reader video { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: contain !important; }
                   #qr-reader__scan_region { max-width: 100% !important; overflow: hidden; }
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>

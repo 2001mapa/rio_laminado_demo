@@ -6,7 +6,7 @@ import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 let mockSyncCalled = false;
 let mockSyncUuid = '';
 let mockAddPendingOrder = vi.fn();
-const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), getCameras: vi.fn(), resume: vi.fn(), scanCallbacks: [] as Array<(sku: string) => void> }));
+const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), stops: vi.fn(), pauses: vi.fn(), getCameras: vi.fn(), scanCallbacks: [] as Array<(sku: string) => void> }));
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
@@ -58,6 +58,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('html5-qrcode', () => ({
+  Html5QrcodeSupportedFormats: { QR_CODE: 0 },
   Html5Qrcode: class {
     private cameraId = 'cam-main';
     start(camera: any, _config: unknown, onScan: (sku: string) => void) {
@@ -66,10 +67,9 @@ vi.mock('html5-qrcode', () => ({
       cameraMocks.scanCallbacks.push(onScan);
       return Promise.resolve(null);
     }
-    stop() { return Promise.resolve(); }
+    stop() { cameraMocks.stops(); return Promise.resolve(); }
     clear() {}
-    pause() {}
-    resume() { cameraMocks.resume(document.getElementById('qr-reader')?.className); }
+    pause() { cameraMocks.pauses(); }
     getState() { return 2; }
     getRunningTrackSettings() { return { deviceId: this.cameraId }; }
     getRunningTrackCameraCapabilities() {
@@ -125,8 +125,10 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     expect(cameraMocks.getCameras).not.toHaveBeenCalled();
   });
 
-  it('mantiene visible un visor pequeño y reinicia la cámara al agregar un artículo', async () => {
+  it('mantiene estable el visor y lee dos referencias sin reiniciar la cámara', async () => {
     cameraMocks.starts.mockClear();
+    cameraMocks.stops.mockClear();
+    cameraMocks.pauses.mockClear();
     cameraMocks.scanCallbacks.length = 0;
     localStorage.removeItem('seller-preferred-camera-id');
     cameraMocks.applyZoom.mockResolvedValue(undefined);
@@ -146,12 +148,15 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     await act(async () => { cameraMocks.scanCallbacks[0]('SKU1'); });
     await screen.findByRole('button', { name: 'Agregar a la Orden' });
     expect(document.getElementById('qr-reader')?.className).not.toContain('invisible');
-    expect(viewport.className).toContain('h-[180px]');
+    expect(viewport.className).toContain('h-[min(34svh,280px)]');
+    await act(async () => { cameraMocks.scanCallbacks[0]('SKU2'); });
     fireEvent.click(await screen.findByRole('button', { name: 'Agregar a la Orden' }));
 
     expect(viewport.className).toContain('h-[min(34svh,280px)]');
     expect(document.getElementById('qr-reader')?.className).not.toContain('invisible');
-    await waitFor(() => expect(cameraMocks.starts).toHaveBeenCalledTimes(2));
+    expect(cameraMocks.starts).toHaveBeenCalledTimes(1);
+    expect(cameraMocks.stops).not.toHaveBeenCalled();
+    expect(cameraMocks.pauses).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Ver pedido' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ampliar' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Escanear' })).toBeNull();
@@ -160,7 +165,9 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     expect(scrollIntoView).toHaveBeenCalled();
     expect(window.location.hash).toBe(originalHash);
     expect(screen.getByRole('button', { name: 'Pausar cámara' })).toBeTruthy();
-    await act(async () => { cameraMocks.scanCallbacks[1]('SKU2'); });
+    await act(async () => { cameraMocks.scanCallbacks[0]('SKU1'); });
+    expect(screen.queryByRole('button', { name: 'Agregar a la Orden' })).toBeNull();
+    await act(async () => { cameraMocks.scanCallbacks[0]('SKU2'); });
     await screen.findByRole('button', { name: 'Agregar a la Orden' });
   });
 
