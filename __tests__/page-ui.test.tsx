@@ -122,7 +122,7 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     expect(cameraMocks.getCameras).not.toHaveBeenCalled();
   });
 
-  it('compacta la cámara tras agregar y permite alternar entre pedido y escaneo sin cambiar la URL', async () => {
+  it('oculta el visor al elegir un artículo y conserva los controles al reanudar', async () => {
     localStorage.removeItem('seller-preferred-camera-id');
     cameraMocks.applyZoom.mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
@@ -141,17 +141,20 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     const skuInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
     fireEvent.change(skuInput, { target: { value: 'SKU1' } });
     fireEvent.submit(skuInput.closest('form')!);
+    await screen.findByRole('button', { name: 'Agregar a la Orden' });
+    expect(document.getElementById('qr-reader')?.className).toContain('!hidden');
+    expect(viewport.className).toContain('h-auto');
     fireEvent.click(await screen.findByRole('button', { name: 'Agregar a la Orden' }));
 
     expect(viewport.className).toContain('h-[min(34svh,280px)]');
-    expect(screen.getByRole('button', { name: 'Ver pedido' })).toBeTruthy();
+    expect(document.getElementById('qr-reader')?.className).not.toContain('!hidden');
+    expect(screen.queryByRole('button', { name: 'Ver pedido' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ampliar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Escanear' })).toBeNull();
     const originalHash = window.location.hash;
-    fireEvent.click(screen.getByRole('button', { name: 'Ver pedido' }));
+    fireEvent.click(screen.getByRole('button', { name: /Pedido: 1 refs/ }));
     expect(scrollIntoView).toHaveBeenCalled();
     expect(window.location.hash).toBe(originalHash);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Escanear' }));
-    expect(viewport.className).toContain('min-h-[260px]');
     expect(screen.getByRole('button', { name: 'Pausar cámara' })).toBeTruthy();
   });
 

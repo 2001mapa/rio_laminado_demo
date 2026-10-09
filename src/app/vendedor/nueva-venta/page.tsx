@@ -249,7 +249,6 @@ export default function NuevaVentaPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [cameraDevices, setCameraDevices] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
-  const [cameraExpanded, setCameraExpanded] = useState(false);
   const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
   const [zoomValue, setZoomValue] = useState(1);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -585,7 +584,6 @@ export default function NuevaVentaPage() {
     
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
     setScannedProduct(null);
-    setCameraExpanded(false);
     
     if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
   };
@@ -1060,7 +1058,7 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <div id="scanner-venta" data-testid="seller-camera-viewport" className={`relative shrink-0 overflow-hidden scroll-mt-24 md:h-auto md:min-h-0 ${scannedProduct ? 'h-auto min-h-0 bg-white' : totalItems > 0 && !cameraExpanded ? 'h-[min(34svh,280px)] min-h-[260px] bg-black md:flex-1' : 'h-[min(42svh,360px)] min-h-[260px] bg-black md:flex-1'}`}>
+              <div id="scanner-venta" data-testid="seller-camera-viewport" className={`relative shrink-0 overflow-hidden scroll-mt-24 md:h-auto md:min-h-0 ${scannedProduct ? 'h-auto min-h-0 bg-white' : totalItems > 0 ? 'h-[min(34svh,280px)] min-h-[260px] bg-black md:flex-1' : 'h-[min(42svh,360px)] min-h-[260px] bg-black md:flex-1'}`}>
                 <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
                   #qr-reader video { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: contain !important; }
@@ -1068,7 +1066,7 @@ export default function NuevaVentaPage() {
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>
                 
-                <div id={scannerRegionId} className="w-full h-full absolute inset-0 z-0"></div>
+                <div id={scannerRegionId} className={`absolute inset-0 z-0 h-full w-full ${scannedProduct ? '!hidden' : ''}`}></div>
                 
                 {!isScanning ? (
                   <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white z-10 p-6 text-center">
@@ -1201,28 +1199,20 @@ export default function NuevaVentaPage() {
                 )}
               </div>
               {isScanning && !scannedProduct && (
-                <div className={`z-20 flex flex-col gap-2 border-t border-white/15 bg-rio-ink text-white md:flex-row md:items-center ${totalItems > 0 && !cameraExpanded ? 'p-2 md:p-3' : 'p-3'}`}>
-                  {totalItems > 0 && !cameraExpanded && (
-                    <div className="flex items-center gap-2 md:hidden">
-                      <span className="min-w-0 flex-1 truncate text-xs font-semibold">{totalItems} refs · {cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds en el pedido</span>
-                      <button type="button" onClick={() => scrollToSection('pedido-actual')} className="min-h-10 shrink-0 rounded-lg bg-white px-3 text-xs font-bold text-rio-ink">Ver pedido</button>
-                      <button type="button" onClick={() => setCameraExpanded(true)} className="min-h-10 shrink-0 rounded-lg border border-white/30 px-3 text-xs font-bold">Ampliar</button>
-                      <button type="button" onClick={stopScanner} className="min-h-10 shrink-0 rounded-lg border border-white/30 px-3 text-xs font-bold">Pausar</button>
-                    </div>
-                  )}
+                <div className="z-20 flex flex-col gap-2 border-t border-white/15 bg-rio-ink p-3 text-white md:flex-row md:items-center">
                   {cameraDevices.length > 1 && (
-                    <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className={`min-h-11 min-w-0 flex-1 rounded-xl border border-white/25 bg-rio-ink px-3 text-base font-semibold text-white md:text-sm ${totalItems > 0 && !cameraExpanded ? 'hidden md:block' : ''}`}>
+                    <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/25 bg-rio-ink px-3 text-base font-semibold text-white md:text-sm">
                       {cameraDevices.map((camera, index) => <option key={camera.id} value={camera.id}>{camera.label || `Cámara ${index + 1}`}</option>)}
                     </select>
                   )}
                   {zoomRange && (
-                    <div className={`min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold ${totalItems > 0 && !cameraExpanded ? 'hidden md:flex' : 'flex'}`}>
+                    <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold">
                       <span>Zoom</span>
                       <input aria-label="Zoom de cámara" type="range" min={zoomRange.min} max={zoomRange.max} step={zoomRange.step} value={zoomValue} onChange={event => changeZoom(Number(event.target.value))} className="min-w-0 flex-1" />
                       <span className="tabular-nums">{zoomValue.toFixed(1)}×</span>
                     </div>
                   )}
-                  <button onClick={stopScanner} className={`min-h-11 shrink-0 rounded-xl border border-white/25 px-4 text-sm font-bold hover:bg-white/10 ${totalItems > 0 && !cameraExpanded ? 'hidden md:block' : ''}`}>Pausar cámara</button>
+                  <button onClick={stopScanner} className="min-h-11 shrink-0 rounded-xl border border-white/25 px-4 text-sm font-bold hover:bg-white/10">Pausar cámara</button>
                 </div>
               )}
             </div>
@@ -1235,9 +1225,6 @@ export default function NuevaVentaPage() {
                 <h2 className="font-serif font-bold text-xl text-rio-ink">Pedido actual</h2>
               </div>
               <span className="bg-rio-surface-muted px-2 py-1 rounded-full text-[11px] font-bold text-rio-ink">{totalItems} refs</span>
-              {totalItems > 0 && (
-                <button type="button" onClick={() => { setCameraExpanded(true); scrollToSection('scanner-venta'); }} className="min-h-10 rounded-lg px-3 text-xs font-bold text-rio-gold-dark md:hidden">Escanear</button>
-              )}
             </div>
             
             <div className="flex-1 overflow-y-auto overflow-x-hidden border border-rio-border rounded-xl bg-rio-background/50 p-2 space-y-2 mb-4">
