@@ -308,8 +308,16 @@ export default function NuevaVentaPage() {
   useEffect(() => {
     if (scannedProduct || !resumeAfterProductRef.current) return;
     resumeAfterProductRef.current = false;
-    // Reanudar después de que React vuelva a mostrar el visor y recupere sus dimensiones.
-    if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
+    let cancelled = false;
+    // Safari puede dejar detenido el decodificador tras pause/resume o un cambio de tamaño.
+    // Reconstruirlo aquí calibra el lector con el visor visible y su tamaño final.
+    if (scannerRef.current) {
+      void (async () => {
+        await stopScanner();
+        if (!cancelled) await startScanner();
+      })();
+    }
+    return () => { cancelled = true; };
   }, [scannedProduct]);
 
   const scrollToSection = (id: string) => {
@@ -1069,7 +1077,7 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <div id="scanner-venta" data-testid="seller-camera-viewport" className={`relative shrink-0 overflow-hidden scroll-mt-24 md:h-auto md:min-h-0 ${scannedProduct ? 'h-auto min-h-0 bg-white' : totalItems > 0 ? 'h-[min(34svh,280px)] min-h-[260px] bg-black md:flex-1' : 'h-[min(42svh,360px)] min-h-[260px] bg-black md:flex-1'}`}>
+              <div id="scanner-venta" data-testid="seller-camera-viewport" className={`relative shrink-0 overflow-hidden scroll-mt-24 ${scannedProduct ? 'h-[180px] bg-black md:h-[220px]' : 'h-[min(34svh,280px)] min-h-[260px] bg-black md:flex-1'}`}>
                 <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
                   #qr-reader video { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: contain !important; }
@@ -1077,7 +1085,7 @@ export default function NuevaVentaPage() {
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>
                 
-                <div id={scannerRegionId} className={`absolute inset-0 z-0 h-full w-full ${scannedProduct ? 'invisible' : ''}`}></div>
+                <div id={scannerRegionId} className="absolute inset-0 z-0 h-full w-full"></div>
                 
                 {!isScanning ? (
                   <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white z-10 p-6 text-center">
@@ -1091,6 +1099,8 @@ export default function NuevaVentaPage() {
                     </button>
                   </div>
                 ) : null}
+
+              </div>
 
                 {scannedProduct && (
                   <div className="relative bg-white z-40 flex flex-col p-4 sm:p-6 animate-zoom-in">
@@ -1208,7 +1218,6 @@ export default function NuevaVentaPage() {
                       </div>
                   </div>
                 )}
-              </div>
               {isScanning && !scannedProduct && (
                 <div className="z-20 flex flex-col gap-2 border-t border-white/15 bg-rio-ink p-3 text-white md:flex-row md:items-center">
                   {cameraDevices.length > 1 && (
