@@ -6,7 +6,7 @@ import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 let mockSyncCalled = false;
 let mockSyncUuid = '';
 let mockAddPendingOrder = vi.fn();
-const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), stops: vi.fn(), pauses: vi.fn(), getCameras: vi.fn(), scanCallbacks: [] as Array<(sku: string) => void> }));
+const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), configs: vi.fn(), stops: vi.fn(), pauses: vi.fn(), getCameras: vi.fn(), scanCallbacks: [] as Array<(sku: string) => void> }));
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
@@ -64,6 +64,7 @@ vi.mock('html5-qrcode', () => ({
     start(camera: any, _config: unknown, onScan: (sku: string) => void) {
       this.cameraId = camera.deviceId?.exact || 'cam-main';
       cameraMocks.starts(camera);
+      cameraMocks.configs(_config);
       cameraMocks.scanCallbacks.push(onScan);
       return Promise.resolve(null);
     }
@@ -145,6 +146,10 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
 
     const viewport = screen.getByTestId('seller-camera-viewport');
     expect(viewport.className).toContain('min-h-[260px]');
+    const guide = screen.getByTestId('seller-qr-guide');
+    expect(guide.style.width).toBe(guide.style.height);
+    const qrbox = cameraMocks.configs.mock.lastCall?.[0].qrbox as (width: number, height: number) => { width: number; height: number };
+    expect(qrbox(360, 640)).toEqual(qrbox(640, 360));
     await act(async () => { cameraMocks.scanCallbacks[0]('SKU1'); });
     await screen.findByRole('button', { name: 'Agregar a la Orden' });
     expect(document.getElementById('qr-reader')?.className).not.toContain('invisible');

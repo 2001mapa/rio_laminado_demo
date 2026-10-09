@@ -249,6 +249,7 @@ export default function NuevaVentaPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [cameraDevices, setCameraDevices] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [qrGuideSize, setQrGuideSize] = useState(180);
   const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
   const [zoomValue, setZoomValue] = useState(1);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -304,6 +305,20 @@ export default function NuevaVentaPage() {
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
   const preferredCameraKey = 'seller-preferred-camera-id';
+
+  useEffect(() => {
+    if (!isScanning) return;
+    const video = document.querySelector<HTMLVideoElement>(`#${scannerRegionId} video`);
+    if (!video) return;
+    const updateGuide = () => {
+      const shortestSide = Math.min(video.clientWidth, video.clientHeight);
+      if (shortestSide > 0) setQrGuideSize(Math.min(shortestSide, Math.max(150, Math.min(250, shortestSide * 0.7))));
+    };
+    updateGuide();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateGuide) : null;
+    observer?.observe(video);
+    return () => observer?.disconnect();
+  }, [isScanning, selectedCameraId]);
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
@@ -380,7 +395,7 @@ export default function NuevaVentaPage() {
     const safeQrbox = (w: number, h: number) => {
       const minEdge = Math.min(w, h);
       if (minEdge === 0) return { width: 250, height: 250 };
-      const size = Math.max(150, Math.min(250, minEdge * 0.7));
+      const size = Math.min(minEdge, Math.max(150, Math.min(250, minEdge * 0.7)));
       return { width: size, height: size };
     };
 
@@ -1075,12 +1090,24 @@ export default function NuevaVentaPage() {
 
               <div id="scanner-venta" data-testid="seller-camera-viewport" className="relative h-[min(34svh,280px)] min-h-[260px] shrink-0 overflow-hidden scroll-mt-24 bg-black">
                 <style>{`
-                  #qr-reader { width: 100%; height: 100%; border: none !important; }
-                  #qr-reader__scan_region { max-width: 100% !important; overflow: hidden; }
+                  #qr-reader { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; overflow: hidden; border: none !important; }
+                  #qr-reader video { width: auto !important; height: auto !important; max-width: 100% !important; max-height: 100% !important; }
+                  #qr-shaded-region { display: none !important; }
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>
                 
                 <div id={scannerRegionId} className="absolute inset-0 z-0 h-full w-full"></div>
+
+                {isScanning && (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
+                    <div data-testid="seller-qr-guide" className="relative" style={{ width: qrGuideSize, height: qrGuideSize }}>
+                      <span className={`absolute left-0 top-0 h-9 w-9 border-l-[3px] border-t-[3px] ${scannedProduct ? 'border-emerald-400' : 'border-white'}`} />
+                      <span className={`absolute right-0 top-0 h-9 w-9 border-r-[3px] border-t-[3px] ${scannedProduct ? 'border-emerald-400' : 'border-white'}`} />
+                      <span className={`absolute bottom-0 left-0 h-9 w-9 border-b-[3px] border-l-[3px] ${scannedProduct ? 'border-emerald-400' : 'border-white'}`} />
+                      <span className={`absolute bottom-0 right-0 h-9 w-9 border-b-[3px] border-r-[3px] ${scannedProduct ? 'border-emerald-400' : 'border-white'}`} />
+                    </div>
+                  </div>
+                )}
                 
                 {!isScanning ? (
                   <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white z-10 p-6 text-center">
