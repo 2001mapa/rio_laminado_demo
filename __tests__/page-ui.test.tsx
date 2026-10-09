@@ -6,7 +6,7 @@ import NuevaVentaPage from '@/app/vendedor/nueva-venta/page';
 let mockSyncCalled = false;
 let mockSyncUuid = '';
 let mockAddPendingOrder = vi.fn();
-const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), getCameras: vi.fn() }));
+const cameraMocks = vi.hoisted(() => ({ applyZoom: vi.fn(), starts: vi.fn(), getCameras: vi.fn(), resume: vi.fn() }));
 
 vi.mock('@/lib/DemoContext', () => ({
   useDemo: () => ({
@@ -67,6 +67,8 @@ vi.mock('html5-qrcode', () => ({
     }
     stop() { return Promise.resolve(); }
     clear() {}
+    pause() {}
+    resume() { cameraMocks.resume(document.getElementById('qr-reader')?.className); }
     getState() { return 2; }
     getRunningTrackSettings() { return { deviceId: this.cameraId }; }
     getRunningTrackCameraCapabilities() {
@@ -123,6 +125,7 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
   });
 
   it('oculta el visor al elegir un artículo y conserva los controles al reanudar', async () => {
+    cameraMocks.resume.mockClear();
     localStorage.removeItem('seller-preferred-camera-id');
     cameraMocks.applyZoom.mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
@@ -142,12 +145,14 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     fireEvent.change(skuInput, { target: { value: 'SKU1' } });
     fireEvent.submit(skuInput.closest('form')!);
     await screen.findByRole('button', { name: 'Agregar a la Orden' });
-    expect(document.getElementById('qr-reader')?.className).toContain('!hidden');
+    expect(document.getElementById('qr-reader')?.className).toContain('invisible');
     expect(viewport.className).toContain('h-auto');
     fireEvent.click(await screen.findByRole('button', { name: 'Agregar a la Orden' }));
 
     expect(viewport.className).toContain('h-[min(34svh,280px)]');
-    expect(document.getElementById('qr-reader')?.className).not.toContain('!hidden');
+    expect(document.getElementById('qr-reader')?.className).not.toContain('invisible');
+    await waitFor(() => expect(cameraMocks.resume).toHaveBeenCalledTimes(1));
+    expect(cameraMocks.resume.mock.calls[0][0]).not.toContain('invisible');
     expect(screen.queryByRole('button', { name: 'Ver pedido' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ampliar' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Escanear' })).toBeNull();

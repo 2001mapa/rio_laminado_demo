@@ -300,9 +300,17 @@ export default function NuevaVentaPage() {
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanConfirmationRef = useRef(createScanConfirmation());
+  const resumeAfterProductRef = useRef(false);
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
   const preferredCameraKey = 'seller-preferred-camera-id';
+
+  useEffect(() => {
+    if (scannedProduct || !resumeAfterProductRef.current) return;
+    resumeAfterProductRef.current = false;
+    // Reanudar después de que React vuelva a mostrar el visor y recupere sus dimensiones.
+    if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
+  }, [scannedProduct]);
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
@@ -508,10 +516,12 @@ export default function NuevaVentaPage() {
         } catch(e) {}
       } else {
         addToast(error || `SKU no encontrado: ${sku}`);
+        scanConfirmationRef.current.release();
         if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
       }
     } catch (err) {
       addToast('Error al procesar el escaneo');
+      scanConfirmationRef.current.release();
       if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
     }
   };
@@ -583,14 +593,15 @@ export default function NuevaVentaPage() {
     });
     
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
+    resumeAfterProductRef.current = true;
     setScannedProduct(null);
-    
-    if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
+    scanConfirmationRef.current.release();
   };
 
   const cancelScan = () => {
+    resumeAfterProductRef.current = true;
     setScannedProduct(null);
-    if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
+    scanConfirmationRef.current.release();
   };
 
   const handleCheckout = async () => {
@@ -1066,7 +1077,7 @@ export default function NuevaVentaPage() {
                   #qr-reader__dashboard_section_csr { display: none !important; }
                 `}</style>
                 
-                <div id={scannerRegionId} className={`absolute inset-0 z-0 h-full w-full ${scannedProduct ? '!hidden' : ''}`}></div>
+                <div id={scannerRegionId} className={`absolute inset-0 z-0 h-full w-full ${scannedProduct ? 'invisible' : ''}`}></div>
                 
                 {!isScanning ? (
                   <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white z-10 p-6 text-center">

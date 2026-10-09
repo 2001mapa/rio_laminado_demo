@@ -1,26 +1,26 @@
 export function createScanConfirmation() {
-  let candidate = '';
-  let firstSeenAt = 0;
-  let lastSeenAt = 0;
+  let activeCode = '';
+  let lastCode = '';
+  let lastReleasedAt = 0;
+  const repeatCooldownMs = 1200;
 
   return {
     reset() {
-      candidate = '';
-      firstSeenAt = 0;
-      lastSeenAt = 0;
+      activeCode = '';
+      lastCode = '';
+      lastReleasedAt = 0;
+    },
+    release(now = Date.now()) {
+      if (!activeCode) return;
+      lastCode = activeCode;
+      lastReleasedAt = now;
+      activeCode = '';
     },
     accept(value: string, now = Date.now()) {
       const code = value.trim();
-      if (!code) return false;
-      if (code !== candidate || now - lastSeenAt > 500) {
-        candidate = code;
-        firstSeenAt = now;
-        lastSeenAt = now;
-        return false;
-      }
-      lastSeenAt = now;
-      if (now - firstSeenAt < 300) return false;
-      this.reset();
+      if (!code || activeCode) return false;
+      if (code === lastCode && now - lastReleasedAt < repeatCooldownMs) return false;
+      activeCode = code;
       return true;
     },
   };
