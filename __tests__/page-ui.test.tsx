@@ -118,7 +118,41 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     await waitFor(() => expect(cameraMocks.applyZoom).toHaveBeenCalledWith(2));
     fireEvent.change(screen.getByRole('combobox', { name: 'Elegir cámara' }), { target: { value: 'cam-wide' } });
     await waitFor(() => expect(cameraMocks.starts).toHaveBeenCalledWith({ deviceId: { exact: 'cam-wide' } }));
+    await waitFor(() => expect(localStorage.getItem('seller-preferred-camera-id')).toBe('cam-wide'));
     expect(cameraMocks.getCameras).not.toHaveBeenCalled();
+  });
+
+  it('compacta la cámara tras agregar y permite alternar entre pedido y escaneo sin cambiar la URL', async () => {
+    localStorage.removeItem('seller-preferred-camera-id');
+    cameraMocks.applyZoom.mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn().mockResolvedValue([{ kind: 'videoinput', deviceId: 'cam-main', label: 'Cámara principal' }]),
+    } });
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+
+    render(<NuevaVentaPage />);
+    fireEvent.click((await screen.findAllByText(/Cliente UI/i))[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Activar Lector QR' }));
+    await screen.findByRole('button', { name: 'Pausar cámara' });
+
+    const viewport = screen.getByTestId('seller-camera-viewport');
+    expect(viewport.className).toContain('min-h-[260px]');
+    const skuInput = screen.getByPlaceholderText('Ingresar SKU manualmente');
+    fireEvent.change(skuInput, { target: { value: 'SKU1' } });
+    fireEvent.submit(skuInput.closest('form')!);
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar a la Orden' }));
+
+    expect(viewport.className).toContain('h-[min(34svh,280px)]');
+    expect(screen.getByRole('button', { name: 'Ver pedido' })).toBeTruthy();
+    const originalHash = window.location.hash;
+    fireEvent.click(screen.getByRole('button', { name: 'Ver pedido' }));
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(window.location.hash).toBe(originalHash);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Escanear' }));
+    expect(viewport.className).toContain('min-h-[260px]');
+    expect(screen.getByRole('button', { name: 'Pausar cámara' })).toBeTruthy();
   });
 
   it('Verifica que Reintentar desaparece en rechazos de negocio (failed_fatal) y se permite Descartar', async () => {

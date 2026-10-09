@@ -249,6 +249,7 @@ export default function NuevaVentaPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [cameraDevices, setCameraDevices] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [cameraExpanded, setCameraExpanded] = useState(false);
   const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
   const [zoomValue, setZoomValue] = useState(1);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -302,6 +303,11 @@ export default function NuevaVentaPage() {
   const scanConfirmationRef = useRef(createScanConfirmation());
   const isStartingRef = useRef(false);
   const scannerRegionId = "qr-reader";
+  const preferredCameraKey = 'seller-preferred-camera-id';
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
 
   const loadCameraControls = async (scanner: Html5Qrcode, requestedCameraId?: string) => {
     try {
@@ -310,6 +316,7 @@ export default function NuevaVentaPage() {
       const devices = await navigator.mediaDevices.enumerateDevices();
       setCameraDevices(devices.filter(device => device.kind === 'videoinput' && device.deviceId).map(device => ({ id: device.deviceId, label: device.label })));
       setSelectedCameraId(scanner.getRunningTrackSettings().deviceId || requestedCameraId || '');
+      if (requestedCameraId) localStorage.setItem(preferredCameraKey, requestedCameraId);
     } catch {
       setCameraDevices([]);
     }
@@ -379,6 +386,7 @@ export default function NuevaVentaPage() {
 
     try {
       scanConfirmationRef.current.reset();
+      const preferredCameraId = cameraId || localStorage.getItem(preferredCameraKey) || undefined;
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(scannerRegionId);
       }
@@ -386,7 +394,7 @@ export default function NuevaVentaPage() {
 
       // Intentar primero con facingMode environment (estándar y más compatible con iOS/Safari)
       await scanner.start(
-        cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" },
+        preferredCameraId ? { deviceId: { exact: preferredCameraId } } : { facingMode: "environment" },
         { fps: 10, qrbox: safeQrbox },
         (decodedText) => {
           if (!scanConfirmationRef.current.accept(decodedText)) return;
@@ -396,9 +404,10 @@ export default function NuevaVentaPage() {
         (error) => {}
       );
       setIsScanning(true);
-      await loadCameraControls(scanner, cameraId);
+      await loadCameraControls(scanner, preferredCameraId);
     } catch (err: any) {
       console.error("Error starting scanner with environment", err);
+      if (localStorage.getItem(preferredCameraKey)) localStorage.removeItem(preferredCameraKey);
       // Fallback: listar cámaras e intentar con el primer deviceId disponible
       try {
         const cameras = await Html5Qrcode.getCameras();
@@ -576,6 +585,7 @@ export default function NuevaVentaPage() {
     
     addToast(`Unidades de ${scannedProduct.name} actualizadas.`);
     setScannedProduct(null);
+    setCameraExpanded(false);
     
     if (scannerRef.current) { try { scannerRef.current.resume(); } catch(e){} }
   };
@@ -981,10 +991,10 @@ export default function NuevaVentaPage() {
               </div>
 
               <div className="flex min-h-12 items-center gap-2 border-b border-rio-border bg-rio-gold-light/10 px-4 py-2 text-sm text-rio-ink md:hidden">
-                <a href="#pedido-actual" className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <button type="button" onClick={() => scrollToSection('pedido-actual')} className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
                   <span className="truncate font-semibold">Pedido: {totalItems} refs · {cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds</span>
                   <span className="shrink-0 font-bold text-rio-gold-dark">{showOrderTotal ? formatPrice(totalAmount) : '••••••'}</span>
-                </a>
+                </button>
                 <button type="button" onClick={toggleOrderTotal} aria-label={showOrderTotal ? 'Ocultar total del pedido' : 'Mostrar total del pedido'} aria-pressed={showOrderTotal} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-rio-gold-dark hover:bg-rio-gold-light/30">
                   {showOrderTotal ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -1050,7 +1060,7 @@ export default function NuevaVentaPage() {
                 </div>
               </div>
 
-              <div className={`relative shrink-0 overflow-hidden md:h-auto md:min-h-0 ${scannedProduct ? 'h-auto min-h-0 bg-white' : 'h-[min(42svh,360px)] min-h-[260px] bg-black md:flex-1'}`}>
+              <div id="scanner-venta" data-testid="seller-camera-viewport" className={`relative shrink-0 overflow-hidden scroll-mt-24 md:h-auto md:min-h-0 ${scannedProduct ? 'h-auto min-h-0 bg-white' : totalItems > 0 && !cameraExpanded ? 'h-[min(34svh,280px)] min-h-[260px] bg-black md:flex-1' : 'h-[min(42svh,360px)] min-h-[260px] bg-black md:flex-1'}`}>
                 <style>{`
                   #qr-reader { width: 100%; height: 100%; border: none !important; }
                   #qr-reader video { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: contain !important; }
@@ -1191,32 +1201,43 @@ export default function NuevaVentaPage() {
                 )}
               </div>
               {isScanning && !scannedProduct && (
-                <div className="z-20 flex flex-col gap-2 border-t border-white/15 bg-rio-ink p-3 text-white md:flex-row md:items-center">
+                <div className={`z-20 flex flex-col gap-2 border-t border-white/15 bg-rio-ink text-white md:flex-row md:items-center ${totalItems > 0 && !cameraExpanded ? 'p-2 md:p-3' : 'p-3'}`}>
+                  {totalItems > 0 && !cameraExpanded && (
+                    <div className="flex items-center gap-2 md:hidden">
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold">{totalItems} refs · {cartItems.reduce((sum, item) => sum + item.quantity, 0)} uds en el pedido</span>
+                      <button type="button" onClick={() => scrollToSection('pedido-actual')} className="min-h-10 shrink-0 rounded-lg bg-white px-3 text-xs font-bold text-rio-ink">Ver pedido</button>
+                      <button type="button" onClick={() => setCameraExpanded(true)} className="min-h-10 shrink-0 rounded-lg border border-white/30 px-3 text-xs font-bold">Ampliar</button>
+                      <button type="button" onClick={stopScanner} className="min-h-10 shrink-0 rounded-lg border border-white/30 px-3 text-xs font-bold">Pausar</button>
+                    </div>
+                  )}
                   {cameraDevices.length > 1 && (
-                    <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/25 bg-rio-ink px-3 text-base font-semibold text-white md:text-sm">
+                    <select aria-label="Elegir cámara" value={selectedCameraId} onChange={event => switchCamera(event.target.value)} className={`min-h-11 min-w-0 flex-1 rounded-xl border border-white/25 bg-rio-ink px-3 text-base font-semibold text-white md:text-sm ${totalItems > 0 && !cameraExpanded ? 'hidden md:block' : ''}`}>
                       {cameraDevices.map((camera, index) => <option key={camera.id} value={camera.id}>{camera.label || `Cámara ${index + 1}`}</option>)}
                     </select>
                   )}
                   {zoomRange && (
-                    <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold">
+                    <div className={`min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold ${totalItems > 0 && !cameraExpanded ? 'hidden md:flex' : 'flex'}`}>
                       <span>Zoom</span>
                       <input aria-label="Zoom de cámara" type="range" min={zoomRange.min} max={zoomRange.max} step={zoomRange.step} value={zoomValue} onChange={event => changeZoom(Number(event.target.value))} className="min-w-0 flex-1" />
                       <span className="tabular-nums">{zoomValue.toFixed(1)}×</span>
                     </div>
                   )}
-                  <button onClick={stopScanner} className="min-h-11 shrink-0 rounded-xl border border-white/25 px-4 text-sm font-bold hover:bg-white/10">Pausar cámara</button>
+                  <button onClick={stopScanner} className={`min-h-11 shrink-0 rounded-xl border border-white/25 px-4 text-sm font-bold hover:bg-white/10 ${totalItems > 0 && !cameraExpanded ? 'hidden md:block' : ''}`}>Pausar cámara</button>
                 </div>
               )}
             </div>
           </div>
 
-          <div id="pedido-actual" className="w-full md:w-[450px] shrink-0 md:pl-6 md:border-l md:border-rio-border flex flex-col min-h-[250px] md:h-full scroll-mt-20">
+          <div id="pedido-actual" className="w-full md:w-[450px] shrink-0 md:pl-6 md:border-l md:border-rio-border flex flex-col min-h-[250px] md:h-full scroll-mt-24">
             <div className="flex items-center justify-between mb-4 shrink-0">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-rio-gold-dark"/>
                 <h2 className="font-serif font-bold text-xl text-rio-ink">Pedido actual</h2>
               </div>
               <span className="bg-rio-surface-muted px-2 py-1 rounded-full text-[11px] font-bold text-rio-ink">{totalItems} refs</span>
+              {totalItems > 0 && (
+                <button type="button" onClick={() => { setCameraExpanded(true); scrollToSection('scanner-venta'); }} className="min-h-10 rounded-lg px-3 text-xs font-bold text-rio-gold-dark md:hidden">Escanear</button>
+              )}
             </div>
             
             <div className="flex-1 overflow-y-auto overflow-x-hidden border border-rio-border rounded-xl bg-rio-background/50 p-2 space-y-2 mb-4">
