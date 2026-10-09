@@ -127,6 +127,7 @@ describe('Fallas Reales en IDB y Recargas (Fase 4)', () => {
       
       await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
       
+      fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
       if (addBtn) fireEvent.click(addBtn);
@@ -164,6 +165,7 @@ describe('Fallas Reales en IDB y Recargas (Fase 4)', () => {
       
       await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
       
+      fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
       if (addBtn) fireEvent.click(addBtn);
@@ -219,6 +221,7 @@ describe('Fallas Reales en IDB y Recargas (Fase 4)', () => {
       
       await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
       
+      fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
       if (addBtn) fireEvent.click(addBtn);
@@ -268,6 +271,7 @@ describe('Fallas Reales en IDB y Recargas (Fase 4)', () => {
       
       await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
       
+      fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
       if (addBtn) fireEvent.click(addBtn);

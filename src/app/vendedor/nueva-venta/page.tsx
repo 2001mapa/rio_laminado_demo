@@ -255,10 +255,11 @@ export default function NuevaVentaPage() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
-  const [scanQuantity, setScanQuantity] = useState(1);
+  const [scanQuantity, setScanQuantity] = useState('');
   const [scanSizes, setScanSizes] = useState<{size: string, quantity: number}[]>([]);
+  const [scanSizeQtyDrafts, setScanSizeQtyDrafts] = useState<Record<string, string>>({});
   const [scanSizeInput, setScanSizeInput] = useState('');
-  const [scanSizeQtyInput, setScanSizeQtyInput] = useState(1);
+  const [scanSizeQtyInput, setScanSizeQtyInput] = useState('');
   const [manualSku, setManualSku] = useState("");
   const [skuSuggestions, setSkuSuggestions] = useState<Product[]>([]);
   const [isSearchingSku, setIsSearchingSku] = useState(false);
@@ -528,10 +529,11 @@ export default function NuevaVentaPage() {
 
       if (product) {
         setScannedProduct(product as Product);
-        setScanQuantity(1);
+        setScanQuantity('');
         setScanSizes([]);
+        setScanSizeQtyDrafts({});
         setScanSizeInput('');
-        setScanSizeQtyInput(1);
+        setScanSizeQtyInput('');
         try {
           const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
           audio.volume = 0.5;
@@ -547,15 +549,41 @@ export default function NuevaVentaPage() {
     }
   };
 
+  const commitScanSizeQuantity = (size: string) => {
+    if (!scannedProduct) return;
+    const draft = scanSizeQtyDrafts[size];
+    if (draft === undefined) return;
+    const quantity = Number(draft);
+    const current = scanSizes.find(item => item.size === size);
+    const inCart = cartItems.find(item => item.product.id === scannedProduct.id)?.quantity ?? 0;
+    const remaining = scannedProduct.physicalStock - scannedProduct.reservedStock - inCart;
+    const otherSizes = scanSizes.reduce((total, item) => total + (item.size === size ? 0 : item.quantity), 0);
+
+    if (!current || !Number.isInteger(quantity) || quantity < 1 || otherSizes + quantity > remaining) {
+      addToast(`Ingresa una cantidad válida. Máximo disponible para T${size}: ${Math.max(0, remaining - otherSizes)}.`);
+    } else {
+      setScanSizes(prev => prev.map(item => item.size === size ? { ...item, quantity } : item));
+    }
+    setScanSizeQtyDrafts(prev => {
+      const next = { ...prev };
+      delete next[size];
+      return next;
+    });
+  };
+
   const confirmScan = () => {
     if (!scannedProduct) return;
+    if (Object.keys(scanSizeQtyDrafts).length > 0) {
+      addToast('Termina de editar la cantidad de la talla antes de agregarla.');
+      return;
+    }
     
     const isAnillo = scannedProduct.category === 'Anillos';
     const totalAnilloQty = scanSizes.reduce((acc, s) => acc + s.quantity, 0);
-    const sumOfSizes = isAnillo ? totalAnilloQty : scanQuantity;
+    const sumOfSizes = isAnillo ? totalAnilloQty : Number(scanQuantity);
 
-    if (isAnillo && sumOfSizes === 0) {
-      addToast('Debes agregar al menos una talla');
+    if (!Number.isInteger(sumOfSizes) || sumOfSizes < 1) {
+      addToast(isAnillo ? 'Debes agregar al menos una talla' : 'Ingresa una cantidad válida');
       return;
     }
     
@@ -1154,29 +1182,37 @@ export default function NuevaVentaPage() {
                           
                           <div className="flex gap-2 mb-4">
                             <input type="text" inputMode="numeric" aria-label="Talla del anillo" placeholder="Talla" value={scanSizeInput} onChange={e => setScanSizeInput(e.target.value)} className="flex-1 min-w-0 bg-rio-background border border-rio-border rounded-xl px-3 py-2 text-base focus:outline-none" />
-                            <input type="number" inputMode="numeric" aria-label="Cantidad por talla" min="1" value={scanSizeQtyInput} onChange={e => setScanSizeQtyInput(parseInt(e.target.value) || 1)} className="w-16 shrink-0 bg-rio-background border border-rio-border rounded-xl px-2 py-2 text-base text-center focus:outline-none" />
+                            <input type="text" inputMode="numeric" pattern="[0-9]*" aria-label="Cantidad por talla" placeholder="Cant." value={scanSizeQtyInput} onChange={e => { if (/^\d*$/.test(e.target.value)) setScanSizeQtyInput(e.target.value); }} className="w-16 shrink-0 bg-rio-background border border-rio-border rounded-xl px-2 py-2 text-base text-center focus:outline-none" />
                             <button onClick={() => {
-                              if(scanSizeInput.trim() && scanSizeQtyInput > 0) {
+                              const quantity = Number(scanSizeQtyInput);
+                              if (!scanSizeInput.trim() || !Number.isInteger(quantity) || quantity < 1) {
+                                addToast('Escribe la talla y una cantidad válida.');
+                                return;
+                              }
                                 const currentTotal = scanSizes.reduce((acc, s) => acc + s.quantity, 0);
                                 const availableStock = scannedProduct.physicalStock - scannedProduct.reservedStock;
                                 const cartExisting = cartItems.find(i => i.product.id === scannedProduct.id);
                                 const inCartQty = cartExisting ? cartExisting.quantity : 0;
                                 const remainingStock = availableStock - inCartQty;
                                 
-                                if (currentTotal + scanSizeQtyInput > remainingStock) {
+                                if (currentTotal + quantity > remainingStock) {
                                   window.dispatchEvent(new CustomEvent('rio:toast', { detail: { message: `Solo quedan ${remainingStock} unidades disponibles.`, type: 'error' } }));
                                   return;
                                 }
 
                                 const isDuplicate = scanSizes.some(s => s.size === scanSizeInput.trim());
                                 if (isDuplicate) {
-                                  setScanSizes(prev => prev.map(s => s.size === scanSizeInput.trim() ? {...s, quantity: s.quantity + scanSizeQtyInput} : s));
+                                  setScanSizes(prev => prev.map(s => s.size === scanSizeInput.trim() ? {...s, quantity: s.quantity + quantity} : s));
+                                  setScanSizeQtyDrafts(prev => {
+                                    const next = { ...prev };
+                                    delete next[scanSizeInput.trim()];
+                                    return next;
+                                  });
                                 } else {
-                                  setScanSizes([...scanSizes, {size: scanSizeInput.trim(), quantity: scanSizeQtyInput}]);
+                                  setScanSizes([...scanSizes, {size: scanSizeInput.trim(), quantity}]);
                                 }
-                                setScanSizeInput(''); setScanSizeQtyInput(1);
-                              }
-                            }} className="bg-rio-ink text-white p-2 rounded-xl">
+                                setScanSizeInput(''); setScanSizeQtyInput('');
+                            }} aria-label="Agregar talla" className="bg-rio-ink text-white p-2 rounded-xl">
                               <Plus className="w-5 h-5"/>
                             </button>
                           </div>
@@ -1187,8 +1223,30 @@ export default function NuevaVentaPage() {
                                 {scanSizes.map((s, idx) => (
                                   <div key={idx} className="flex items-center gap-1 bg-white border border-rio-border px-2 py-1 rounded-lg text-xs">
                                     <span className="font-medium text-rio-ink">T{s.size}</span>
-                                    <span className="text-rio-muted">x{s.quantity}</span>
-                                    <button onClick={() => setScanSizes(scanSizes.filter(ss => ss.size !== s.size))} className="ml-0.5 text-rio-danger hover:opacity-80">
+                                    <label className="flex items-center text-rio-muted">
+                                      x<input
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        aria-label={`Cantidad talla ${s.size}`}
+                                        value={scanSizeQtyDrafts[s.size] ?? String(s.quantity)}
+                                        onFocus={e => e.target.select()}
+                                        onChange={e => {
+                                          if (/^\d*$/.test(e.target.value)) setScanSizeQtyDrafts(prev => ({ ...prev, [s.size]: e.target.value }));
+                                        }}
+                                        onBlur={() => commitScanSizeQuantity(s.size)}
+                                        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                                        className="ml-0.5 w-8 rounded border border-transparent bg-transparent text-center text-rio-ink outline-none focus:border-rio-gold-dark focus:bg-white"
+                                      />
+                                    </label>
+                                    <button onClick={() => {
+                                      setScanSizes(prev => prev.filter(item => item.size !== s.size));
+                                      setScanSizeQtyDrafts(prev => {
+                                        const next = { ...prev };
+                                        delete next[s.size];
+                                        return next;
+                                      });
+                                    }} aria-label={`Quitar talla ${s.size}`} className="ml-0.5 text-rio-danger hover:opacity-80">
                                       <X className="w-3 h-3" />
                                     </button>
                                   </div>
@@ -1201,28 +1259,31 @@ export default function NuevaVentaPage() {
                         <>
                           <p className="text-xs font-bold text-rio-ink mb-2 text-center uppercase tracking-wider">Cantidad Solicitada</p>
                           <div className="flex items-center justify-center gap-4 mb-6">
-                            <button onClick={() => setScanQuantity(Math.max(1, scanQuantity - 1))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink disabled:opacity-50" disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
+                            <button onClick={() => setScanQuantity(String(Math.max(1, Number(scanQuantity || 1) - 1)))} className="w-12 h-12 rounded-full bg-rio-surface-muted flex items-center justify-center hover:bg-rio-border active:scale-95 transition-all text-rio-ink disabled:opacity-50" disabled={!scanQuantity || Number(scanQuantity) <= 1 || (scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
                               <Minus className="w-5 h-5"/>
                             </button>
                             <input 
-                              type="number"
+                              type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
-                              value={scanQuantity === 0 ? '' : scanQuantity}
+                              aria-label="Cantidad solicitada"
+                              placeholder="0"
+                              value={scanQuantity}
                               disabled={(scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                let newQuantity = isNaN(val) ? 0 : val;
-                                if (newQuantity > (scannedProduct.physicalStock - scannedProduct.reservedStock)) newQuantity = (scannedProduct.physicalStock - scannedProduct.reservedStock);
-                                setScanQuantity(newQuantity);
+                                if (/^\d*$/.test(e.target.value)) setScanQuantity(e.target.value);
                               }}
                               onBlur={() => {
-                                if (scanQuantity < 1 && (scannedProduct.physicalStock - scannedProduct.reservedStock) > 0) setScanQuantity(1);
-                                if (scanQuantity > (scannedProduct.physicalStock - scannedProduct.reservedStock)) setScanQuantity((scannedProduct.physicalStock - scannedProduct.reservedStock));
+                                const quantity = Number(scanQuantity);
+                                const available = scannedProduct.physicalStock - scannedProduct.reservedStock;
+                                if (scanQuantity && quantity > available) {
+                                  setScanQuantity(String(available));
+                                  addToast(`Solo quedan ${available} unidades disponibles.`);
+                                }
                               }}
                               className="text-3xl font-black w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0 text-rio-ink disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
-                            <button onClick={() => setScanQuantity(Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), scanQuantity + 1))} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md disabled:bg-rio-border disabled:text-rio-muted disabled:shadow-none" disabled={scanQuantity >= (scannedProduct.physicalStock - scannedProduct.reservedStock) || (scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
+                            <button onClick={() => setScanQuantity(String(Math.min((scannedProduct.physicalStock - scannedProduct.reservedStock), Number(scanQuantity || 0) + 1)))} className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all text-white shadow-md disabled:bg-rio-border disabled:text-rio-muted disabled:shadow-none" disabled={Number(scanQuantity) >= (scannedProduct.physicalStock - scannedProduct.reservedStock) || (scannedProduct.physicalStock - scannedProduct.reservedStock) === 0}>
                               <Plus className="w-5 h-5"/>
                             </button>
                           </div>

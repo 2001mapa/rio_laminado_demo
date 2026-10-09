@@ -85,11 +85,36 @@ vi.mock('html5-qrcode', () => ({
 
 vi.mock('@/app/actions/queries', () => ({
   getProductsByIds: async () => ({ success: true, products: [] }),
-  getExactProductBySku: async () => ({ success: true, product: { id: 'missing-p1', name: 'MockProduct', sku: 'SKU1', category: 'Collares', material: 'Oro', price: 10, physicalStock: 10, reservedStock: 0 } })
+  getExactProductBySku: async (sku: string) => ({ success: true, product: sku === 'RING1'
+    ? { id: 'ring-p1', name: 'RingProduct', sku, category: 'Anillos', material: 'Oro', price: 10, physicalStock: 10, reservedStock: 0 }
+    : { id: 'missing-p1', name: 'MockProduct', sku: 'SKU1', category: 'Collares', material: 'Oro', price: 10, physicalStock: 10, reservedStock: 0 } })
 }));
 
 describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
   afterEach(() => cleanup());
+
+  it('permite escribir la cantidad por talla y editarla antes de agregar el anillo', async () => {
+    render(<NuevaVentaPage />);
+    fireEvent.click((await screen.findAllByText(/Cliente UI/i))[0]);
+    fireEvent.change(screen.getByPlaceholderText('Ingresar SKU manualmente'), { target: { value: 'RING1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await screen.findByRole('button', { name: 'Agregar a la Orden' });
+
+    const sizeInput = screen.getByRole('textbox', { name: 'Talla del anillo' });
+    const quantityInput = screen.getByRole('textbox', { name: 'Cantidad por talla' });
+    expect((quantityInput as HTMLInputElement).value).toBe('');
+    fireEvent.change(sizeInput, { target: { value: '6' } });
+    fireEvent.change(quantityInput, { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar talla' }));
+
+    const selectedQuantity = screen.getByRole('textbox', { name: 'Cantidad talla 6' }) as HTMLInputElement;
+    expect(selectedQuantity.value).toBe('2');
+    fireEvent.change(selectedQuantity, { target: { value: '3' } });
+    fireEvent.blur(selectedQuantity);
+    expect((screen.getByRole('textbox', { name: 'Cantidad talla 6' }) as HTMLInputElement).value).toBe('3');
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar a la Orden' }));
+    expect(screen.getByRole('button', { name: /Pedido: 1 refs · 3 uds/ })).toBeTruthy();
+  });
 
   it('oculta el total del vendedor y permite mostrarlo con el botón de ojo', async () => {
     localStorage.setItem('seller-order-total-visible', 'false');
@@ -152,6 +177,8 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     expect(qrbox(360, 640)).toEqual(qrbox(640, 360));
     await act(async () => { cameraMocks.scanCallbacks[0]('SKU1'); });
     await screen.findByRole('button', { name: 'Agregar a la Orden' });
+    expect((screen.getByRole('textbox', { name: 'Cantidad solicitada' }) as HTMLInputElement).value).toBe('');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '2' } });
     expect(document.getElementById('qr-reader')?.className).not.toContain('invisible');
     expect(viewport.className).toContain('h-[min(34svh,280px)]');
     await act(async () => { cameraMocks.scanCallbacks[0]('SKU2'); });
@@ -209,6 +236,7 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
       await waitFor(() => {
          expect(screen.getByText(/MockProduct/i)).toBeTruthy();
       });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
       
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
@@ -256,6 +284,7 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
       await waitFor(() => {
          expect(screen.getByText(/MockProduct/i)).toBeTruthy();
       });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
       
       const allButtons = screen.getAllByRole('button');
       const addBtn = allButtons.find(b => b.textContent && b.textContent.includes('Agregar a la Orden'));
@@ -294,6 +323,7 @@ describe('Pruebas de Interfaz y Botones (Fase 4)', () => {
     fireEvent.change(skuInput, { target: { value: 'SKU1' } });
     fireEvent.submit(skuInput.closest('form')!);
     await waitFor(() => expect(screen.getByText(/MockProduct/i)).toBeTruthy());
+    fireEvent.change(screen.getByRole('textbox', { name: 'Cantidad solicitada' }), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Agregar a la Orden' }));
     fireEvent.click(screen.getByText('Finalizar Venta'));
 
