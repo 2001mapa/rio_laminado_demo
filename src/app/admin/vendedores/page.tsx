@@ -1,7 +1,7 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { Plus, Search, ArrowRight } from 'lucide-react';
+import { Plus, Search, ArrowRight, Users } from 'lucide-react';
 import { useState } from 'react';
 import SellerModal from '@/components/SellerModal';
 import Link from 'next/link';
@@ -75,6 +75,12 @@ export default function AdminVendedoresPage() {
             </div>
           );
         })}
+        {filteredSellers.length === 0 && (
+          <div className="col-span-full py-12 text-center bg-rio-surface rounded-2xl border border-rio-border border-dashed">
+            <Users className="w-8 h-8 text-rio-muted mx-auto mb-3" />
+            <p className="text-sm font-medium text-rio-muted">No se encontraron vendedores.</p>
+          </div>
+        )}
       </div>
 
       <SellerModal 

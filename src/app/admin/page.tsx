@@ -68,8 +68,7 @@ export default function AdminDashboard() {
       {/* Page Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold text-rio-muted uppercase tracking-[0.15em] mb-1">Panel de Control</p>
-          <h1 className="text-3xl font-serif font-bold text-rio-ink">Resumen de operación</h1>
+          <h1 className="text-3xl font-serif font-bold text-rio-ink">Panel de control</h1>
           <p className="mt-1 text-sm text-rio-muted">Pedidos, inventario y clientes en un solo lugar.</p>
         </div>
         <Link
@@ -81,16 +80,15 @@ export default function AdminDashboard() {
       </div>
 
       {/* Cifras operativas actuales, independientes del período */}
-      <div>
-        <h2 className="font-serif text-xl font-bold text-rio-ink">Estado actual</h2>
-        <p className="mt-1 text-sm text-rio-muted">Estas cifras no cambian con el período seleccionado abajo.</p>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Reservados por confirmar" value={stats.reserved} icon={Package} accent="gold" />
-        <StatCard title="Reservados más de 24 h" value={stats.olderReserved} icon={Clock} accent="warning" />
-        <StatCard title="Referencias agotadas" value={stats.outOfStockCount} icon={AlertTriangle} accent="warning" />
-        <StatCard title="Clientes pendientes ERP" value={stats.pendingErp} icon={Users} accent="ink" />
-      </div>
+      <section aria-label="Cifras actuales" className="space-y-3">
+        <p className="text-sm text-rio-muted">Estas cifras muestran lo que está pendiente ahora. El filtro de fechas más abajo solo afecta la actividad del período.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard title="Reservados por confirmar" value={stats.reserved} icon={Package} accent="gold" />
+          <StatCard title="Reservados más de 24 h" value={stats.olderReserved} icon={Clock} accent="warning" />
+          <StatCard title="Referencias agotadas" value={stats.outOfStockCount} icon={AlertTriangle} accent="warning" />
+          <StatCard title="Clientes pendientes ERP" value={stats.pendingErp} icon={Users} accent="ink" />
+        </div>
+      </section>
       <p className="text-xs text-rio-muted">Inventario actualizado: {stats.lastInventoryUpdate ? new Date(stats.lastInventoryUpdate).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : 'sin registro de actualización'}.</p>
 
       {/* Main 2-column layout on desktop */}
