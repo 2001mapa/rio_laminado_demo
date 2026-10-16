@@ -12,6 +12,7 @@ import { getClientOrderStatuses, getClientActiveProductsDigest } from '@/app/act
 import { PUBLIC_STATES, InternalOrderState } from '@/lib/order-status';
 import ClienteLoading from './loading';
 import InstallAppInvite from './InstallAppInvite';
+import { checkClientMaintenanceActive } from '@/app/actions/maintenance';
 
 function ClientLinkFeedback({ mobile = false }: { mobile?: boolean }) {
   const { pending } = useLinkStatus();
@@ -74,6 +75,32 @@ export default function ClienteLayout({
     };
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+    let checking = false;
+    let mounted = true;
+    const checkMaintenance = async () => {
+      if (!navigator.onLine || checking) return;
+      checking = true;
+      try {
+        if (await checkClientMaintenanceActive() && mounted) {
+          window.location.assign('/mantenimiento');
+        }
+      } catch {
+        // A temporary connectivity or settings error must not break the catalog.
+      } finally {
+        checking = false;
+      }
+    };
+    const interval = window.setInterval(checkMaintenance, 30_000);
+    window.addEventListener('focus', checkMaintenance);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', checkMaintenance);
+    };
+  }, [isAuthorized]);
 
   useEffect(() => {
     if (isLoaded && currentCustomer && knownStatuses === null) {

@@ -35,6 +35,8 @@ Variables principales (solo nombres; nunca incluyas sus valores en documentació
 - `/cliente`: catálogo, carrito, perfil y detalle de pedidos.
 - `/vendedor/nueva-venta`: venta asistida por lector QR, con flujo offline; el vendedor también tiene perfil y detalle de pedidos.
 - `/admin`: panel administrativo, pedidos, inventario, clientes, vendedores, administradores e historial.
+- `/admin/mantenimiento`: interruptor exclusivo de administradores para pausar el acceso de clientes sin afectar a vendedores ni administradores.
+- `/mantenimiento`: aviso que ven los clientes mientras el modo está activo.
 - `/admin/inventario/imprimir` y `/admin/pedidos/[id]/imprimir`: impresión de etiquetas.
 
 Las rutas privadas requieren sesión y permisos del rol correspondiente. El código de la aplicación está en `src/`, el esquema y las migraciones en `prisma/`, y las pruebas en `__tests__/`.
@@ -44,3 +46,5 @@ Las rutas privadas requieren sesión y permisos del rol correspondiente. El cód
 El proyecto se despliega en Vercel desde `main`. Configura las variables de producción en Vercel; los cambios de variables se aplican a un despliegue nuevo. Consulta [la guía de alertas](docs/discord-monitoring.md) para el alcance y las limitaciones del monitoreo en Discord. Los webhooks son secretos y no deben compartirse ni almacenarse en el repositorio.
 
 Los PDF solicitados para asuntos comerciales o administrativos se generan **fuera de este repositorio**; no forman parte de la aplicación ni del despliegue.
+
+El mantenimiento para clientes se activa y desactiva manualmente desde el panel admin; no se enciende automáticamente en cada despliegue. El estado queda en la auditoría de la base de datos.

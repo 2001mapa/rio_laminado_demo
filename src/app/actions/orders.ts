@@ -19,6 +19,7 @@ import { requireRole } from '@/utils/auth-helpers'
 import { logAuditEvent, getAuditActor } from '@/lib/audit'
 import { isValidQuickCustomer, normalizeQuickCustomer, type QuickCustomerData } from '@/lib/quickCustomer'
 import { sendDiscordAlert, type MonitoringArea } from '@/lib/discord-monitoring'
+import { isClientMaintenanceActive } from '@/lib/client-maintenance'
 
 async function reportOrderFailure(operation: string, area: MonitoringArea, error: unknown) {
   if (error instanceof BusinessLogicError) return;
@@ -32,6 +33,9 @@ export async function createOrder(data: {
   clientRequestId?: string;
 }) {
   const { user, role } = await requireRole(['cliente', 'vendedor', 'admin']);
+  if (role === 'cliente' && await isClientMaintenanceActive()) {
+    return { success: false, error: 'Estamos en mantenimiento. Vuelve en un momento.', code: 'CLIENT_MAINTENANCE' };
+  }
   
   try {
     let finalCustomerId: string;
@@ -336,6 +340,9 @@ export async function createOrder(data: {
 
 export async function transitionOrder(orderId: string, action: OrderTransitionAction, reason?: string, trackingInfo?: {carrier: string, trackingNumber: string}) {
   const { user, role } = await requireRole(['admin', 'vendedor', 'cliente']);
+  if (role === 'cliente' && await isClientMaintenanceActive()) {
+    return { success: false, error: 'Estamos en mantenimiento. Vuelve en un momento.' };
+  }
   const actor = await getAuditActor();
   
   try {
@@ -411,6 +418,9 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
 
 export async function acknowledgeOrderAdjustment(orderId: string) {
   const { user, role } = await requireRole(['cliente']);
+  if (await isClientMaintenanceActive()) {
+    return { success: false, error: 'Estamos en mantenimiento. Vuelve en un momento.' };
+  }
   try {
     const existingOrder = await prisma.order.findUnique({
       where: { id: orderId },

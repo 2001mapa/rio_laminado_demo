@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff, History, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Inbox, PackageSearch, Users, LogOut, ChevronLeft, ChevronRight, Menu, Store, Bell, BellOff, History, ShieldCheck, Wrench } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 import { getAdminLatestOrderIds } from '@/app/actions/queries';
@@ -197,6 +197,7 @@ export default function AdminLayout({
     { name: 'Vendedores', href: '/admin/vendedores', icon: Store },
     ...(isPrimaryAdmin ? [{ name: 'Administradores', href: '/admin/administradores', icon: ShieldCheck }] : []),
     { name: 'Historial', href: '/admin/historial', icon: History },
+    { name: 'Mantenimiento', href: '/admin/mantenimiento', icon: Wrench },
   ];
   const mobilePrimaryItems = navItems.slice(0, 3);
   const mobileMoreItems = navItems.slice(3);
