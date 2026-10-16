@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import { requireRole } from '@/utils/auth-helpers'
 import { getAuditActor, logAuditEvent } from '@/lib/audit'
+import { sendDiscordAlert } from '@/lib/discord-monitoring'
 
 export async function updateCustomerInternalStatus(customerId: string) {
   await requireRole(['admin']);
@@ -32,6 +33,7 @@ export async function updateCustomerInternalStatus(customerId: string) {
     return { success: true, customer };
   } catch (error) {
     console.error('Error updating ERP status:', error);
+    await sendDiscordAlert('action_error', 'admin', { operation: 'updateCustomerInternalStatus', route: '/admin/clientes', error });
     return { success: false, message: 'No se pudo actualizar el estado del cliente.' };
   }
 }
@@ -125,6 +127,7 @@ export async function createCustomer(data: {
     };
   } catch (error: any) {
     console.error('Error creating customer:', error);
+    await sendDiscordAlert('action_error', 'admin', { operation: 'createCustomer', route: '/admin/clientes', error });
     return { success: false, message: `Error interno al crear el cliente: ${error.message}` };
   }
 }
@@ -147,6 +150,7 @@ export async function updateCustomerStatusAction(id: string, data: {
     return { success: true, message: 'Cliente actualizado exitosamente.', customer };
   } catch (error: any) {
     console.error('Error updating customer:', error);
+    await sendDiscordAlert('action_error', 'admin', { operation: 'updateCustomerStatus', route: '/admin/clientes', error });
     return { success: false, message: `Error interno al actualizar el cliente: ${error.message}` };
   }
 }
@@ -176,6 +180,7 @@ export async function updateCustomerDataAction(id: string, data: {
     return { success: true, message: 'Datos actualizados exitosamente.', customer };
   } catch (error: any) {
     console.error('Error updating customer data:', error);
+    await sendDiscordAlert('action_error', 'admin', { operation: 'updateCustomerData', route: '/admin/clientes', error });
     return { success: false, message: `Error interno al actualizar datos: ${error.message}` };
   }
 }
@@ -212,6 +217,7 @@ export async function resetCustomerPasswordAction(customerId: string, newPasswor
     return { success: true, message: 'Contraseña restablecida correctamente.' };
   } catch (error: any) {
     console.error('Error resetting customer password:', error);
+    await sendDiscordAlert('action_error', 'admin', { operation: 'resetCustomerPassword', route: '/admin/clientes', error });
     return { success: false, message: `Error interno: ${error.message}` };
   }
 }

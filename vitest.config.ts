@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      'server-only': path.resolve(__dirname, './__tests__/fixtures/server-only.ts')
     }
   }
 });

@@ -18,6 +18,12 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/utils/auth-helpers'
 import { logAuditEvent, getAuditActor } from '@/lib/audit'
 import { isValidQuickCustomer, normalizeQuickCustomer, type QuickCustomerData } from '@/lib/quickCustomer'
+import { sendDiscordAlert, type MonitoringArea } from '@/lib/discord-monitoring'
+
+async function reportOrderFailure(operation: string, area: MonitoringArea, error: unknown) {
+  if (error instanceof BusinessLogicError) return;
+  await sendDiscordAlert('action_error', area, { operation, route: `/${area}`, error });
+}
 
 export async function createOrder(data: {
   customerId?: string; // Solo requerido/confiado si es vendedor o admin
@@ -319,6 +325,7 @@ export async function createOrder(data: {
       if (error instanceof BusinessLogicError) {
          return { success: false, error: error.message, code: error.code, conflicts: (error as any).conflicts };
       }
+      await reportOrderFailure('createOrder', role, error);
       return { 
         success: false, 
         error: error.message,
@@ -397,6 +404,7 @@ export async function transitionOrder(orderId: string, action: OrderTransitionAc
     return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error transitioning order:', error);
+    await reportOrderFailure('transitionOrder', role, error);
     return { success: false, error: error.message };
   }
 }
@@ -419,6 +427,7 @@ export async function acknowledgeOrderAdjustment(orderId: string) {
     return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error acknowledging adjustment:', error);
+    await reportOrderFailure('acknowledgeOrderAdjustment', role, error);
     return { success: false, error: error.message };
   }
 }
@@ -490,6 +499,7 @@ export async function updateOrderChecklist(orderId: string, items: { id: string,
     return { success: true, order: order ? { ...order, number: order.orderNumber } : null };
   } catch (error: any) {
     console.error('Error updating order checklist:', error);
+    await reportOrderFailure('updateOrderChecklist', 'admin', error);
     return { success: false, error: error.message };
   }
 }
@@ -530,6 +540,7 @@ export async function updateMaterialGroupInvoice(groupId: string, invoice: strin
 
     return { success: true };
   } catch (err: any) {
+    await reportOrderFailure('updateMaterialGroupInvoice', 'admin', err);
     return { success: false, error: err.message };
   }
 }

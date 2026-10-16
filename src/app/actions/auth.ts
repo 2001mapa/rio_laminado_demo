@@ -27,11 +27,11 @@ import { sendDiscordAlert } from '@/lib/discord-monitoring'
 export async function resolveLoginDestination() {
   const { user, role, status } = await getSessionUser();
   if (!user || !role) {
-    if (user) await sendDiscordAlert('access_denied', 'login', 'invalid_role');
+    if (user) await sendDiscordAlert('access_denied', 'login', { operation: 'resolveLoginDestination', reason: 'invalid_role', route: '/login' });
     return { success: false, message: 'Usuario sin rol asignado o perfil inválido.' };
   }
   if (status !== 'active') {
-    await sendDiscordAlert('access_denied', 'login', 'suspended');
+    await sendDiscordAlert('access_denied', 'login', { operation: 'resolveLoginDestination', reason: 'suspended', route: '/login' });
     return { success: false, message: 'Tu cuenta ha sido suspendida.' };
   }
   const targetPath = role === 'admin' ? '/admin' : role === 'vendedor' ? '/vendedor' : '/cliente';
