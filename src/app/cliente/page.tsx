@@ -252,8 +252,22 @@ export default function CatalogoPage() {
               </button>
             ))}
           </div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="flex overflow-x-auto scrollbar-hide flex-1">
+          <div className="flex flex-col gap-3">
+            <div className="order-2 md:order-1 flex w-full md:justify-end">
+              <div className="relative w-full md:w-72">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-rio-muted" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full pl-10 pr-4 py-2 border border-rio-border rounded-xl text-sm bg-rio-surface placeholder-rio-muted focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink text-rio-ink shadow-sm"
+                  placeholder="Buscar por nombre o referencia..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="order-1 md:order-2 flex w-full overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-visible">
               {categories.map(cat => (
                 <button
                   key={cat}
@@ -283,21 +297,6 @@ export default function CatalogoPage() {
                   )}
                 </button>
               ))}
-            </div>
-            
-            <div className="flex flex-col md:items-end gap-3 w-full md:w-auto shrink-0 md:mb-2">
-              <div className="relative w-full md:w-72">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-rio-muted" />
-                </div>
-                <input
-                  type="text"
-                  className="block w-full pl-10 pr-4 py-2 border border-rio-border rounded-xl text-sm bg-rio-surface placeholder-rio-muted focus:outline-none focus:ring-1 focus:ring-rio-ink focus:border-rio-ink text-rio-ink shadow-sm"
-                  placeholder="Buscar por nombre o referencia..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
             </div>
           </div>
         </div>
