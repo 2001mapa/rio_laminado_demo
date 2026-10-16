@@ -13,6 +13,7 @@ export type AlertContext = {
   digest?: string;
   browser?: string;
   reason?: string;
+  breadcrumbs?: unknown;
 };
 
 const cooldownMs = 60_000;
@@ -58,6 +59,27 @@ export function safeErrorMessage(value: unknown): string {
     .replace(/[\r\n\t]/g, ' ')
     .trim();
   return cleaned.slice(0, 220);
+}
+
+const trackedActions = new Set([
+  'buscar', 'agregar a la orden', 'finalizar venta', 'activar lector qr',
+  'pausar cámara', 'ver pedido', 'imprimir etiquetas', 'guardar',
+]);
+
+export function safeBreadcrumbTimeline(value: unknown, area: MonitoringArea): string {
+  if (!Array.isArray(value)) return '';
+  const lines = value.slice(-6).flatMap(item => {
+    if (!item || typeof item !== 'object') return [];
+    const seconds = item.secondsAgo;
+    if (!Number.isInteger(seconds) || seconds < 0 || seconds > 90) return [];
+    const route = safeMonitoringRoute(typeof item.path === 'string' ? item.path : '', area);
+    if (item.type === 'navigation') return [`hace ${seconds}s · abrió ${route}`];
+    if (item.type === 'click' && typeof item.action === 'string' && trackedActions.has(item.action)) {
+      return [`hace ${seconds}s · pulsó «${item.action}» en ${route}`];
+    }
+    return [];
+  });
+  return lines.join('\n').slice(0, 850);
 }
 
 function webhookUrl(kind: AlertKind): URL | null {
@@ -116,10 +138,12 @@ export async function sendDiscordAlert(kind: AlertKind, area: MonitoringArea, co
   const digest = safeLabel(context.digest, 64);
   const browser = safeLabel(context.browser, 30);
   const message = safeErrorMessage(context.message ?? error?.message);
+  const timeline = safeBreadcrumbTimeline(context.breadcrumbs, area);
   if (method) fields.push({ name: 'Método', value: method, inline: true });
   if (browser) fields.push({ name: 'Navegador', value: browser, inline: true });
   if (digest) fields.push({ name: 'Digest', value: digest, inline: true });
   if (message) fields.push({ name: 'Resumen depurado', value: message, inline: false });
+  if (timeline) fields.push({ name: 'Antes del error', value: timeline, inline: false });
   if (suppressed) fields.push({ name: 'Repeticiones omitidas', value: String(suppressed), inline: true });
 
   try {

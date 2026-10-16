@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.text();
     if (body.length > 2048) return new Response(null, { status: 204 });
-    const { type, name, message, path } = JSON.parse(body);
+    const { type, name, message, path, breadcrumbs } = JSON.parse(body);
     if (type !== 'error' && type !== 'unhandledrejection') return new Response(null, { status: 204 });
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       errorName: typeof name === 'string' ? name : undefined,
       message: typeof message === 'string' ? message : undefined,
       browser: browserFamily(request.headers.get('user-agent') || ''),
+      breadcrumbs,
     });
   } catch {
     // The monitoring endpoint is best-effort and never returns internal details.

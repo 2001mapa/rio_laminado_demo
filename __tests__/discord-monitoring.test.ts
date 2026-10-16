@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-import { monitoringArea, safeErrorMessage, safeMonitoringRoute, sendDiscordAlert } from '../src/lib/discord-monitoring';
+import { monitoringArea, safeBreadcrumbTimeline, safeErrorMessage, safeMonitoringRoute, sendDiscordAlert } from '../src/lib/discord-monitoring';
 
 describe('alertas de Discord', () => {
   const originalErrorWebhook = process.env.DISCORD_ERROR_WEBHOOK_URL;
@@ -35,6 +35,14 @@ describe('alertas de Discord', () => {
     expect(result).not.toContain('12345');
     expect(result).toContain('[correo]');
     expect(result).toContain('[credencial]');
+  });
+
+  it('muestra acciones previas permitidas sin valores de formularios ni IDs', () => {
+    expect(safeBreadcrumbTimeline([
+      { type: 'navigation', path: '/admin/pedidos/WEB-123?email=secret@example.com', secondsAgo: 10 },
+      { type: 'click', path: '/admin/pedidos/WEB-123', action: 'buscar', secondsAgo: 4 },
+      { type: 'click', path: '/admin/pedidos/WEB-123', action: 'cliente privado', secondsAgo: 2 },
+    ], 'admin')).toBe('hace 10s · abrió /admin/pedidos/[id]\nhace 4s · pulsó «buscar» en /admin/pedidos/[id]');
   });
 
   it('separa alertas de seguridad y no permite menciones', async () => {
