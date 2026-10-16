@@ -19,6 +19,8 @@
 
 # production
 /build
+/output/pdf/
+/tmp/
 
 # misc
 .DS_Store

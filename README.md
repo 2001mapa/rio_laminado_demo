@@ -1,56 +1,46 @@
-# RIO B2B Demo
+# RIO Oro Laminado
 
-Primera muestra funcional de interfaz para RIO, bodega de oro laminado.
-Esta es una demo navegable con **datos mock**, construida para ilustrar el flujo de pedidos entre el cliente mayorista y la bodega.
+Aplicación B2B de RIO para catálogo, inventario, pedidos y ventas. Tiene tres áreas autenticadas: cliente, vendedor y administración. La versión de producción se publica en [rioorolaminado.com](https://rioorolaminado.com/).
 
-## Tecnologías Utilizadas
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- Lucide React (Iconos)
+## Tecnología
 
-## Cómo iniciar la demo
+- Next.js 16 (App Router), React 19, TypeScript y Tailwind CSS.
+- Supabase Auth para sesiones y Supabase Storage para imágenes.
+- PostgreSQL mediante Prisma para los datos de negocio.
+- PWA con soporte de trabajo sin conexión para el flujo de ventas del vendedor.
 
-1. Asegúrate de tener Node.js instalado.
-2. Abre la terminal en esta carpeta (`rio-b2b-demo`).
-3. Instala las dependencias:
-   ```bash
-   npm install
-   ```
-4. Inicia el servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
-5. Abre en tu navegador: [http://localhost:3000](http://localhost:3000)
+Los datos de negocio no son datos simulados. El navegador puede conservar copias o una cola local para funciones offline; la base de datos sigue siendo la fuente principal.
 
-## Rutas Principales
-La aplicación comienza en la ruta de acceso unificada:
-- `/acceso-rio`: Pantalla de entrada con botones para ver como Cliente o Admin.
+## Desarrollo local
 
-### Portal de Cliente (Mobile First)
-- `/cliente`: Catálogo de productos.
-- `/cliente/buscar`: Buscador de referencias y productos.
-- `/cliente/carrito`: Carrito de compras y resumen.
-- `/cliente/pedido/[id]`: Detalle del pedido reservado o histórico.
-- `/cliente/perfil`: Datos del usuario, historial de pedidos y botón para salir de la demo.
+1. Instala las dependencias con `npm install`.
+2. Configura un archivo `.env.local` con las variables necesarias para tu entorno. No lo subas a Git.
+3. Ejecuta `npm run dev` y abre <http://localhost:3000>.
 
-### Panel Administrativo (Desktop First)
-- `/admin`: Dashboard con métricas.
-- `/admin/pedidos`: Bandeja principal de pedidos.
-- `/admin/pedidos/[id]`: Detalle del pedido y gestión de estados.
-- `/admin/pedidos/[id]/imprimir`: Hoja imprimible para preparación manual.
-- `/admin/pedidos/[id]/verificar`: Checklist digital para el bodeguero (Verificador).
-- `/admin/inventario`: Vista de inventario (solo visual).
-- `/admin/clientes`: Vista de clientes con opción de "Ver como" para la demo.
+Variables principales (solo nombres; nunca incluyas sus valores en documentación o capturas):
 
-## Funcionalidades Simuladas
-- **Base de datos:** Todos los datos (productos, clientes, pedidos, carrito) viven en un Contexto de React y se persisten localmente en `localStorage`. 
-- **Flujos de estado:** Puedes mover un pedido libremente desde Reservado hasta Despachado, pero la demo bloquea el paso a "Verificado" si no se completa el Checklist Digital.
-- **Checklist Digital:** Puedes confirmar cada referencia de un pedido y reportar incidencias simuladas ("Faltan unidades", etc.).
-- **Catálogo:** Puedes agregar al carrito hasta simular un límite máximo de inventario, tras el cual se muestra un aviso.
-- **Restablecer datos:** Desde el Perfil del cliente puedes restablecer los datos para que regresen al estado inicial.
+| Variable | Uso |
+| --- | --- |
+| `DATABASE_URL`, `DIRECT_URL` | Conexiones PostgreSQL de Prisma. |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Cliente público de Supabase y autenticación. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Administración de usuarios; **solo servidor**. |
+| `PRIMARY_ADMIN_USER_ID` | Protección de la cuenta administrativa principal. |
+| `DISCORD_ERROR_WEBHOOK_URL`, `DISCORD_SECURITY_WEBHOOK_URL` | Alertas opcionales; **solo servidor**. |
 
-## Notas Adicionales
-- No hay autenticación real.
-- No hay integración con WhatsApp, correos, ni base de datos real (Supabase).
-- No se han conectado lectores de códigos de barras.
+`npm run build` verifica la compilación de producción. `npm test` ejecuta la suite principal; para las pruebas de Vitest usa `npx vitest run`.
+
+## Áreas principales
+
+- `/login`: acceso unificado; `/` redirige aquí.
+- `/cliente`: catálogo, carrito, perfil y detalle de pedidos.
+- `/vendedor/nueva-venta`: venta asistida por lector QR, con flujo offline; el vendedor también tiene perfil y detalle de pedidos.
+- `/admin`: panel administrativo, pedidos, inventario, clientes, vendedores, administradores e historial.
+- `/admin/inventario/imprimir` y `/admin/pedidos/[id]/imprimir`: impresión de etiquetas.
+
+Las rutas privadas requieren sesión y permisos del rol correspondiente. El código de la aplicación está en `src/`, el esquema y las migraciones en `prisma/`, y las pruebas en `__tests__/`.
+
+## Despliegue y alertas
+
+El proyecto se despliega en Vercel desde `main`. Configura las variables de producción en Vercel; los cambios de variables se aplican a un despliegue nuevo. Consulta [la guía de alertas](docs/discord-monitoring.md) para el alcance y las limitaciones del monitoreo en Discord. Los webhooks son secretos y no deben compartirse ni almacenarse en el repositorio.
+
+Los PDF solicitados para asuntos comerciales o administrativos se generan **fuera de este repositorio**; no forman parte de la aplicación ni del despliegue.
