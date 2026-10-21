@@ -2,9 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { Upload, FileSpreadsheet, X, CheckCircle, AlertTriangle, Printer, ArrowRight } from 'lucide-react';
 import { bulkUploadInventory, previewCSVUpload } from '@/app/actions/inventory';
 import { useRouter } from 'next/navigation';
+
+type ImportRow = Record<string, unknown>;
+
+const parseCsvFile = (input: File | string) => new Promise<ImportRow[]>((resolve, reject) => {
+  Papa.parse<ImportRow>(input, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => resolve(results.data),
+    error: reject,
+  });
+});
+
+const parseExcelFile = async (file: File): Promise<ImportRow[]> => {
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', raw: false });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) return [];
+
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', raw: false });
+  const firstRow = matrix[0] ?? [];
+  const firstCell = String(firstRow[0] ?? '');
+
+  // Some Excel files are exported with the CSV header in one cell while the
+  // data remains split into columns. Support that format as well.
+  if (firstCell.includes(',') && firstRow.slice(1).every((value) => String(value ?? '') === '')) {
+    const headers = firstCell.split(',').map((header) => header.trim());
+    return matrix.slice(1).map((row) => {
+      // The supplied workbook declares category/locationCode but leaves both
+      // columns out of each data row: sku, name, price, stock.
+      const rowHeaders = headers.length === 6 && row.length === 4
+        ? [headers[0], headers[1], headers[3], headers[4]]
+        : headers;
+      return Object.fromEntries(
+        rowHeaders.map((header, index) => [header, row[index] ?? ''])
+      );
+    });
+  }
+
+  return XLSX.utils.sheet_to_json<ImportRow>(sheet, { defval: '', raw: false });
+};
 
 export default function CSVImporter({ onComplete }: { onComplete?: () => void }) {
   const router = useRouter();
@@ -47,32 +87,38 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
   }, [status, parsedItems]);
 
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      const extension = selectedFile.name.toLowerCase().split('.').pop();
+      if (!extension || !['csv', 'xlsx', 'xls'].includes(extension)) {
+        setStatus('error');
+        setMessage('Selecciona un archivo .csv, .xlsx o .xls.');
+        return;
+      }
+
+      setFile(selectedFile);
       setStatus('parsing');
       setMessage('');
       setPreviewData(null);
-      
-      Papa.parse(e.target.files[0], {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          try {
-            const rows = results.data;
+
+      try {
+        const rows = extension === 'csv'
+          ? await parseCsvFile(selectedFile)
+          : await parseExcelFile(selectedFile);
             if (rows.length === 0) {
               setStatus('error');
-              setMessage('El archivo CSV está vacío.');
+              setMessage('El archivo está vacío.');
               return;
             }
 
             const mappedItems = rows.map((row: any) => ({
-              sku: row.sku || row.SKU,
-              name: row.name || row.Nombre || row.nombre,
-              category: row.category || row.Categoría || row.categoria || 'General',
-              price: row.price || row.Precio || row.precio || 0,
-              physicalStock: row.stock || row.Stock || row.cantidad || row.Cantidad || 0,
-              locationCode: row.locationCode || row.Ubicación || row.ubicacion || null,
+              sku: row.sku ?? row.SKU,
+              name: row.name ?? row.Nombre ?? row.nombre,
+              category: row.category ?? row.Categoría ?? row.categoria ?? 'General',
+              price: row.price ?? row.Precio ?? row.precio ?? 0,
+              physicalStock: row.stock ?? row.Stock ?? row.cantidad ?? row.Cantidad ?? 0,
+              locationCode: row.locationCode ?? row.Ubicación ?? row.ubicacion ?? null,
             }));
 
             setParsedItems(mappedItems);
@@ -94,17 +140,11 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
               setStatus('error');
               setMessage(previewResponse.error || 'Error al validar el archivo.');
             }
-          } catch (err: any) {
-            console.error(err);
-            setStatus('error');
-            setMessage(err.message || 'Ocurrió un error inesperado al leer el archivo.');
-          }
-        },
-        error: (error) => {
-          setStatus('error');
-          setMessage(`Error al leer el CSV: ${error.message}`);
-        }
-      });
+      } catch (err: any) {
+        console.error(err);
+        setStatus('error');
+        setMessage(err.message || 'Ocurrió un error inesperado al leer el archivo.');
+      }
     }
   };
 
@@ -149,7 +189,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
         className="flex items-center px-4 py-2.5 border border-transparent text-[13px] font-semibold rounded-xl text-white bg-rio-ink hover:bg-rio-ink/90 transition-colors"
       >
         <Upload className="w-4 h-4 mr-2" />
-        Importar CSV
+        Importar CSV / Excel
       </button>
 
       {isOpen && (
@@ -169,12 +209,12 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
               {status === 'idle' && (
                 <div className="bg-rio-background border border-rio-border border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center">
                   <Upload className="w-8 h-8 text-rio-muted mb-2" />
-                  <p className="text-sm font-bold text-rio-ink mb-1">Selecciona o arrastra tu archivo CSV</p>
+                  <p className="text-sm font-bold text-rio-ink mb-1">Selecciona o arrastra tu archivo CSV o Excel</p>
                   <p className="text-xs text-rio-muted mb-4">El archivo será pre-validado antes de aplicar cambios</p>
                   
                   <input 
                     type="file" 
-                    accept=".csv" 
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleFileChange}
                     className="block w-full text-sm text-rio-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rio-gold-light/20 file:text-rio-gold-dark hover:file:bg-rio-gold-light/30 cursor-pointer"
                   />
@@ -311,7 +351,7 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
 
               {(status === 'idle' || status === 'parsing' || status === 'uploading' || status === 'error') && (
                 <div className="text-[10px] text-rio-muted leading-relaxed text-center">
-                  Columnas esperadas: <strong className="font-mono bg-rio-surface px-1 py-0.5 rounded">sku, name, category, price, stock</strong>. 
+                  Columnas esperadas: <strong className="font-mono bg-rio-surface px-1 py-0.5 rounded">sku, name, category, price, stock</strong>. Acepta .csv, .xlsx y .xls.
                 </div>
               )}
             </div>

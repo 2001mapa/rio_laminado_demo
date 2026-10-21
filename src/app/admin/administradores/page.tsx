@@ -83,11 +83,11 @@ export default function AdministradoresPage() {
         </div>
         <h2 className="font-bold text-rio-ink line-clamp-1">{admin.name || admin.email}</h2>
         <p className="text-sm text-rio-muted mt-1 break-all">{admin.email}</p>
-        <div className="mt-4 pt-4 border-t border-rio-border flex justify-between items-center gap-3">
-          <div><p className="text-[10px] text-rio-muted uppercase font-bold tracking-wider">Tipo de acceso</p><p className="text-sm font-bold text-rio-ink">{admin.primary ? 'Principal' : 'Administrador'}</p></div>
-          <div className="flex items-center gap-2">
-            <Link href={`/admin/administradores/${admin.id}`} className="flex items-center px-3 py-1.5 text-[12px] font-bold rounded-lg border border-rio-border bg-rio-surface text-rio-ink hover:bg-rio-surface-muted">Ver perfil</Link>
-            {!admin.primary && <button type="button" disabled={busy} onClick={() => void toggle(admin)} className="flex items-center px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted disabled:opacity-50">{admin.disabled ? 'Reactivar' : 'Suspender'}</button>}
+        <div className="mt-4 pt-4 border-t border-rio-border flex flex-col gap-3">
+          <div className="min-w-0"><p className="text-[10px] text-rio-muted uppercase font-bold tracking-wider">Tipo de acceso</p><p className="text-sm font-bold text-rio-ink break-words">{admin.primary ? 'Principal' : 'Administrador'}</p></div>
+          <div className="flex w-full flex-wrap items-stretch justify-start gap-2">
+            <Link href={`/admin/administradores/${admin.id}`} className="flex min-h-10 min-w-[104px] flex-1 items-center justify-center px-3 py-1.5 text-[12px] font-bold rounded-lg border border-rio-border bg-rio-surface text-rio-ink hover:bg-rio-surface-muted sm:flex-none">Ver perfil</Link>
+            {!admin.primary && <button type="button" disabled={busy} onClick={() => void toggle(admin)} className="flex min-h-10 min-w-[104px] flex-1 items-center justify-center px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors border border-rio-border bg-rio-background text-rio-ink hover:bg-rio-surface-muted disabled:opacity-50 sm:flex-none">{admin.disabled ? 'Reactivar' : 'Suspender'}</button>}
           </div>
         </div>
       </div>)}

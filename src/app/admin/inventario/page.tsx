@@ -159,7 +159,7 @@ export default function InventarioPage() {
             className="hidden sm:flex items-center px-4 py-2.5 bg-rio-ink text-white text-[13px] font-bold rounded-xl shadow hover:bg-rio-ink/90 transition-colors"
           >
             <FileUp className="w-4 h-4 mr-2" />
-            Importar CSV
+            Importar CSV / Excel
           </button>
           
           <div className="relative" ref={menuRef}>
@@ -176,7 +176,7 @@ export default function InventarioPage() {
                   onClick={() => { setShowCSV(true); setShowActionsMenu(false); }}
                   className="w-full text-left sm:hidden px-4 py-2.5 text-sm hover:bg-rio-surface-muted flex items-center text-rio-ink font-medium"
                 >
-                  <FileUp className="w-4 h-4 mr-3 text-rio-muted" /> Importar CSV
+                  <FileUp className="w-4 h-4 mr-3 text-rio-muted" /> Importar CSV / Excel
                 </button>
                 <button 
                   onClick={() => { setShowPhotos(true); setShowActionsMenu(false); }}
@@ -208,11 +208,11 @@ export default function InventarioPage() {
          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                <div className="p-4 border-b border-rio-border flex justify-between items-center sticky top-0 bg-white">
-                  <h3 className="font-bold text-lg">Importar CSV</h3>
+                  <h3 className="font-bold text-lg">Importar CSV / Excel</h3>
                   <button onClick={() => setShowCSV(false)}><X className="w-5 h-5" /></button>
                </div>
                <div className="p-4 bg-rio-surface-muted text-xs text-rio-muted border-b border-rio-border leading-relaxed">
-                  <strong>Información:</strong> Para referencias existentes, el CSV reemplaza nombre, categoría, precio, cantidad física y ubicación. Conserva fotos, material confirmado, estado de publicación y unidades reservadas. Para referencias nuevas, crea el producto y detecta Laminado, Plata o Rodio a partir del nombre. Si no puede identificar un único material, queda Por revisar.<br/><br/>El archivo debe usar <code>;</code> o <code>,</code> como separador.
+                  <strong>Información:</strong> Para referencias existentes, el archivo reemplaza nombre, categoría, precio, cantidad física y ubicación. Conserva fotos, material confirmado, estado de publicación y unidades reservadas. Para referencias nuevas, crea el producto y detecta Laminado, Plata o Rodio a partir del nombre. Si no puede identificar un único material, queda Por revisar.<br/><br/>Puedes subir archivos <code>.csv</code>, <code>.xlsx</code> o <code>.xls</code>. El CSV debe usar <code>;</code> o <code>,</code> como separador.
                </div>
                <div className="p-6">
                  <CSVImporter onComplete={() => { refreshData(); fetchProducts(true); fetchCounts(); }} />
