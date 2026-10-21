@@ -9,6 +9,27 @@ import { useRouter } from 'next/navigation';
 
 type ImportRow = Record<string, unknown>;
 
+const PRODUCT_TYPE_FROM_NAME: Record<string, string> = {
+  TOPO: 'Topos', TOPOS: 'Topos',
+  CANDONGA: 'Candongas', CANDONGAS: 'Candongas',
+  EARCUFF: 'Earcuff',
+  CADENA: 'Cadenas', CADENAS: 'Cadenas',
+  DIJE: 'Dijes', DIJES: 'Dijes',
+  COLLAR: 'Collares', COLLARES: 'Collares',
+  ANILLO: 'Anillos', ANILLOS: 'Anillos',
+  PULSERA: 'Pulseras', PULSERAS: 'Pulseras',
+  TOBILLERA: 'Tobilleras', TOBILLERAS: 'Tobilleras',
+  BALIN: 'Balines', BALINES: 'Balines',
+  HERRAJE: 'Herrajes', HERRAJES: 'Herrajes',
+  BARRIL: 'Barriles', BARRILES: 'Barriles',
+};
+
+const inferProductTypeFromName = (name: unknown): string => {
+  const firstWord = String(name ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim().toUpperCase().split(/\s+/)[0];
+  return PRODUCT_TYPE_FROM_NAME[firstWord] ?? '';
+};
+
 const parseCsvFile = (input: File | string) => new Promise<ImportRow[]>((resolve, reject) => {
   Papa.parse<ImportRow>(input, {
     header: true,
@@ -106,40 +127,44 @@ export default function CSVImporter({ onComplete }: { onComplete?: () => void })
         const rows = extension === 'csv'
           ? await parseCsvFile(selectedFile)
           : await parseExcelFile(selectedFile);
-            if (rows.length === 0) {
-              setStatus('error');
-              setMessage('El archivo está vacío.');
-              return;
-            }
+        if (rows.length === 0) {
+          setStatus('error');
+          setMessage('El archivo está vacío.');
+          return;
+        }
 
-            const mappedItems = rows.map((row: any) => ({
-              sku: row.sku ?? row.SKU,
-              name: row.name ?? row.Nombre ?? row.nombre,
-              category: row.category ?? row.Categoría ?? row.categoria ?? 'General',
-              price: row.price ?? row.Precio ?? row.precio ?? 0,
-              physicalStock: row.stock ?? row.Stock ?? row.cantidad ?? row.Cantidad ?? 0,
-              locationCode: row.locationCode ?? row.Ubicación ?? row.ubicacion ?? null,
-            }));
+        const mappedItems = rows.map((row) => {
+          const name = row.name ?? row.Nombre ?? row.nombre;
+          const category = String(row.category ?? row.Categoría ?? row.categoria ?? '').trim();
+          return {
+            sku: row.sku ?? row.SKU,
+            name,
+            category: category || inferProductTypeFromName(name),
+            price: row.price ?? row.Precio ?? row.precio ?? 0,
+            physicalStock: row.stock ?? row.Stock ?? row.cantidad ?? row.Cantidad ?? 0,
+            locationCode: row.locationCode ?? row.Ubicación ?? row.ubicacion ?? null,
+          };
+        });
 
-            setParsedItems(mappedItems);
-            
-            // Call server for staging validation
-            const previewResponse = await previewCSVUpload(mappedItems);
-            
-            if (previewResponse.success) {
-              setPreviewData({
-                  toCreate: previewResponse.toCreate || 0,
-                  toUpdate: previewResponse.toUpdate || 0,
-                  errors: previewResponse.errors || [],
-                  warnings: (previewResponse as any).warnings || [],
-                  stats: previewResponse.stats || { laminado: 0, plata: 0, rodio: 0, revisar: 0 },
-                  samples: previewResponse.samples || []
-                });
-              setStatus('staging');
-            } else {
-              setStatus('error');
-              setMessage(previewResponse.error || 'Error al validar el archivo.');
-            }
+        setParsedItems(mappedItems);
+
+        // Call server for staging validation
+        const previewResponse = await previewCSVUpload(mappedItems);
+
+        if (previewResponse.success) {
+          setPreviewData({
+            toCreate: previewResponse.toCreate || 0,
+            toUpdate: previewResponse.toUpdate || 0,
+            errors: previewResponse.errors || [],
+            warnings: (previewResponse as any).warnings || [],
+            stats: previewResponse.stats || { laminado: 0, plata: 0, rodio: 0, revisar: 0 },
+            samples: previewResponse.samples || []
+          });
+          setStatus('staging');
+        } else {
+          setStatus('error');
+          setMessage(previewResponse.error || 'Error al validar el archivo.');
+        }
       } catch (err: any) {
         console.error(err);
         setStatus('error');
