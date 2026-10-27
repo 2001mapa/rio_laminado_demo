@@ -108,7 +108,7 @@ export default function ClienteLayout({
       const notifiedCache = JSON.parse(localStorage.getItem('rio_notified_orders') || '{}');
       const newAlerts: typeof statusAlerts = [];
 
-      orders.filter(o => o.customerId === currentCustomer.id && !o.sellerId).forEach(o => {
+      orders.filter(o => o.customerId === currentCustomer.id).forEach(o => {
          const pubStatus = PUBLIC_STATES[o.status as InternalOrderState] || o.status;
          initialOrd[o.id] = pubStatus;
 
@@ -162,6 +162,10 @@ export default function ClienteLayout({
           for (const order of fetchedOrders) {
             const publicStatus = PUBLIC_STATES[order.status as InternalOrderState] || order.status;
             const oldPublicStatus = knownStatuses[order.id];
+
+            if (!oldPublicStatus) {
+              shouldRefresh = true;
+            }
             
             if (oldPublicStatus && oldPublicStatus !== publicStatus) {
               shouldRefresh = true;

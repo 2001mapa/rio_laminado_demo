@@ -10,6 +10,7 @@ import { use, useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import { confirmRio } from '@/lib/confirm';
 import { splitInventoryLabelsIntoSheets } from '@/lib/inventoryPrintLayout';
+import OrderPhotoActions from '@/components/OrderPhotoActions';
 
 const BARCODE_DEFAULTS = { width: 27, height: 7.5, offsetX: 1.5, offsetY: -2 };
 const LABEL_HEIGHT_MM = 15;
@@ -299,6 +300,8 @@ export default function PedidoDetalleAdminPage({ params }: { params: Promise<{ i
           {shortPrintPage && !useShortPrintPage && <p role="status" className="text-xs text-rio-danger">Este lote requiere una hoja completa o varias; se usará la impresión normal.</p>}
           <p className="text-xs text-rio-muted">Imprimir Etiquetas envía solo el lote actual, dividido en bloques de hasta 27. Reimprimir un sticker individual no cambia el lote.</p>
         </div>
+
+        <OrderPhotoActions orderNumber={order.number} items={order.items} />
 
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">

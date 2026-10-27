@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { PUBLIC_STATES, PUBLIC_MESSAGES, PUBLIC_MILESTONES, getMilestoneIndex } from '@/lib/order-status';
 import { confirmRio } from '@/lib/confirm';
+import OrderPhotoActions from '@/components/OrderPhotoActions';
 
 export default function PedidoClientePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -25,13 +26,13 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const order = orders.find(o => o.id === resolvedParams.id && o.customerId === currentCustomer?.id && !o.sellerId);
+  const order = orders.find(o => o.id === resolvedParams.id && o.customerId === currentCustomer?.id);
 
   if (!order) {
     return <div className="p-4 text-rio-muted">Pedido no encontrado</div>;
   }
 
-  const isEditable = order.status === 'Reservado';
+  const isEditable = order.status === 'Reservado' && !order.sellerId;
 
   const totalUnits = order.items.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -164,7 +165,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-        {!order.adjustmentAcknowledged && order.items.some(i => !!i.adjustmentReason) && (
+        {!order.sellerId && !order.adjustmentAcknowledged && order.items.some(i => !!i.adjustmentReason) && (
           <div className="mt-8 bg-rio-warning/10 border border-rio-warning/30 rounded-xl p-5">
             <div className="flex items-start mb-4">
               <Info className="w-5 h-5 text-rio-warning shrink-0 mt-0.5 mr-3" />
@@ -180,6 +181,10 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
             </button>
           </div>
         )}
+      </div>
+
+      <div className="mb-8">
+        <OrderPhotoActions orderNumber={order.number} items={order.items} />
       </div>
 
       <div className="mb-8">
@@ -213,7 +218,7 @@ export default function PedidoClientePage({ params }: { params: Promise<{ id: st
                         ))}
                       </div>
                     )}
-                    <span className="text-sm font-bold text-rio-gold-dark block">{formatPrice(product.price)} <span className="text-xs text-rio-muted font-medium">c/u</span></span>
+                    <span className="text-sm font-bold text-rio-gold-dark block">{formatPrice(item.priceAtTime ?? product.price)} <span className="text-xs text-rio-muted font-medium">c/u</span></span>
                   </div>
                 </div>
                 

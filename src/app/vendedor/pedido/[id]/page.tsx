@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Package } from 'lucide-react';
 import { useDemo } from '@/lib/DemoContext';
 import { formatPrice } from '@/lib/utils';
+import OrderPhotoActions from '@/components/OrderPhotoActions';
 
 export default function VendedorPedidoDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -37,6 +38,8 @@ export default function VendedorPedidoDetallePage({ params }: { params: Promise<
         </dl>
         {(order.carrier || order.trackingNumber) && <div className="mt-4 border-t border-rio-border pt-4 text-sm text-rio-ink">{order.carrier && <p><span className="font-semibold">Transportadora:</span> {order.carrier}</p>}{order.trackingNumber && <p><span className="font-semibold">Guía:</span> {order.trackingNumber}</p>}</div>}
       </header>
+
+      <OrderPhotoActions orderNumber={order.number} items={order.items} />
 
       <section className="rounded-2xl border border-rio-border bg-white p-5 shadow-sm md:p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold text-rio-ink"><Package className="h-5 w-5 text-rio-gold-dark" /> Referencias del pedido</h2>

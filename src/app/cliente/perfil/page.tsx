@@ -33,7 +33,7 @@ export default function PerfilPage() {
   const { currentCustomer, orders, isLoaded } = useDemo();
   
 
-  const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id && !o.sellerId)
+  const customerOrders = orders.filter(o => o.customerId === currentCustomer?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (!isLoaded) {
@@ -141,6 +141,7 @@ export default function PerfilPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[13px] md:text-sm font-bold text-rio-ink leading-none mb-1.5 md:mb-2">{order.number}</p>
+                      <p className="mb-1.5 text-[11px] font-semibold text-rio-gold-dark">{order.sellerId ? 'Hecho por vendedor' : 'Hecho por ti'}</p>
                       <p className="text-[11px] md:text-[12px] font-medium text-rio-muted leading-none">
                         {new Date(order.createdAt).toLocaleDateString('es-CO')}
                       </p>

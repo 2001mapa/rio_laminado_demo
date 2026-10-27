@@ -42,7 +42,7 @@ export async function getAppData() {
       if (customerProfile) {
         customers = [customerProfile];
         orders = await prisma.order.findMany({
-          where: { customerId: customerProfile.id, sellerId: null },
+          where: { customerId: customerProfile.id },
           include: { items: { include: { product: true } } },
           orderBy: { createdAt: 'desc' }
         });
@@ -245,7 +245,7 @@ export async function getClientOrderStatuses() {
     if (!customerProfile) return { success: false };
 
     const orders = await prisma.order.findMany({
-      where: { customerId: customerProfile.id, sellerId: null },
+      where: { customerId: customerProfile.id },
       select: { id: true, orderNumber: true, status: true },
       orderBy: { createdAt: 'desc' },
       take: 20

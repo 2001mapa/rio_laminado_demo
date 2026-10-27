@@ -580,7 +580,7 @@ export async function getOrderById(id: string) {
        }
     } else if (role === 'cliente') {
        const customerProfile = await prisma.customer.findUnique({ where: { authUserId: user.id } });
-       if (order.customerId !== customerProfile?.id || order.sellerId !== null) {
+       if (order.customerId !== customerProfile?.id) {
            return { success: false, message: 'Acceso denegado a este pedido' };
        }
     }
