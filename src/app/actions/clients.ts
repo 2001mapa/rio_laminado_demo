@@ -262,3 +262,31 @@ export async function getCustomerProfile(customerId: string) {
     return { success: false, message: e.message };
   }
 }
+
+export async function getCustomerAccessHistory(customerId: string, offset = 0) {
+  await requireRole(['admin']);
+  if (!customerId || !Number.isSafeInteger(offset) || offset < 0) {
+    return { success: false as const, message: 'Solicitud inválida.' };
+  }
+
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+    select: { id: true },
+  });
+  if (!customer) return { success: false as const, message: 'Cliente no encontrado.' };
+
+  const pageSize = 20;
+  const events = await prisma.auditEvent.findMany({
+    where: { action: 'LOGIN', entityType: 'CUSTOMER', entityId: customer.id, result: 'success' },
+    select: { id: true, createdAt: true },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    skip: offset,
+    take: pageSize + 1,
+  });
+
+  return {
+    success: true as const,
+    entries: events.slice(0, pageSize).map(event => ({ id: event.id, at: event.createdAt.toISOString() })),
+    hasMore: events.length > pageSize,
+  };
+}

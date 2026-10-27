@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { resolveLoginDestination } from '@/app/actions/auth';
+import { recordClientLogin, resolveLoginDestination } from '@/app/actions/auth';
 import styles from './page.module.css';
 import { clearOfflineSellerAccess } from '@/lib/offlineQueue';
 
@@ -98,6 +98,8 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+
+      await recordClientLogin();
       
       setTimeout(() => {
         window.location.replace(destination.targetPath as string);

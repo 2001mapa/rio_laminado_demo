@@ -1,12 +1,12 @@
 'use client';
 
 import { useDemo } from '@/lib/DemoContext';
-import { updateCustomerStatusAction, updateCustomerInternalStatus, getCustomerProfile } from '@/app/actions/clients';
+import { updateCustomerStatusAction, updateCustomerInternalStatus, getCustomerProfile, getCustomerAccessHistory } from '@/app/actions/clients';
 import EditCustomerModal from '@/components/EditCustomerModal';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
 import { useState } from 'react';
 import { addToast } from '@/lib/toast';
-import { ArrowLeft, Edit2, Mail, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Edit2, Mail, Key, UserCheck, UserX, PackageSearch, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,8 +29,18 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [lastSignInAt, setLastSignInAt] = useState<string | null | undefined>(undefined);
+  const [accessHistoryOpen, setAccessHistoryOpen] = useState(false);
+  const [accessHistoryLoaded, setAccessHistoryLoaded] = useState(false);
+  const [accessHistoryLoading, setAccessHistoryLoading] = useState(false);
+  const [accessHistory, setAccessHistory] = useState<{ id: string; at: string }[]>([]);
+  const [accessHistoryHasMore, setAccessHistoryHasMore] = useState(false);
+  const [accessHistoryError, setAccessHistoryError] = useState('');
 
   useEffect(() => {
+    setAccessHistoryOpen(false);
+    setAccessHistoryLoaded(false);
+    setAccessHistory([]);
+    setAccessHistoryHasMore(false);
     getCustomerProfile(resolvedParams.id).then(res => {
       if (res.success && res.orders) {
         setCustomerOrders(res.orders);
@@ -39,6 +49,32 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
       setIsLoadingOrders(false);
     });
   }, [resolvedParams.id]);
+
+  const loadAccessHistory = async (offset: number) => {
+    setAccessHistoryLoading(true);
+    setAccessHistoryError('');
+    try {
+      const result = await getCustomerAccessHistory(resolvedParams.id, offset);
+      if (!result.success) {
+        setAccessHistoryError(result.message);
+        return;
+      }
+      setAccessHistory(previous => offset === 0 ? result.entries : [...previous, ...result.entries]);
+      setAccessHistoryHasMore(result.hasMore);
+      setAccessHistoryLoaded(true);
+    } catch {
+      setAccessHistoryError('No se pudo consultar el historial de accesos.');
+    } finally {
+      setAccessHistoryLoading(false);
+    }
+  };
+
+  const handleToggleAccessHistory = () => {
+    setAccessHistoryOpen(open => !open);
+    if (!accessHistoryOpen && !accessHistoryLoaded && !accessHistoryLoading) {
+      void loadAccessHistory(0);
+    }
+  };
 
   const customer = customers.find(c => c.id === resolvedParams.id);
 
@@ -234,9 +270,45 @@ export default function ClienteDetalleAdminPage({ params }: { params: Promise<{ 
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold text-rio-muted tracking-wider mb-1">Último Acceso</p>
-                <p className="font-medium text-rio-ink">{formatLastAccess(lastSignInAt, isLoadingOrders)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-rio-ink">{formatLastAccess(lastSignInAt, isLoadingOrders)}</p>
+                  <button
+                    type="button"
+                    onClick={handleToggleAccessHistory}
+                    aria-label="Ver historial de accesos"
+                    aria-expanded={accessHistoryOpen}
+                    aria-controls="customer-access-history"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rio-border text-rio-ink hover:bg-rio-surface-muted"
+                  >
+                    <ChevronDown className={`h-4 w-4 transition-transform ${accessHistoryOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
               </div>
             </div>
+            {accessHistoryOpen && (
+              <div id="customer-access-history" className="mt-4 border-t border-rio-border pt-4">
+                <p className="text-xs font-bold text-rio-ink">Historial de inicios de sesión</p>
+                <p className="mt-1 text-xs text-rio-muted">Los accesos anteriores a esta función no están disponibles.</p>
+                {accessHistoryLoading && accessHistory.length === 0 && <p role="status" className="mt-3 text-sm text-rio-muted">Cargando accesos…</p>}
+                {accessHistoryError && <p role="alert" className="mt-3 text-sm text-rio-danger">{accessHistoryError}</p>}
+                {accessHistoryLoaded && accessHistory.length === 0 && <p className="mt-3 text-sm text-rio-muted">Todavía no hay inicios de sesión registrados.</p>}
+                {accessHistory.length > 0 && (
+                  <ol className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+                    {accessHistory.map((entry, index) => (
+                      <li key={entry.id} className="flex items-center gap-3 rounded-lg bg-rio-background px-3 py-2 text-sm text-rio-ink">
+                        <span className="text-xs font-bold text-rio-muted">{index + 1}.</span>
+                        <time dateTime={entry.at}>{formatLastAccess(entry.at, false)}</time>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {accessHistoryHasMore && (
+                  <button type="button" onClick={() => void loadAccessHistory(accessHistory.length)} disabled={accessHistoryLoading} className="mt-3 text-xs font-bold text-rio-gold-dark disabled:opacity-50">
+                    {accessHistoryLoading ? 'Cargando…' : 'Ver más accesos'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Orders History */}
